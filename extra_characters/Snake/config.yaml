@@ -1,0 +1,168 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["02CC", "0000"]
+  character: ["0004", "3FFFC"]
+
+definitions:
+  base_character: CAPTAIN
+  select_pose: 4
+
+num_costumes: 7
+
+charge_smash_frames:
+  up: 26
+  forward: 37
+  down: 6
+
+results:
+  name: "Snake"
+  name_scale: 1
+  name_x: 30
+  wins_x: 170
+
+shield_pose: ["000C", "3FFFC"]
+
+files: [
+    [
+      ["c4_hitbox", "3FFFC", "0040"],
+      ["nikita_hitbox", "3FFFC", "0040"],
+      ["usmash_hitbox", "3FFFC", "0000"],
+      ["cypher_hitbox", "3FFFC", "0040"],
+    ], # All Snake-only items and projectiles
+    ["grenade_hitbox", "3FFFC", "0040"], # Separated for Kirby use
+    "0x0",
+    "0x0",
+  ]
+
+# Files that are imported in the reqlist of other files
+# a lot of times these are GFX used for projectiles ("hitbox" file)
+append_files:
+  [
+    ["c4_gfx", "0134", "3FFFC"],
+    ["nikita_gfx", "0134", "3FFFC"],
+    ["usmash_gfx", "0058", "3FFFC"],
+    ["cypher_gfx", "0134", "3FFFC"],
+    ["grenade_gfx", "0134", "3FFFC"],
+  ]
+
+tag_team_preloads: ["merged_file_0", "grenade_hitbox"]
+
+sounds:
+  "FFF0": attack1
+  "FFF1": attack3
+  "FFF2": attack4
+  "FFF3": damagefly
+  "FFF4": dead
+  "FFF5": deadup
+  "FFF6": jump
+  "FFF7": nikita
+  "FFF8": now
+  "FFF9": there
+  "FFFA": shieldbreak
+  "FFFB": sleep
+  "FFFC": smashD
+  "FFFD": smashF
+  "FFFE": smashU
+  "FFFF": tech
+  "FFE0": nikitaSfx
+  "FFE1": keptyouwaitinghuh
+  "FFE2": missionaccomplished
+  "FFE3": notevenclose
+  "FFE4": showtime
+  "FFE5": Colonel
+  "FFE6": MeiLing
+  "FFE7": Otacon
+  "FFE8": call
+  "FFE9": opencall
+  "FFEA": endcall
+  "FFEB": stun
+  "FFEC": teeter
+  "FFED": grenadepull
+
+attributes:
+  death_fgm: "FFF4"
+  star_ko_fgm: "FFF5"
+  damaged_fgm: "FFF3"
+  attack_sfx_1: "FFF0"
+  attack_sfx_2: "FFF1"
+  attack_sfx_3: "FFF2"
+  size_multi: 1.11
+  walk_speed_multi: 0.3
+  traction: 1.8
+  dash_speed: 50.0
+  dash_deceleration: 2.0
+  run_speed: 40.0
+  jumpsquat_frames: 5
+  base_jump_height: 40
+  jump_height_multi: 0.44
+  jump_vel_x: 0.35
+  aerial_speed_max_x: 28
+  aerial_acceleration: 0.02
+  aerial_friction: 0.2
+  weight: 0.93
+  aerial_jump_vel_x: 0.35
+  aerial_jump_height: 1.1
+  gravity: 2.6
+  max_fall_speed: 58
+  fast_fall_speed: 80
+  hurtboxes:
+    # - bone: 1 Actual Bone ID, starting from 0
+    #   height: low/mid/high
+    #   grabbable: True/False. Arms (whole) and legs (lower) are usually not grabbable
+    #   offset: [x, y, z]
+    #   size: [x, y, z]
+    - bone: 1 # Hip
+      height: 1
+      grabbable: 1
+      offset: [0.0, -70.0, -20.0]
+      size: [108.0, 63.0, 78.0]
+    - bone: 2 # Torso
+      height: 1
+      grabbable: 1
+      offset: [0.0, 20.0, -20.0]
+      size: [120.0, 156.0, 80.0]
+    - bone: 8 # Head
+      height: 2
+      grabbable: 1
+      offset: [0.0, 15.0, 15.0]
+      size: [75.0, 80.0, 75.0]
+    - bone: 10
+      height: 1
+      grabbable: 0
+      offset: [45.0, 0.0, 0.0]
+      size: [138.0, 54.0, 54.0]
+    - bone: 4
+      height: 1
+      grabbable: 0
+      offset: [45.0, 0.0, 0.0]
+      size: [138.0, 54.0, 54.0]
+    - bone: 11
+      height: 1
+      grabbable: 0
+      offset: [54.0, 0.0, 0.0]
+      size: [138.0, 50.0, 50.0]
+    - bone: 5
+      height: 1
+      grabbable: 0
+      offset: [54.0, 0.0, 0.0]
+      size: [138.0, 50.0, 50.0]
+    - bone: 21
+      height: 0
+      grabbable: 1
+      offset: [78.0, 0.0, 3.0]
+      size: [129.0, 74.0, 66.0]
+    - bone: 16
+      height: 0
+      grabbable: 1
+      offset: [78.0, 0.0, 3.0]
+      size: [129.0, 74.0, 66.0]
+    - bone: 22
+      height: 0
+      grabbable: 0
+      offset: [93.0, 3.0, 0.0]
+      size: [180.0, 70.0, 64.0]
+    - bone: 17
+      height: 0
+      grabbable: 0
+      offset: [93.0, -3.0, 0.0]
+      size: [180.0, 70.0, 64.0]

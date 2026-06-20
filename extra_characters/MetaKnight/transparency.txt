@@ -1,0 +1,21 @@
+Export character display list
+
+Find "Special Part 1E"
+
+Updated values:
+
+trail:
+(Hi Res Special Part)
+(Lo Res Special Part)
+e7000000 00000000 d9fdffff 00000000
+e7000000 00000000 d9fffbff 00000000
+e3001001 00008000 e200001c 441049d8
+fc123245 00400087 e7000000 00000000
+fa000000 00000030
+
+tornado:
+(Extra Reference 00)
+(Extra Reference 01)
+e200001c 00504130
+fc321803 ff17ffff
+FA000000 f8f8c0ff

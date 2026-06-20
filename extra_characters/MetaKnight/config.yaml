@@ -1,0 +1,78 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["01C0", "0000"]
+  character: ["0008", "3FFFC"]
+
+definitions:
+  base_character: JIGGLYPUFF
+  series_logo_css: KIRBY
+  series_logo_model: KIRBY
+  select_pose: 4
+
+name: "Meta Knight"
+num_costumes: 6
+
+charge_smash_frames:
+  up: 3
+  forward: 18
+  down: 1
+
+results:
+  name: "Meta Knight"
+  name_scale: 0.55
+  name_x: 20
+  wins_x: 180
+
+kirby_jumps:
+  # Meta knight's jumps have no decay
+  height_multiplier_3: 60.0
+  height_multiplier_4: 60.0
+  height_multiplier_5: 60.0
+  height_multiplier_6: 60.0
+  jump_decay: 80.0 # Same as Kirby
+
+# Files 6, 7, 8, 9
+# [Filename (without .bin), InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+files: ["0x0", "0x0", "0x0", "0x0"]
+# sounds:
+# "FFF0": Announcer
+
+attributes:
+  death_fgm: "FFF4"
+  star_ko_fgm: "FFF2"
+  damaged_fgm: "FFF3"
+  attack_sfx_1: "FFE2"
+  attack_sfx_2: "FFE3"
+  attack_sfx_3: "FFE4"
+  heavy_lift_fgm: "FFF7"
+  aerial_jump_height: 0.7
+  base_jump_height: 25
+  jump_height_multi: 0.78
+  gravity: 3
+  forward_throw_animation: "0xB8"
+  back_throw_animation: "0xB8"
+  dash_run_frames: 12
+
+sounds:
+  "FFF0": taunt
+  "FFF1": tech
+  "FFF2": starko
+  "FFF3": damageFly
+  "FFF4": ko
+  "FFF5": specialD
+  "FFF6": specialU
+  "FFF7": heavyGet
+  "FFF8": jump
+  "FFF9": smashD
+  "FFFA": smashF
+  "FFFB": smashU
+  "FFFC": shieldbreak
+  "FFFD": sleep
+  "FFFE": ottotto
+  "FFFF": win1
+  "FFE0": win2
+  "FFE1": win3
+  "FFE2": attack1
+  "FFE3": attack2
+  "FFE4": attack3
+  "FFE5": jab

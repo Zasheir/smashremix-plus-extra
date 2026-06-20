@@ -1,0 +1,91 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["0114", "0000"]
+  character: ["0008", "3FFFC"]
+
+definitions:
+  base_character: MARIO
+  select_pose: 2
+
+# shield_pose: "0x147"
+
+num_costumes: 8
+name: "Ice Climbers"
+
+charge_smash_frames:
+  up: 6
+  forward: 5
+  down: 3
+
+results:
+  name: "Ice Climbers"
+  name_scale: 0.75
+  name_x: 20
+  wins_x: 210
+  j_win_text: true
+
+sounds:
+  "FFF0": blizz
+  "FFF1": blizzNana
+  "FFF2": damageFly
+  "FFF3": damageFlyNana
+  "FFF4": die
+  "FFF5": dieNana
+  "FFF6": iceBlock
+  "FFF7": iceBlockNana
+  "FFF8": jump1
+  "FFF9": jump2
+  "FFFA": smashD
+  "FFFB": smashDNana
+  "FFFC": smashF
+  "FFFD": smashFNana
+  "FFFE": smashU
+  "FFFF": smashUNana
+  "FFE0": squall
+  "FFE1": squallNana
+  "FFE2": starKo
+  "FFE3": starKoNana
+  "FFE4": taunt
+  "FFE5": tauntNana
+  "FFE6": iceBlocksfx
+  "FFE7": blizzsfx
+  "FFE8": stun
+  "FFE9": stunNana
+  "FFEA": sleep
+  "FFEB": sleepNana
+  "FFEC": teeter
+  "FFED": teeterNana
+  "FFEE": tech
+  "FFEF": techNana
+
+attributes:
+  death_fgm: "02B7"
+  star_ko_fgm: "FFE2"
+  damaged_fgm: "FFF2"
+  walk_speed_multi: 0.3
+  gravity: 2.35
+  weight: 1.05
+  dash_speed: 58.0
+
+# Files 6, 7, 8, 9
+# [Filename (without .bin), InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+files:
+  [
+    ["ib_hitbox", "3FFFC", "0040"],
+    ["blizz_hitbox", "3FFFC", "0000"],
+    ["ib_gfx", "0134", "3FFFC"],
+    ["blizz_gfx", "00CC", "3FFFC"],
+  ]
+
+tag_team_preloads: ["ib_hitbox", "blizz_hitbox"]
+
+# sword trail definitions
+sword_trails:
+  # Default
+  "FF":
+    part: "0x7"
+    axis: "AXIS_Y"
+    color1: "0xB68E5600"
+    color2: "0xB68E5600"
+    start_pos: -150
+    end_pos: -300
