@@ -1,0 +1,31 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Emerald Coast"
+
+series: SONIC
+
+hazard_type: "HAZARDS" # Options: NONE, HAZARDS, MOVEMENT, BOTH
+
+sss_zoom: 0.42
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["1964", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "OPEN_YOUR_HEART"
+  occasional: "SONICADVENTURE_EMERALD_COAST"
+  rare: "KNUCKLESCHAOTIX_SEASCAPE"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-2545,1425]
+    p2: [2545,1425]
+    p3: [-1030,765]
+    p4: [1030,765]
+  neutral:
+    p1: [-2545,1425]
+    p2: [2545,1425]
+    p3: [-1030,765]
+    p4: [1030,765]

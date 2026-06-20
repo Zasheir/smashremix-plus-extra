@@ -1,0 +1,29 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Emerald Shrine - Night"
+
+series: SONIC
+
+training_background: SECTOR_Z
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["4424", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "KNUCKLESCHAOTIX_EVENING_STAR"
+  occasional: "KNUCKLESCHAOTIX_MIDNIGHT_GREENHOUSE"
+  rare: "SONIC2_MYSTIC_CAVE"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-2000,1000]
+    p2: [2000,1000]
+    p3: [-970,1115]
+    p4: [970,1115]
+  neutral:
+    p1: [-2000,1000]
+    p2: [2000,1000]
+    p3: [-970,1115]
+    p4: [970,1115]

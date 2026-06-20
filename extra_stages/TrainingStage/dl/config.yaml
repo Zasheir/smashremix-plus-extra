@@ -1,0 +1,21 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Training Stage DL"
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["653C", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+mushroom_kingdom_camera: true
+
+spawn_locations:
+  default:
+    p1: [-1400,910]
+    p2: [1400,910]
+    p3: [-0,1550]
+    p4: [0,5]
+  neutral:
+    p1: [-1400,910]
+    p2: [1400,910]
+    p3: [-0,1550]
+    p4: [0,5]

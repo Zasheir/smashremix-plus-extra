@@ -1,0 +1,5 @@
+[submodule "smashremix"]
+	path = smashremix
+	url = https://github.com/JSsixtyfour/smashremix
+	branch = master
+	ignore = dirty

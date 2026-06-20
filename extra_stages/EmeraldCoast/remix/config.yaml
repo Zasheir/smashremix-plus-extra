@@ -1,0 +1,32 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Emerald Coast Remix"
+
+series: SONIC
+
+hazard_type: "HAZARDS" # Options: NONE, HAZARDS, MOVEMENT, BOTH
+
+sss_zoom: 0.42
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["10F4", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+# would be good to re-use regular Emerald Coast BG & Icon
+
+music:
+  main: "OPEN_YOUR_HEART"
+  occasional: "SONICADVENTURE_EMERALD_COAST"
+  rare: "KNUCKLESCHAOTIX_SEASCAPE"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-1400,1710]
+    p2: [1400,1710]
+    p3: [-0,2350]
+    p4: [0,805]
+  neutral:
+    p1: [-1400,1710]
+    p2: [1400,1710]
+    p3: [-0,2350]
+    p4: [0,805]

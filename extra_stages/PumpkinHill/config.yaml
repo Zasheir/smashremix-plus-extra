@@ -1,0 +1,29 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Pumpkin Hill"
+
+series: SONIC
+
+training_background: SECTOR_Z
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["4A6C", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "SONICADVENTURE2_PUMPKIN_HILL"
+  occasional: "KNUCKLESCHAOTIX_MIDNIGHT_GREENHOUSE"
+  rare: "KNUCKLESCHAOTIX_SEASCAPE"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-1783,240]
+    p2: [1783,240]
+    p3: [-725,240]
+    p4: [725,240]
+  neutral:
+    p1: [-1783,240]
+    p2: [1783,240]
+    p3: [-725,240]
+    p4: [725,240]

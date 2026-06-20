@@ -1,0 +1,82 @@
+00D4 Donkey Kong Move Set
+0163 DK Entry Barrel
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+013F Donkey Kong Shared Character Icons
+013F Donkey Kong Shared Character Icons
+013F Donkey Kong Shared Character Icons
+013F Donkey Kong Shared Character Icons
+013F Donkey Kong Shared Character Icons
+013F Donkey Kong Shared Character Icons
+013F Donkey Kong Shared Character Icons
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+013E Donkey Kong Shield Pose
+013E Donkey Kong Shield Pose
+013E Donkey Kong Shield Pose
+013E Donkey Kong Shield Pose
+013E Donkey Kong Shield Pose
+013E Donkey Kong Shield Pose
+013E Donkey Kong Shield Pose
+013E Donkey Kong Shield Pose
+013E Donkey Kong Shield Pose
+END OF REQ LIST

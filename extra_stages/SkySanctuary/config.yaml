@@ -1,0 +1,29 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Sky Sanctuary Zone"
+
+series: SONIC
+
+sss_zoom: 0.6
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["5FE4", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "SONICNKNUCKLES_SKY_SANCTUARY"
+  occasional: "KNUCKLESCHAOTIX_DOOR_INTO_SUMMER"
+  rare: "KNUCKLESCHAOTIX_EVENING_STAR"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-1900,1250]
+    p2: [1900,1250]
+    p3: [-633,245]
+    p4: [633,245]
+  neutral:
+    p1: [-1900,1250]
+    p2: [1900,1250]
+    p3: [-633,245]
+    p4: [633,245]

@@ -1,0 +1,30 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Radical Highway"
+
+series: SONIC
+
+training_background: SECTOR_Z
+sss_zoom: 0.55
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["6124", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "SONICADVENTURE2_RADICAL_HIGHWAY"
+  occasional: "LIVE_AND_LEARN"
+  rare: "SONICADVENTURE_SYMBOL_OF_THRILL"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-2250,150]
+    p2: [3000,150]
+    p3: [-4100,150]
+    p4: [4800,150]
+  neutral:
+    p1: [-2250,150]
+    p2: [3000,150]
+    p3: [-4100,150]
+    p4: [4800,150]

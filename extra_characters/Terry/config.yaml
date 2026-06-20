@@ -1,0 +1,95 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["0164", "0000"]
+  character: ["0004", "3FFFC"]
+
+definitions:
+  base_character: CAPTAIN
+
+num_costumes: 7
+
+charge_smash_frames:
+  up: 4
+  forward: 12
+  down: 4
+
+results:
+  name: "Terry"
+  name_scale: 1
+  name_x: 30
+  wins_x: 170
+
+# FROM: to
+# Will switch all audio commands with id FROM to the generated ID for filename "to.aifc"
+# So in your moveset commands replace any audio calls to these IDs
+sounds:
+  "FFF0": rising_tackle
+  "FFF1": power_charge
+  "FFF2": burn_knuckle
+  "FFF3": pd1
+  "FFF4": pd2
+  "FFF5": come_on
+  "FFF6": ha
+  "FFF7": trrrah
+  "FFF8": damage
+  "FFF9": die
+  "FFFA": diesky
+  "FFE0": okay
+  "FFE1": all_right
+  "FFE2": power_wave
+  "FFE3": crack
+  "FFE4": shoot
+  "FFE5": dizzy
+  "FFE6": announcer
+  "FFE7": roll
+  "FFE8": relief
+
+announcer_fgm: "FFE6"
+
+attributes:
+  death_fgm: "FFF9"
+  star_ko_fgm: "FFFA"
+  damaged_fgm: "FFF8"
+  heavy_lift_fgm: "FFE7"
+  gravity: 2.7655672292643145
+  max_fall_speed: 50.406700012411925
+  aerial_friction: 0.45333334795302827
+  aerial_acceleration: 0.032662630183898915
+  aerial_speed_max_x: 29.8789242236773
+  jump_vel_x: 0.3902864949995987
+  aerial_jump_height: 1.0
+  base_jump_height: 40
+  jump_height_multi: 0.5
+  ledge_grab_y: 600
+
+# If it's an array, the process will try to import a shield_pose.bin and use the offsets provided
+# If it's just a string, it will use it as the shield pose file ID. In hex, works with or without "0x" at the start.
+shield_pose: ["0064", "3FFFC"]
+
+# Files 6, 7, 8, 9
+# [Filename (without .bin), InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+# If it's a string, it will use that instead of adding a new file
+files:
+  [
+    ["hadouken_hitbox", "3FFFC", "0000"],
+    ["hadouken_gfx", "0058", "3FFFC"],
+    ["bk_gfx", "0094", "3FFFC"],
+    ["pd_gfx", "00CC", "3FFFC"],
+  ]
+
+tag_team_preloads: ["hadouken_hitbox"]
+
+# If the reqlist doesn't have enough entries that you can overwrite for files
+# This makes so you can add more ${FILE_N} entries at the end of the reqlist
+extend_main_reqlist: 1
+
+# sword trail definitions
+sword_trails:
+  # Crackshoot
+  "FF":
+    part: "0x17"
+    axis: "AXIS_X"
+    color1: "0x08528400"
+    color2: "0xFFFFFF00"
+    start_pos: 80
+    end_pos: 370

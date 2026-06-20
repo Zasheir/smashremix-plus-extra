@@ -1,0 +1,78 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["01A8", "0000"]
+  character: ["0008", "3FFFC"]
+
+definitions:
+  base_character: FOX
+  series_logo_css: SONIC
+  series_logo_model: SONIC
+  select_pose: 4
+
+shield_pose: "0x013A"
+
+name: "Knuckles"
+
+num_costumes: 6
+
+charge_smash_frames:
+  up: 3
+  forward: 3
+  down: 2
+
+results:
+  name: "Knuckles"
+  name_scale: 0.75
+  name_x: 25
+  wins_x: 180
+
+data_screen:
+  name_x: 20
+  name_y: 50
+
+  use_existing_special_actions: 0
+  use_existing_jab_actions: 1
+  jab_char: MARIO
+
+  # [Type, Action, Frames, Flags]
+  actions:
+    [
+      ["USP", "Knuckles.Action.Spring", 666],
+      ["NSP", "Knuckles.Action.GlideTurn", 666],
+      ["NSP", "Knuckles.Action.GlideBegin", 60],
+      ["NSP", "Knuckles.Action.GlideWait", 60],
+      ["NSP", "Knuckles.Action.GlideEnd", 666],
+      ["NSP", "Knuckles.Action.DiveAirBegin", 60],
+      ["NSP", "Knuckles.Action.DiveAirLoop", 60],
+      ["NSP", "Knuckles.Action.DiveLand", 666],
+      ["DSP", "Knuckles.Action.SpinDashChargeGround", 60],
+      ["DSP", "Knuckles.Action.SpinDashGround", 60],
+      ["DSP", "Knuckles.Action.SpinDashEndGround", 666],
+    ]
+
+files:
+  [
+    ["spring_hitbox", "3FFFC", "0000"],
+    "0x15A",
+    "0x0A1",
+    ["spring_gfx", "00A8", "3FFFC"],
+  ]
+
+tag_team_preloads: ["spring_hitbox"]
+
+sounds:
+  "04BE": CLIMB_CLING
+  "053E": CHANT
+  "0541": ANNOUNCER
+
+sounds_special:
+  "053E":
+    fgm_type: CHANT
+    length: 303
+
+announcer_fgm: "0541"
+
+attributes:
+  death_fgm: "03E4"
+  star_ko_fgm: "02B7"
+  damaged_fgm: "02B7"

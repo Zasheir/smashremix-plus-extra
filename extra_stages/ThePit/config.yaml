@@ -1,0 +1,33 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "The Pit"
+
+training_background: SECTOR_Z
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["7244", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+mushroom_kingdom_camera: true
+
+music:
+  main: MORTALKOMBAT_TECHNO_SYNDROME
+  occasional: ARCUSODYSSEY_PRAY_FOR_VICTORY
+  rare: BATTLETOADS_WOOKIE_HOLE
+  rare2: -1
+
+series_position:
+  x: 4.25
+  y: 19
+
+spawn_locations:
+  default:
+    p1: [-1153,-1390]
+    p2: [1153,-1390]
+    p3: [-3332,-2413]
+    p4: [3332,-2413]
+  neutral:
+    p1: [-1153,-1390]
+    p2: [1153,-1390]
+    p3: [-3332,-2413]
+    p4: [3332,-2413]

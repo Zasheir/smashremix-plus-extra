@@ -1,0 +1,61 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["013C", "0000"]
+  character: ["0004", "3FFFC"]
+
+definitions:
+  base_character: CAPTAIN
+
+charge_smash_frames:
+  up: 6
+  forward: 6
+  down: 1
+
+results:
+  name: "Ken"
+  name_scale: 1
+  name_x: 50
+  wins_x: 160
+
+shield_pose: ["0274", "3FFFC"]
+
+files:
+  [
+    ["hadouken_hitbox", "3FFFC", "0000"],
+    ["shoryuken_gfx", "00CC", "3FFFC"],
+    "0x14D",
+    ["hadouken_gfx", "0058", "3FFFC"],
+  ]
+
+tag_team_preloads: ["hadouken_hitbox"]
+
+sounds:
+  "FFF0": PUNCH_S
+  "FFF1": PUNCH_M
+  "FFF2": PUNCH_L
+  "FFF3": KICK_S
+  "FFF4": KICK_M
+  "FFF5": KICK_L
+  "FFF6": WHOOSH_S
+  "FFF7": WHOOSH_M
+  "FFF8": WHOOSH_L
+  "FFF9": HADOUKEN
+  "FFFA": SHORYUKEN
+  "FFFB": GROUND_BUMP
+  "FFFC": TATSU_S
+  "FFFD": TATSU
+  "FFFE": DIZZY
+  "FFFF": TECH
+  "FFE0": THROW
+  "FFE1": DAMAGED
+  "FFE2": DIE
+  "FFE3": YATTA
+  "FFE4": SEYA
+  "FFE5": YA
+
+attributes:
+  death_fgm: "FFE2"
+  star_ko_fgm: "FFE1"
+  damaged_fgm: "FFE1"
+  ledge_grab_y: 600
+  gravity: 3.6

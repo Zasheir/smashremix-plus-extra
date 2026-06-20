@@ -1,0 +1,103 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["01A8", "0000"]
+  character: ["0008", "3FFFC"]
+
+definitions:
+  base_character: FOX
+  series_logo_css: SONIC
+  series_logo_model: SONIC
+  select_pose: 4
+
+shield_pose: "0x013A"
+
+name: "MKnuckles"
+
+num_costumes: 6
+
+charge_smash_frames:
+  up: 3
+  forward: 3
+  down: 2
+
+results:
+  name: "Knuckles"
+  name_scale: 0.75
+  name_x: 25
+  wins_x: 180
+
+data_screen:
+  name_x: 20
+  name_y: 50
+
+  use_existing_special_actions: 0
+  use_existing_jab_actions: 1
+  jab_char: MARIO
+
+  # [Type, Action, Frames, Flags]
+  actions: [
+    ["USP", "MKnuckles.Action.Spring", "0x29A"],
+    ["NSP", "MKnuckles.Action.GlideTurn", "0x29A"],
+    ["NSP", "MKnuckles.Action.GlideBegin", "0x3C"],
+    ["NSP", "MKnuckles.Action.GlideWait", "0x3C"],
+    ["NSP", "MKnuckles.Action.GlideEnd", "0x29A"],
+    ["NSP", "MKnuckles.Action.DiveAirBegin", "0x3C"],
+    ["NSP", "MKnuckles.Action.DiveAirLoop", "0x3C"],
+    ["NSP", "MKnuckles.Action.DiveLand", "0x29A"],
+    ["DSP", "MKnuckles.Action.SpinDashChargeGround", "0x3C"],
+    ["DSP", "MKnuckles.Action.SpinDashGround", "0x3C"],
+    ["DSP", "MKnuckles.Action.SpinDashEndGround", "0x29A"]
+  ]
+
+files: [
+  ["spring_hitbox", "3FFFC", "0000"],
+  "0x15A",
+  "0x0A1",
+  ["spring_gfx", "00A8", "3FFFC"]
+]
+
+tag_team_preloads: [
+  "spring_hitbox"
+]
+
+sounds:
+  "04BE": CLIMB_CLING
+  "053E": CHANT
+  "0541": ANNOUNCER
+  "0562": DEATH
+  "0565": OH_NO
+  "05B4": STAR_KO
+  "0609": DAMAGED
+  "060A": DIVEG
+  "060B": FSMASH
+  "060C": GENERIC_FGM1
+  "060D": GENERIC_FGM2
+  "060E": GENERIC_FGM3
+  "060F": ROLL
+  "0610": SHIELDBREAK
+  "0611": STUNNED
+  "0612": SLEEP # same as STUNNED
+  "0613": TAUNT
+  "0614": TECH
+  "0615": TEETER
+  "0616": USMASH
+  "0617": VICTORY_1
+  "0618": VICTORY_2
+
+sounds_special:
+  "0612":
+    fgm_type: SLEEP
+    length: "0x120"
+  "053E":
+    fgm_type: CHANT
+    length: 303
+
+announcer_fgm: "0541"
+
+attributes:
+  death_fgm: "0562"
+  star_ko_fgm: "05B4"
+  damaged_fgm: "0609"
+  attack_sfx_1: "060C"
+  attack_sfx_2: "060D"
+  attack_sfx_3: "060E"

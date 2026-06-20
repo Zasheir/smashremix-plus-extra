@@ -1,0 +1,67 @@
+# ROMs
+*.z64
+*.rom
+*.n64
+*.v64
+
+# Saves
+*.sra
+*.srm
+*.state
+*.bs1
+
+# Dev Info
+*.log
+*.log.*
+*.sym
+
+# Build
+build/original/*.bin
+build/original/*.vpk
+build/original/*.txt
+
+# /roms
+/roms/*
+!/roms/filename_overrides.txt
+!/roms/Place legally acquired rom titled ssb.rom here.txt
+
+# Python (scripts)
+*.pyc
+.env
+
+# Extra characters feature
+src/*
+smashremix/*
+*_extra.asm
+extra_characters/*/moveset_compiled/
+extra_characters/*/*_compiled.*
+extra_characters/*/MODEL_REQ.req
+extra_characters/*/merged_file_*
+extra_stages/*/*_compiled.*
+extra_stages/*/*/*_compiled.*
+incremental_extra.csv
+build/*
+/main.asm
+*.xdelta3
+*.xdelta
+xdelta.exe
+xdeltaUI.exe
+rdb.txt
+ini.txt
+scripts/*.bin
+
+*.ram
+*.state1
+
+build/utils/*.bin
+__pycache__
+
+# Backup files
+*.bak
+
+# Compressed files
+*.zip
+*.7z
+*.tar.gz
+*.tar
+*.rar

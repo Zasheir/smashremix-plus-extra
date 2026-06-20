@@ -1,0 +1,27 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Emerald Shrine"
+
+series: SONIC
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["4424", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "OPEN_YOUR_HEART"
+  occasional: "KNUCKLESCHAOTIX_DOOR_INTO_SUMMER"
+  rare: "SONICADVENTURE2_PUMPKIN_HILL"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-2000,1000]
+    p2: [2000,1000]
+    p3: [-970,1115]
+    p4: [970,1115]
+  neutral:
+    p1: [-2000,1000]
+    p2: [2000,1000]
+    p3: [-970,1115]
+    p4: [970,1115]

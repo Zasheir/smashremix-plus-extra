@@ -1,0 +1,29 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Tree Top Town"
+
+series: DONKEY_KONG
+
+training_background: SECTOR_Z
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["4FBC", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "DKC_TREETOP_ROCK"
+  occasional: "DKCTITLE"
+  rare: "DKC2_HOT_HEAD_BOP"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-1400,910]
+    p2: [1400,910]
+    p3: [-500,110]
+    p4: [500,110]
+  neutral:
+    p1: [-1400,910]
+    p2: [1400,910]
+    p3: [-500,110]
+    p4: [500,110]

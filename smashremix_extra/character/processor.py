@@ -1,0 +1,1546 @@
+import os
+import sys
+import re
+import shutil
+import struct
+import yaml
+from pathlib import Path
+
+from smashremix_extra.constants import (
+    SMASHREMIX_PATH as smashremix_path,
+    PRIMARY_MOVESETS, SHIELD_POSES, COMMAND_SIZES, ExtraFile,
+)
+from smashremix_extra.image_appender import append_image, get_image_data, ImageMode
+from smashremix_extra.rom_util import get_attrib_offset
+from smashremix_extra.file_manager import FileManager
+from smashremix_extra.character.hurtbox import Hurtbox
+from smashremix_extra.smashremix.kirbyshared import kirby_shared, KirbyJumpConfig
+from smashremix_extra.logger import logger
+from smashremix_extra import hex_util, asm_util
+
+
+class CharacterProcessor:
+    """Processes extra character folders and accumulates patch data."""
+
+    def __init__(
+        self,
+        name_texture_default: str,
+        last_sfx_id: int,
+        last_remix_sfx_id: int,
+        sword_trail_count: int,
+    ):
+        self.name_texture_default = name_texture_default
+        self.LAST_SFX_ID = last_sfx_id
+        self.LAST_REMIX_SFX_ID = last_remix_sfx_id
+        self.SWORD_TRAIL_COUNT = sword_trail_count
+
+        self.character_defs = []
+        self.results_screen_defs = []
+        self.add_to_css_strings = []
+        self.victory_theme_strings = []
+        self.singleplayer_additions = []
+        self.singleplayer_name_width_defs = []
+        self.character_names = []
+        self.character_skins = []
+        self.character_series_models = {}
+        self.character_series_textures = {}
+        self.character_tag_team_preloads = []
+        self.character_data_screen_defs = []
+        self.character_data_screen_order = []
+        self.data_screen_big_border_defs = []
+        self.results_j_win_defs = []
+        self.yoshi_jump_defs = []
+        self.yoshi_shield_defs = [[] for _ in range(8)]
+        self.yoshi_grab1_defs = []
+        self.yoshi_grab2_defs = []
+        self.yoshi_throw1_defs = []
+        self.yoshi_recover_defs = []
+        self.yoshi_upspecial_defs = []
+        self.yoshi_upspecialstruct_defs = []
+        self.yoshi_downspecial_defs = []
+        self.yoshi_downspecialstruct_defs = []
+        self.dk_cargo_defs_1 = []
+        self.dk_cargo_defs_2 = []
+        self.sound_add_list = []
+        self.sword_trail_add_list = []
+        self.items_added = 0
+        self.midi_priority_overrides = []
+        self.midi_bend_range_overrides = []
+        self.midi_master_volume_overrides = []
+
+    def process(self, character_folder: str) -> None:
+        """Process one character folder and accumulate patch data into self."""
+        print(f"== {character_folder} ==")
+        config = yaml.safe_load(open(
+            f"extra_characters/{character_folder}/config.yaml"
+        ))
+        print(config)
+
+        # Fail if no base character is defined
+        if "base_character" not in config.get("definitions", {}):
+            print(
+                f"ERROR: No base character defined in {character_folder}/config.yaml")
+            sys.exit(1)
+
+        # Fail if base character is not a valid character
+        if config.get("definitions", {}).get("base_character") not in PRIMARY_MOVESETS:
+            print(
+                f"ERROR: Base character {config.get('definitions', {}).get('base_character')} is not a valid character")
+            sys.exit(1)
+
+        # If no files are defined, set all 4 to [0x0]
+        if "files" not in config:
+            print(
+                "WARNING: No files defined in config.yaml. Setting all files to 0x0")
+            config["files"] = [0x0] * 4
+
+        output_path = f"build/extra_characters/{character_folder}/"
+        original_path = f"extra_characters/{character_folder}/"
+
+        # Copy all files from the character folder to the output path
+        shutil.copytree(
+            original_path,
+            output_path,
+            dirs_exist_ok=True
+        )
+
+        filename_to_id = {}
+
+        main_file = FileManager.add_file(
+            path=f"{output_path}/main.bin",
+            name=f"{character_folder}_main",
+            internal_file_table_offset=config["offsets"]["main"][0],
+            internal_file_resource_offset=config["offsets"]["main"][1],
+            reqlist_path=f"{output_path}/main_reqlist.txt",
+            compression_level=2,
+            extend_reqlist=config.get("extend_main_reqlist", 0)
+        )
+
+        character_file = FileManager.add_file(
+            path=f"{output_path}/character.bin",
+            name=f"{character_folder}_character",
+            internal_file_table_offset=config["offsets"]["character"][0],
+            internal_file_resource_offset=config["offsets"]["character"][1],
+            reqlist_path=f"{output_path}/character_reqlist.txt" if os.path.exists(
+                f"{output_path}/character_reqlist.txt") else None,
+            compression_level=2
+        )
+
+        req_list_count = 0
+
+        extra_files_str = []
+        extra_files_to_add: List[ExtraFile] = []
+        extra_files_merged_offsets_str = []
+
+        for index, file in enumerate(config.get("files", [])):
+            if isinstance(file, str):
+                extra_files_str.append(file)
+            elif isinstance(file, list) and len(file) > 0 and isinstance(file[0], list):
+                file_id = character_file.id + \
+                    1+len(extra_files_to_add)
+
+                # Merge the files in the list
+                # Merge files in the list into one
+                files_data = []
+                files_sizes = []
+                reqlist_contents = []
+                reqlist_exists = False
+
+                for file_data in file:
+                    file_path = f"./{original_path}/{file_data[0]}.bin"
+
+                    with open(file_path, 'rb') as _f:
+                        data = bytearray(_f.read())
+                        files_sizes.append(len(data))
+                        files_data.append(data)
+
+                    # Check for reqlist
+                    reqlist_path = f"{original_path}/{file_data[0]}_reqlist.txt"
+                    if os.path.exists(reqlist_path):
+                        reqlist_exists = True
+                        with open(reqlist_path, 'r', encoding='utf-8') as _f:
+                            contents = _f.readlines()
+                            # Remove "END OF REQLIST" line if present
+                            contents = [
+                                l for l in contents if not l.startswith("END OF")]
+                            reqlist_contents.extend(contents)
+
+                # Merge files and update linked lists
+                merged_data = bytearray()
+
+                for i, data in enumerate(files_data):
+                    offset_to_add = sum(files_sizes[:i])
+
+                    extra_files_merged_offsets_str.append(
+                        f"constant MERGED_FILESTART_{index+6}_{i}(0x{offset_to_add:X})"
+                    )
+
+                    # Update first linked list
+                    list1_start = int(file[i][1], 16)
+
+                    # Process first linked list
+                    current = list1_start
+
+                    while current != 0x3FFFC:
+                        list1_pos = current
+
+                        next_list_item = int.from_bytes(
+                            data[list1_pos:list1_pos+2], byteorder='big')
+
+                        data_part = int.from_bytes(
+                            data[list1_pos+2:list1_pos+4], byteorder='big')
+                        if data_part != 0:
+                            data[list1_pos+2:list1_pos+4] = int(
+                                (data_part * 4 + offset_to_add) // 4
+                            ).to_bytes(2, byteorder='big')
+
+                        if next_list_item == 0xFFFF:
+                            if i < len(files_data)-1:
+                                # Point to start of next list instead of FFFF
+                                next_list_offset = int(
+                                    file[i+1][1], 16) + sum(files_sizes[:i+1])
+                                data[list1_pos:list1_pos+2] = int(
+                                    next_list_offset/4).to_bytes(2, byteorder='big')
+                            break
+                        else:
+                            next_list_item = int(next_list_item * 4)
+
+                        data[list1_pos:list1_pos+2] = int(
+                            (next_list_item + offset_to_add)/4).to_bytes(2, byteorder='big')
+                        current = next_list_item
+
+                    if list1_start != 0x3FFFC:
+                        extra_files_merged_offsets_str.append(
+                            f"constant MERGED_FILETABLE_OFFSET_{index+6}_{i}(0x{list1_start + offset_to_add:X})")
+
+                    # Update second linked list
+                    list2_start = int(file[i][2], 16)
+
+                    # Process second linked list
+                    current = list2_start
+
+                    while current != 0x3FFFC:
+                        list_pos = current
+
+                        next_list_item = int.from_bytes(
+                            data[list_pos:list_pos+2], byteorder='big')
+
+                        if next_list_item == 0xFFFF:
+                            if i < len(files_data)-1:
+                                # Point to start of next list instead of FFFF
+                                next_list_offset = int(
+                                    file[i+1][2], 16) + sum(files_sizes[:i+1])
+                                data[list_pos:list_pos+2] = int(
+                                    next_list_offset/4).to_bytes(2, byteorder='big')
+                            break
+                        else:
+                            next_list_item = int(next_list_item * 4)
+
+                        data[list_pos:list_pos+2] = int(
+                            (next_list_item + offset_to_add)/4).to_bytes(2, byteorder='big')
+                        current = next_list_item
+
+                    if list2_start != 0x3FFFC:
+                        extra_files_merged_offsets_str.append(
+                            f"constant MERGED_FILERESOURCE_{index+6}_{i}(0x{list2_start + offset_to_add:X})")
+
+                    merged_data.extend(data)
+
+                # Write merged file
+                merged_filename = f"merged_file_{index}"
+                with open(f"{output_path}/{merged_filename}.bin", 'wb') as _f:
+                    _f.write(merged_data)
+
+                # Write merged reqlist if any existed
+                if reqlist_exists:
+                    with open(f"{output_path}/{merged_filename}_reqlist.txt", 'w', encoding='utf-8') as _f:
+                        _f.writelines(reqlist_contents)
+                        _f.write("END OF REQ LIST\n")
+
+                extra_files_str.append(
+                    hex(file_id))
+                extra_files_to_add.append(
+                    ExtraFile(merged_filename, index, file[0][1], file[0][2], file_id))
+                filename_to_id[merged_filename] = file_id
+            else:
+                file_id = character_file.id + \
+                    1 + len(extra_files_to_add)
+                extra_files_str.append(
+                    hex(file_id))
+                extra_files_to_add.append(
+                    ExtraFile(file[0], index, file[1], file[2], file_id))
+                filename_to_id[file[0]] = file_id
+
+        append_files_str = []
+        append_files = []
+
+        for index, file in enumerate(config.get("append_files", [])):
+            if isinstance(file, str):
+                append_files_str.append(file)
+            else:
+                file_id = character_file.id + 1 + \
+                    len(extra_files_to_add)+len(append_files)
+                append_files_str.append(
+                    hex(file_id))
+                append_files.append(
+                    ExtraFile(file[0], index, file[1], file[2], file_id))
+                filename_to_id[file[0]] = file_id
+
+        shield_pose_int_id = None
+        shield_pose_is_external = False
+
+        if not "shield_pose" in config:
+            shield_pose_int_id = int(
+                SHIELD_POSES[config["definitions"]["base_character"]], 16)
+        else:
+            if isinstance(config["shield_pose"], str):
+                shield_pose_int_id = int(config["shield_pose"], 16)
+            else:
+                shield_pose_int_id = main_file.id + \
+                    1+len(extra_files_to_add)+len(append_files)+1
+                shield_pose_is_external = True
+
+        # Compile reqlists
+        reqlist_files = [_f for _f in os.listdir(
+            f"./{output_path}/") if _f.endswith("reqlist.txt")]
+        for reqlist_file in reqlist_files:
+            lines = []
+
+            with open(f"./{output_path}/{reqlist_file}", 'r', encoding='utf-8') as reqlist:
+                lines = reqlist.readlines()
+
+            with open(f"./{output_path}/{reqlist_file.rsplit(".")[0]}.txt", 'w', encoding='utf-8') as compiled_reqlist:
+                for line in lines:
+                    line = line.replace("${CHARACTER}",
+                                        f"{character_file.id:04X} {character_file.name}")
+
+                    if line.startswith("${"):
+                        key = line[2:].strip("}\n")
+                        if key in filename_to_id:
+                            line = f"{filename_to_id[key]:X}\n"
+
+                    if (line.startswith("${FILE_")):
+                        match = re.search(r'\${FILE_(\d)}', line)
+                        file_number = int(match.group(1))
+                        line = f"{
+                            extra_files_str[file_number-6][2:].upper()} FILE_{file_number}\n"
+
+                    line = line.replace("${SHIELD_POSE}",
+                                        f"{shield_pose_int_id:04X} SHIELD_POSE")
+
+                    if not line.startswith("END OF") and len(line.strip()) > 0:
+                        req_list_count += 1
+                        compiled_reqlist.write(line)
+
+        # Add the file id of all append_files to main_reqlist_compiled.txt just before the "END OF..." line
+        with open(f"{output_path}/main_reqlist.txt", 'r', encoding='utf-8') as af:
+            lines = af.readlines()
+
+        # Find the line that starts with "END OF"
+        for i, line in enumerate(lines):
+            if line.startswith("END OF"):
+                # Insert all append_files game file ids before this line
+                lines.insert(
+                    i,
+                    "\n".join(
+                        [f"{af.game_file_id:X} {af.filename}" for af in append_files])+"\n"
+                )
+                break
+
+        with open(f"{output_path}/main_reqlist.txt", 'w', encoding='utf-8') as af:
+            af.writelines(lines)
+
+        # Add extra files to csv
+        for extra_file in extra_files_to_add:
+            file_reqlist = ""
+
+            if os.path.exists(f"./{output_path}/{extra_file.filename}_reqlist.txt"):
+                file_reqlist = f"{output_path}/{extra_file.filename}_reqlist.txt"
+
+            FileManager.add_file(
+                path=f"{output_path}/{extra_file.filename}.bin",
+                name=f"{character_folder}_file_{extra_file.filename}",
+                internal_file_table_offset=extra_file.InternalFileTableOffsetBytes,
+                internal_file_resource_offset=extra_file.InternalFileResourceOffsetBytes,
+                reqlist_path=file_reqlist,
+                compression_level=1
+            )
+
+        # Add append files to csv
+        for append_file in append_files:
+            file_reqlist = ""
+
+            if os.path.exists(f"./{output_path}/{append_file.filename}_reqlist.txt"):
+                file_reqlist = f"{output_path}/{append_file.filename}_reqlist.txt"
+
+            FileManager.add_file(
+                path=f"{output_path}/{append_file.filename}.bin",
+                name=f"{character_folder}_file_{append_file.filename}",
+                internal_file_table_offset=append_file.InternalFileTableOffsetBytes,
+                internal_file_resource_offset=append_file.InternalFileResourceOffsetBytes,
+                reqlist_path=file_reqlist,
+                compression_level=1
+            )
+
+        if shield_pose_is_external:
+            FileManager.add_file(
+                path=f"{output_path}/shield_pose.bin",
+                name=f"{character_folder}_shield_pose",
+                internal_file_table_offset=config.get("shield_pose")[
+                    0],
+                internal_file_resource_offset=config.get("shield_pose")[
+                    1],
+                compression_level=2
+            )
+
+        if os.path.exists(f"{output_path}/animations/"):
+            animations = os.listdir(f"{output_path}/animations/")
+        else:
+            animations = []
+
+        for animation in animations:
+            # Read animation file offset
+            # Count how many groups of (00000000) we find
+            # Each group counts as an offset of 4
+            offset = 0
+
+            with open(f"./{output_path}/animations/{animation}", 'rb') as anim_file:
+                while True:
+                    # Read the first 8 hex digits (4 bytes)
+                    chunk = anim_file.read(4)
+                    if len(chunk) < 4:
+                        break
+                    number = int.from_bytes(chunk)
+                    if number == 0:
+                        offset += 1
+                    else:
+                        break
+
+            FileManager.add_file(
+                path=f"{output_path}/animations/{animation}",
+                name=f"{character_folder}_anim_{animation.split('.')[0]}",
+                internal_file_table_offset=(offset*4),
+                internal_file_resource_offset=int("3FFFC", 16),
+                compression_level=0
+            )
+
+        print(f"EXTRA FILES STR {extra_files_str}")
+
+        self.character_defs.append(
+            f"define_character("
+            # id
+            f"{character_folder.upper()}, "
+            # base character
+            f"{config['definitions']['base_character']}, "
+            # main file
+            f"File.{(character_folder+'_main').upper()}, "
+            # primary moveset
+            f"{PRIMARY_MOVESETS.get(
+                config['definitions']['base_character'])}, "
+            # secondary moveset
+            f"0, "
+            # character file
+            f"File.{(character_folder+'_character').upper()}, "
+            # shield pose
+            f"0x{hex(shield_pose_int_id)[2:].upper()}, "
+            # file 6, 7, 8, 9
+            f"{', '.join([ef for ef in extra_files_str])}, "
+            # attribute offset
+            f"0x{get_attrib_offset(
+                f'{original_path}/main.bin')}, "
+            # add actions
+            f"{len(re.findall(
+                r".*Character.add_new_action\(",
+                open(f"{original_path}/main.asm", 'r', encoding='utf-8').read()))}, "
+            # jab3, inhale copy, btt_stage_id, btp_stage_id, remix_btt_stage_id, remix_btp_stage_id, sound_type, variant_type
+            f"OS.TRUE, OS.FALSE, Stages.id.BTT_DONKEY_KONG, Stages.id.BTP_DONKEY_KONG, Stages.id.BTT_DONKEY_KONG, Stages.id.BTP_DONKEY_KONG, sound_type.U, variant_type.SPECIAL)"
+        )
+
+        # Character name
+        character_name = character_folder
+        if "name" in config:
+            character_name = config["name"]
+        self.character_names.append(character_name)
+
+        # Skin number
+        skin_number = config.get("num_costumes", 8)
+        self.character_skins.append(skin_number)
+
+        # Character select name texture
+        name_texture = self.name_texture_default
+
+        if os.path.isfile(f'{output_path}/nameplate.png'):
+            pixels, w, h = get_image_data(
+                f"{output_path}/nameplate.png"
+            )
+            name_texture = append_image(
+                "scripts/0011.bin",
+                "scripts/0011.bin",
+                pixels,
+                w, h,
+                ImageMode.IA8
+            )
+            name_texture = f"0x{name_texture:08X} + 0x10"
+
+        # Generate model req file
+        print(f"To write on MODEL_REQ file: {character_file.id:4X}")
+        char_hex_id_bytes = bytes.fromhex(f"{character_file.id:4X}")
+
+        # Create the binary file and write the hex digits
+        with open(f'{output_path}/MODEL_REQ.req', 'wb') as binary_file:
+            for _ in range(req_list_count):
+                binary_file.write(char_hex_id_bytes)
+
+        character_sound_add_list = {}
+
+        # Choose CSS Pose (This grabs the digit specified by "select_pose" in the character's config.yaml)
+        select_pose = config.get(
+            "definitions", {}).get("select_pose", 1)
+        select_pose_string = f"0x0001000{select_pose}"
+
+        # Get sounds to add
+        if os.path.exists(f"./{output_path}/sounds"):
+            for s in os.listdir(f"./{output_path}/sounds"):
+                sample_rate = 16000
+                type = "VOICE"
+                reverb = 0
+                length = -1
+
+                sound_list = config.get("sounds", {})
+
+                # Check for custom sound settings
+                for sid in sound_list:
+                    if sound_list.get(f"{sid}") != s.rsplit('.', 1)[0]:
+                        continue
+
+                    sound_settings = config.get("sounds_special", {}).get(sid)
+                    if sound_settings:
+                        sample_rate = sound_settings.get("sample_rate", 16000)
+                        type = sound_settings.get("fgm_type", "VOICE")
+                        reverb = sound_settings.get("reverb", 0)
+                        length = sound_settings.get("length", -1)
+
+                # If announcer sound, set reverb
+                if config.get("announcer_fgm"):
+                    if sound_list.get(config.get("announcer_fgm")) == s.rsplit('.', 1)[0]:
+                        reverb = 40
+
+                character_sound_add_list[s.rsplit('.', 1)[0]] = f"{
+                    (self.LAST_SFX_ID + 1):04X}"
+                self.LAST_SFX_ID += 1
+                self.sound_add_list.append(
+                    f"add_sound(../{output_path}sounds/{
+                        s.rsplit('.', 1)[0]}, "
+                    f"SAMPLE_RATE_{sample_rate}, FGM_TYPE_{type}, {reverb}, {length})"
+                )
+
+        print(f"SOUND_ADD_LIST(character): {character_sound_add_list}")
+
+        announcer_fgm = "FGM.announcer.names.BONUS_CHARACTER"
+
+        if config.get("announcer_fgm"):
+            sound_name = config.get("sounds").get(
+                config.get("announcer_fgm"))
+            announcer_fgm = f"0x{
+                character_sound_add_list.get(sound_name)}"
+
+        # Calculate 1P name delay if announcer FGM is found
+        name_delay_sp = "name_delay.DRAGONKING"
+
+        if config.get("singleplayer", {}).get("name_delay"):
+            name_delay_sp = f"0x{config.get("singleplayer", {}).get("name_delay"):08X}"
+        elif config.get("announcer_fgm"):
+            announcer = config.get("sounds").get(
+                config.get("announcer_fgm"))
+            with open(f"./{output_path}/sounds/{announcer}.aifc", "rb") as aifc:
+                aifc.seek(4)
+                aifc_length = int.from_bytes(aifc.read(4), "big")
+                aifc_length = aifc_length / 375
+                aifc_length = round(aifc_length * 0.65)
+
+                name_delay_sp = f"0x{aifc_length:08X}"
+
+        # Check for 1P name texture and use if found
+        name_texture_sp = "name_texture.MARIO"
+
+        if os.path.exists(f"{output_path}/nameplate_singleplayer.png"):
+            pixels, w, h = get_image_data(
+                f"{output_path}/nameplate_singleplayer.png"
+            )
+            name_texture_sp = append_image(
+                "scripts/000C.bin",
+                "scripts/000C.bin",
+                pixels,
+                w, h,
+                ImageMode.I8
+            )
+            name_texture_sp = f"0x{name_texture_sp:08X}"
+
+        self.singleplayer_additions.append(
+            f'add_to_single_player(Character.id.{character_folder.upper()}, {name_texture_sp}, {name_delay_sp})')
+
+        # Use alternate width for character's 1P name texture if defined
+        if config.get("singleplayer", {}).get("alt_name_width"):
+            self.singleplayer_name_width_defs.append(
+                f"lli     t6, Character.id.{character_folder.upper()}            // t6 = {character_folder.upper()}"
+                f"\n\t\tbeql    t0, t6, _alt_width                // use alt width if {character_folder.title()}"
+                f"\n\t\tlli     t6, 0x{config.get("singleplayer", {}).get("alt_name_width"):04X}                        // t6 = width of \"{character_folder.title()}\""
+            )
+
+        # Get series to use for character
+        series_css = config.get("definitions", {}).get(
+            "series_logo_css", "SMASH")
+        series_model = config.get("definitions", {}).get(
+            "series_logo_model", "SMASH")
+
+        # Check for CSS series logo image and use if found
+        if os.path.isfile(f"{output_path}/series_logo.png"):
+            pixels, w, h = get_image_data(
+                f"{output_path}/series_logo.png"
+            )
+            series_texture = append_image(
+                "scripts/0014.bin",
+                "scripts/0014.bin",
+                pixels,
+                w, h,
+                ImageMode.I8
+            )
+            series_texture = series_texture + 16
+
+            self.character_series_textures[f"{character_folder}"] = {
+                "offset": f"0x{series_texture:X}",
+                "x": "0x40400000",
+                "y": "0x41980000"
+            }
+
+            series_css = character_folder.upper()
+
+        portrait_texture = "portrait_offsets.MARIO"
+
+        # # Check for portrait image and use if found
+        # if os.path.isfile(f"{output_path}/portrait.png"):
+        #     pixels, w, h = get_image_data(
+        #         f"{output_path}/portrait.png"
+        #     )
+        #     portrait_texture = append_image(
+        #         "scripts/0A05.bin",
+        #         "scripts/0A05.bin",
+        #         pixels,
+        #         w, h,
+        #         ImageMode.RGBA5551
+        #     )
+        #     portrait_texture += 16
+        #
+        #     portrait_texture = f"0x{portrait_texture:0X}"
+        #
+        #     # Check for flash portrait
+        #     if os.path.isfile(f"{output_path}/portrait_flash.png"):
+        #         pixels, w, h = get_image_data(
+        #             f"{output_path}/portrait_flash.png"
+        #         )
+        #         portrait_texture = append_image(
+        #             "scripts/0A05.bin",
+        #             "scripts/0A05.bin",
+        #             pixels,
+        #             w, h,
+        #             ImageMode.RGBA5551
+        #         )
+        #     else:
+        #         # If not found, append the regular portrait as the flash portrait
+        #         pixels, w, h = get_image_data(
+        #             f"{output_path}/portrait.png"
+        #         )
+        #         portrait_texture = append_image(
+        #             "scripts/0A05.bin",
+        #             "scripts/0A05.bin",
+        #             pixels,
+        #             w, h,
+        #             ImageMode.RGBA5551
+        #         )
+
+        self.add_to_css_strings.append(
+            f"add_to_css(Character.id.{character_folder.upper()}, "
+            f"{announcer_fgm}, "
+            f"1.50, "
+            f"{select_pose_string}, "
+            f"{series_css}, "
+            f"{name_texture}, "
+            f"{portrait_texture}, "
+            f"BOOKEND_BONUS_PORTRAIT)"
+        )
+
+        # Generate results screen definition
+        victory_theme = "0x0B"
+
+        if os.path.exists(f"{output_path}/victory_theme.bin"):
+            self.victory_theme_strings.append(
+                f"insert_external_midi({character_folder}_VICTORY, "
+                f"../{output_path}victory_theme, "
+                f"OS.FALSE, "
+                f"OS.FALSE, "
+                f"OS.FALSE, "
+                f"OS.FALSE, "
+                f"-1, "
+                f"-1, "
+                f"{900+len(self.victory_theme_strings)})"
+            )
+
+            victory_theme = f'{{MIDI.id.{character_folder}_VICTORY}}'
+
+            if config.get("victory_theme", {}).get("priority_overrides"):
+                for override in config.get("victory_theme", {}).get("priority_overrides"):
+                    self.midi_priority_overrides.append(
+                        f"add_priority_override("
+                        f"{{MIDI.id.{character_folder}_VICTORY}}, "
+                        f"{override[0]}, "
+                        f"{override[1]})"
+                    )
+
+            if config.get("victory_theme", {}).get("bend_range_overrides"):
+                for override in config.get("victory_theme", {}).get("bend_range_overrides"):
+                    self.midi_bend_range_overrides.append(
+                        f"add_bend_range_override("
+                        f"{{MIDI.id.{character_folder}_VICTORY}}, "
+                        f"{override[0]}, "
+                        f"{override[1]})"
+                    )
+
+            if config.get("victory_theme", {}).get("master_volume_override"):
+                self.midi_master_volume_overrides.append(
+                    f"add_master_volume_override("
+                    f"{{MIDI.id.{character_folder}_VICTORY}}, "
+                    f"{config.get("victory_theme", {}).get("master_volume_override")})"
+                )
+
+        if config.get("results", {}).get("j_win_text", False) is True:
+            self.results_j_win_defs.append(
+                f"lli     t6, Character.id.{character_folder.upper()}      // t6 = {character_folder.upper()}"
+                f"\n\t\tbeql    t5, t6, _get_lx             // if {character_folder.upper()}, set to WIN!"
+                f"\n\t\taddiu   a0, a0, 0x000C              // a0 = offset to \"WIN!\""
+            )
+
+        # Check for 3D results/data series logo file and use if found
+        if os.path.exists(f"{output_path}/series_logo.bin"):
+            vnFile = f"{output_path}/series_logo.bin"
+            rxFile = "scripts/0023.bin"
+
+            vnSize = os.path.getsize(vnFile)
+            # Seems like Ness logo data always begins here once imported through GEE
+            vnLogoBeginOffset = int('0x5C58', 16)
+
+            rxSize = os.path.getsize(rxFile)
+            rxAppendedSize = rxSize + (vnSize - vnLogoBeginOffset)
+
+            vnPointingToArray = []
+
+            vnPointerArray = []
+            rxPointerArray = []
+
+            rxSeriesOffsetArray = []
+
+            pointerUpdateValue = (rxAppendedSize - vnSize)
+
+            # Read vanilla file for pointers
+            with open(vnFile, 'br') as fvn:
+                print("Found series_logo.bin, converting to Remix..")
+                data = fvn.read(4)
+                dataReadLocation = 0
+                while data:
+                    vnPointerA = int.from_bytes(data[:2], "big")
+                    vnPointerB = int.from_bytes(data[2:4], "big")
+
+                    vnPointerAOffset = vnPointerA*4
+                    vnPointerBOffset = vnPointerB*4
+
+                    rxPointerA = int(
+                        (vnPointerAOffset + pointerUpdateValue)/4)
+                    rxPointerB = int(
+                        (vnPointerBOffset + pointerUpdateValue)/4)
+
+                    # if reading within the offsets of the desired logo + PointerA points somewhere within those offsets, increment pointerGood
+                    if (dataReadLocation >= vnLogoBeginOffset) and (vnPointerAOffset >= vnLogoBeginOffset) and (vnPointerAOffset < vnSize):
+                        pointerGood += 1
+                    else:
+                        pointerGood = 0
+
+                    # if reading within the offsets of the desired logo + PointerB points somewhere within those offsets, increment pointerGood
+                    if (dataReadLocation >= vnLogoBeginOffset) and (vnPointerBOffset >= vnLogoBeginOffset) and (vnPointerBOffset < vnSize):
+                        pointerGood += 1
+                    else:
+                        pointerGood = 0
+
+                    # if there are 2 pointers in a row, add to the list
+                    if (pointerGood == 2):
+                        vnPointingToArray.append(dataReadLocation)
+                        vnPointingToArray.append(dataReadLocation+2)
+
+                        vnPointerArray.append(vnPointerA)
+                        vnPointerArray.append(vnPointerB)
+                        rxPointerArray.append(rxPointerA)
+                        rxPointerArray.append(rxPointerB)
+
+                    # If reading at vnLogoBeginOffset - 0x4, add to the list
+                    # This is needed to update the currently last in file logo's pointer for the next logo's data from FFFF to the correct location later in the script
+                    if (dataReadLocation == (vnLogoBeginOffset - int('0x4', 16))):
+                        vnPointingToArray.append(dataReadLocation)
+
+                        vnPointerArray.append(vnPointerA)
+                        rxPointerArray.append(rxPointerA)
+
+                    # This force updates the last pointer, as it gets skipped under normal circumstances, since there aren't 2 pointers in a row here
+                    # Pointer A will always be FFFF
+                    if (dataReadLocation == (vnSize - 4)):
+                        vnPointingToArray.append(dataReadLocation+2)
+
+                        vnPointerArray.append(vnPointerB)
+                        rxPointerArray.append(rxPointerB)
+
+                    # reset pointerGood so we can check for 2 pointers in a row again
+                    pointerGood = 0
+                    dataReadLocation += 4
+                    data = fvn.read(4)
+
+            # Append character's logo data to remix file
+            with open(rxFile, 'ba') as frx:
+                with open(vnFile, 'br') as fvn:
+                    fvn.seek(vnLogoBeginOffset)
+                    frx.write(fvn.read())
+
+            # Overwrite old pointers with updated ones
+            with open(rxFile, 'br+') as frx:
+                for i in range(len(vnPointingToArray)):
+                    frx.seek(
+                        (rxSize + (vnPointingToArray[i] - vnLogoBeginOffset)))
+                    frx.write(rxPointerArray[i].to_bytes(2, 'big'))
+
+            # Get series logo offsets
+            self.character_series_models[f"{character_folder}"] = {
+                "offset": f"0x{rxAppendedSize - int('0x168', 16):0X}",
+                "zoom": f"0x{rxAppendedSize - int('0x60', 16):0X}",
+                "color": f"0x{rxAppendedSize - int('0x8', 16):0X}"
+            }
+
+            series_model = character_folder.upper()
+
+        results_name = config.get("results", {}).get(
+            "name", character_name).upper()
+        name_len = len(results_name)
+        name_len_adjusted = max(0, name_len - 3)
+
+        wins_lx_mult = 6.5
+        str_lx_mult = 9.5
+        str_scale_mult = 0.055
+
+        wins_max_lx = 185
+        wins_lx = 160
+        str_lx = 50
+
+        if config.get("results", {}).get("j_win_text", False) is True:
+            wins_max_lx += 25
+            wins_lx += 15
+            str_lx += 15
+
+            str_scale_mult -= 0.0085
+
+        wins_lx += (name_len_adjusted * wins_lx_mult)
+        wins_lx = int(min(wins_max_lx, wins_lx))
+
+        str_lx -= (name_len_adjusted * str_lx_mult)
+        str_lx = int(max(20, str_lx))
+
+        str_scale = round(
+            min(1.0, 1.05 - name_len_adjusted * str_scale_mult), 2)
+
+        # Override generated values with config if found
+        wins_lx = config.get("results", {}).get("wins_x", wins_lx)
+        str_lx = config.get("results", {}).get("name_x", str_lx)
+        str_scale = config.get("results", {}).get(
+            "name_scale", str_scale)
+
+        self.results_screen_defs.append(
+            "add_to_results_screen("
+            f"Character.id.{character_folder.upper()}, "
+            f"{announcer_fgm}, "
+            f"{series_model}, "
+            f"Character.id.{config['definitions']['base_character']}, "
+            f"{wins_lx}, "
+            f"{results_name}, "
+            f"{str_lx}, "
+            f"{str_scale}, "
+            f"{victory_theme}"
+            ")"
+        )
+
+        # Count any new items being added
+        item_add_pattern = re.compile(r"Item\.add_item\(")
+
+        for file in Path(original_path).rglob("*.asm"):
+            with open(file, encoding="utf-8") as check_file:
+                for line in check_file:
+                    # remove any comments
+                    code = line.split("//", 1)[0]
+                    self.items_added += len(
+                        item_add_pattern.findall(code))
+
+        # Data screen additions
+        bio_texture = "0x8000FF08"
+        name_texture = "0x80010128"
+        works_texture = "0x80009B48"
+
+        usp_texture = "offset.crash_body_slam"
+        nsp_texture = "offset.spin"
+        dsp_texture = "offset.diggin_it"
+
+        name_x = config.get("data_screen", {}).get("name_x", 33)
+        name_y = config.get("data_screen", {}).get("name_y", 50)
+
+        use_existing_special_actions = config.get(
+            "data_screen", {}).get(
+            "use_existing_special_actions", 1)
+
+        special_char = config.get(
+            "data_screen", {}).get(
+            "special_char", config['definitions']['base_character'])
+
+        if use_existing_special_actions == 0:
+            special_char = 0
+
+        use_existing_jab_actions = config.get(
+            "data_screen", {}).get(
+            "use_existing_jab_actions", 1)
+
+        jab_char = config.get(
+            "data_screen", {}).get(
+            "jab_char", config['definitions']['base_character'])
+
+        if use_existing_jab_actions == 0:
+            jab_char = -1
+
+        # Fix for DK clones as special_action_pointers and jab_action_pointers
+        # have their constants for Donkey Kong listed as only 'DK', so 'DONKEY' fails
+        if special_char == "DONKEY":
+            special_char = "DK"
+        if jab_char == "DONKEY":
+            jab_char = "DK"
+
+        # C.F clones will also use this workaround ('FALCON' instead of 'CAPTAIN')
+        if special_char == "CAPTAIN":
+            special_char = "FALCON"
+        if jab_char == "CAPTAIN":
+            jab_char = "FALCON"
+
+        # Check for Data screen textures (bio, name, works, specials)
+        if os.path.exists(f"{output_path}/datascreen/bio.png"):
+            pixels, w, h = get_image_data(
+                f"{output_path}/datascreen/bio.png"
+            )
+            bio_texture = append_image(
+                "scripts/10F5.bin",
+                "scripts/10F5.bin",
+                pixels,
+                w, h,
+                ImageMode.I8
+            )
+            bio_texture += int("0x80000000", 16)
+            bio_texture = f"0x{bio_texture:08X}"
+
+        if os.path.exists(f"{output_path}/datascreen/name.png"):
+            pixels, w, h = get_image_data(
+                f"{output_path}/datascreen/name.png"
+            )
+            name_texture = append_image(
+                "scripts/10F6.bin",
+                "scripts/10F6.bin",
+                pixels,
+                w, h,
+                ImageMode.I8
+            )
+            name_texture += int("0x80000000", 16)
+            name_texture = f"0x{name_texture:08X}"
+
+        if os.path.exists(f"{output_path}/datascreen/works.png"):
+            pixels, w, h = get_image_data(
+                f"{output_path}/datascreen/works.png"
+            )
+            works_texture = append_image(
+                "scripts/10F6.bin",
+                "scripts/10F6.bin",
+                pixels,
+                w, h,
+                ImageMode.I8
+            )
+            works_texture += int("0x80000000", 16)
+            works_texture = f"0x{works_texture:08X}"
+
+        if os.path.exists(f"{output_path}/datascreen/special_u.png"):
+            pixels, w, h = get_image_data(
+                f"{output_path}/datascreen/special_u.png"
+            )
+            usp_texture = append_image(
+                "scripts/10F6.bin",
+                "scripts/10F6.bin",
+                pixels,
+                w, h,
+                ImageMode.I8
+            )
+            usp_texture += int("0x80000000", 16)
+            usp_texture = f"0x{usp_texture:08X}"
+
+        if os.path.exists(f"{output_path}/datascreen/special_n.png"):
+            pixels, w, h = get_image_data(
+                f"{output_path}/datascreen/special_n.png"
+            )
+            nsp_texture = append_image(
+                "scripts/10F6.bin",
+                "scripts/10F6.bin",
+                pixels,
+                w, h,
+                ImageMode.I8
+            )
+            nsp_texture += int("0x80000000", 16)
+            nsp_texture = f"0x{nsp_texture:08X}"
+
+        if os.path.exists(f"{output_path}/datascreen/special_d.png"):
+            pixels, w, h = get_image_data(
+                f"{output_path}/datascreen/special_d.png"
+            )
+            dsp_texture = append_image(
+                "scripts/10F6.bin",
+                "scripts/10F6.bin",
+                pixels,
+                w, h,
+                ImageMode.I8
+            )
+            dsp_texture += int("0x80000000", 16)
+            dsp_texture = f"0x{dsp_texture:08X}"
+
+        add_to_data_string = (
+            f"add_char_to_data_screen("
+            f"{character_folder.upper()}, "
+            f"{bio_texture}, "
+            f"0x00000000, "
+            f"0x00000000, "
+            f"{name_x}, "
+            f"{name_y}, "
+            f"{name_texture}, "
+            f"{works_texture}, "
+            f"{nsp_texture}, "
+            f"{dsp_texture}, "
+            f"{usp_texture}, "
+            f"{use_existing_special_actions}, "
+            f"{special_char}, "
+            f"{use_existing_jab_actions}, "
+            f"{jab_char})"
+        )
+
+        set_action_strings = [""]
+        for action in config.get("data_screen", {}).get("actions", []):
+            if len(action) < 4:
+                action.append("0x00000000")
+
+            if isinstance(action[2], int):
+                action[2] = f"0x{action[2]:0X}"
+
+            set_action_strings.append(
+                f"set_action({", ".join(action)})")
+
+        if config.get("data_screen", {}):
+            self.character_data_screen_defs.append(
+                add_to_data_string + "\n\t\t".join(set_action_strings)
+            )
+
+            self.character_data_screen_order.append(
+                f"set_char_order({character_folder.upper()})"
+            )
+
+        if config.get("data_screen", {}).get("name_big_border") == True:
+            self.data_screen_big_border_defs.append(
+                f"addiu   at, r0, Character.id.{character_folder.upper()}  // at = Character ID"
+                f"\n\t\tbeq     v0, at, _large_border       // branch to use large border"
+            )
+
+        # Add Tag Team preloads
+        self.character_tag_team_preloads.append(
+            f"add_preload(Character.id.{character_folder.upper()}, "
+            f"{PRIMARY_MOVESETS.get(config['definitions']['base_character'])}) "
+            f"// {config['definitions']['base_character']} move set"
+        )
+
+        for preload in config.get("tag_team_preloads", []):
+            file_id = preload
+
+            if preload in filename_to_id:
+                file_id = f"0x{filename_to_id[preload]:X}"
+
+            self.character_tag_team_preloads.append(
+                f"add_preload(Character.id.{character_folder.upper()}, "
+                f"{file_id}) "
+                f"// {preload}"
+            )
+
+        if config.get("yoshi_jump") == True:
+            self.yoshi_jump_defs.append(
+                f"\taddiu   a0, r0, Character.id.{character_folder.upper()}     // {character_folder.upper()} ID"
+                f"\n\t\tbeq     a0, v0, _yoshi_dj_1"
+            )
+
+        if config.get("yoshi_shield") == True:
+            _shield_regs = ["t7", "t9", "t6", "t8", "t1", "t7", "v1", "t8"]
+            for i, reg in enumerate(_shield_regs):
+                self.yoshi_shield_defs[i].append(
+                    f"\taddiu   at, r0, Character.id.{character_folder.upper()}             // {character_folder.upper()} ID"
+                    f"\n\t\tbeq     {reg}, at, _yoshi_shield_{i+1}"
+                )
+
+        if config.get("yoshi_grab") == True:
+            self.yoshi_grab1_defs.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()}             // {character_folder.upper()} ID"
+                f"\n\t\tbeq     at, v0, _yoshi_grab_1"
+            )
+            self.yoshi_grab2_defs.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()}             // {character_folder.upper()} ID"
+                f"\n\t\tbeq     at, v0, _yoshi_grab_2"
+            )
+            self.yoshi_throw1_defs.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()}             // {character_folder.upper()} ID"
+                f"\n\t\tbeq     at, v0, _yoshi_throw_1"
+            )
+
+        if config.get("yoshi_recover") == True:
+            self.yoshi_recover_defs.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()}             // {character_folder.upper()} ID"
+                f"\n\t\tbeq     at, v0, _yoshi_recover_1"
+            )
+
+        if config.get("yoshi_upspecial") == True:
+            self.yoshi_upspecial_defs.append(
+                f"\tbeq     t1, t2, _end"
+                f"\n\t\taddiu   t1, r0, Character.id.{character_folder.upper()}             // {character_folder.upper()} ID"
+                f"\n\t\tli      a1, upspecial_struct_{character_folder.upper()}     // {character_folder.upper()} File Pointer placed in correct location"
+            )
+            self.yoshi_upspecialstruct_defs.append(
+                f"\n\tOS.align(16)"
+                f"\n\tupspecial_struct_{character_folder.upper()}:"
+                f"\n\tdw 0x00000000"
+                f"\n\tdw 0x00000005"
+                f"\n\tdw Character.{character_folder.upper()}_file_1_ptr"
+                f"\n\tOS.copy_segment(0x103D2C, 0x40)\n "
+            )
+
+        if config.get("yoshi_downspecial") == True:
+            self.yoshi_downspecial_defs.append(
+                f"\tbeq     t1, t2, _end"
+                f"\n\t\taddiu   t1, r0, Character.id.{character_folder.upper()}             // {character_folder.upper()} ID"
+                f"\n\t\tli      a1, downspecial_struct_{character_folder.upper()}    // {character_folder.upper()}  File Pointer placed in correct location"
+            )
+            self.yoshi_downspecialstruct_defs.append(
+                f"\n\tOS.align(16)"
+                f"\n\tdownspecial_struct_{character_folder.upper()}:"
+                f"\n\tdw 0x00000000"
+                f"\n\tdw 0x00000006"
+                f"\n\tdw Character.{character_folder.upper()}_file_1_ptr"
+                f"\n\tOS.copy_segment(0x103D6C, 0x40)\n "
+            )
+
+        if config.get("dk_cargo"):
+            self.dk_cargo_defs_1.append(
+                f"\t\taddiu at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq v0, at, _dkcargo_jump_1"
+            )
+            self.dk_cargo_defs_2.append(
+                f"\t\taddiu at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq v0, at, _dkcargo_jump_2"
+            )
+
+        if config.get("kirby_jumps"):
+            kirby_shared.configs.append(KirbyJumpConfig(
+                character_id=character_folder.upper(),
+                height_multiplier_3=float(config.get(
+                    "kirby_jumps").get("height_multiplier_3", 100.0)),
+                height_multiplier_4=float(config.get(
+                    "kirby_jumps").get("height_multiplier_4", 100.0)),
+                height_multiplier_5=float(config.get(
+                    "kirby_jumps").get("height_multiplier_5", 100.0)),
+                height_multiplier_6=float(config.get(
+                    "kirby_jumps").get("height_multiplier_6", 100.0)),
+                jump_decay=float(config.get(
+                    "kirby_jumps").get("jump_decay", 80))
+            ))
+
+        # Compile main.bin file
+        # Replace attributes based on config
+        with open(f"{original_path}/main.bin", 'rb') as binary_file:
+            data = bytearray(binary_file.read())
+
+        attr_offset = int(get_attrib_offset(
+            './extra_characters/'+character_folder+'/main.bin'), 16)
+
+        attr_sounds = {
+            "death_fgm": 0xB4,
+            "star_ko_fgm": 0xB8,
+            "damaged_fgm": 0xBA,
+            "attack_sfx_1": 0xBC,
+            "attack_sfx_2": 0xBE,
+            "attack_sfx_3": 0xC0,
+            "heavy_lift_fgm": 0xE8
+        }
+
+        for sound_name, sound_pos in attr_sounds.items():
+            if sound_name in config.get("attributes", {}):
+                # SFX is the one defined in the config file
+                sfx = config.get("attributes")[sound_name]
+
+                # Replace logic for new sounds
+                if sfx in config.get("sounds", {}):
+                    # Replace the original 4 digits with the new ones
+                    sfx = character_sound_add_list.get(
+                        config['sounds'][sfx])
+
+                # Replace id in final data
+                data[attr_offset+sound_pos:attr_offset +
+                     sound_pos+2] = bytes.fromhex(sfx)
+
+        attr_values = {
+            "size_multi": 0x0,
+            "walk_1_cycle": 0x04,
+            "walk_2_cycle": 0x08,
+            "walk_3_cycle": 0x0C,
+            "cargo_walk_1_cycle": 0x10,
+            "cargo_walk_2_cycle": 0x14,
+            "cargo_walk_3_cycle": 0x18,
+            "walk_speed_multi": 0x20,
+            "traction": 0x24,
+            "dash_speed": 0x28,
+            "dash_deceleration": 0x2C,
+            "run_speed": 0x30,
+            "jumpsquat_frames": 0x34,
+            "jump_vel_x": 0x38,
+            "jump_height_multi": 0x3C,
+            "base_jump_height": 0x40,
+            "aerial_jump_vel_x": 0x44,
+            "aerial_jump_height": 0x48,
+            "aerial_acceleration": 0x4C,
+            "aerial_speed_max_x": 0x50,
+            "aerial_friction": 0x54,
+            "gravity": 0x58,
+            "max_fall_speed": 0x5C,
+            "fast_fall_speed": 0x60,
+            "num_jumps": 0x64,
+            "weight": 0x68,
+            "jab_combo_frames": 0x6C,
+            "dash_run_frames": 0x70,
+            "shield_size": 0x74,
+            "shield_break_vel_y": 0x78,
+            "shadow_size": 0x7C,
+            "push_range_width": 0x80,
+            "push_range_x": 0x84,
+            "vs_pause_zoom": 0x8C,
+            "camera_y_offset": 0x90,
+            "camera_zoom": 0x94,
+            "default_camera_zoom": 0x98,
+            "ecb_upper_y": 0x9C,
+            "ecb_center_y": 0xA0,
+            "ecb_bottom_y": 0xA4,
+            "ecb_width": 0xA8,
+            "ledge_grab_x": 0xAC,
+            "ledge_grab_y": 0xB0
+        }
+
+        for attr_name, attr_pos in attr_values.items():
+            if attr_name in config.get("attributes", {}):
+                print(attr_name, config.get("attributes").get(
+                    attr_name), hex_util.float_to_ieee754_hex(config.get("attributes").get(attr_name)))
+                # Replace value in final data
+                data[attr_offset+attr_pos:attr_offset +
+                     attr_pos+4] = bytes.fromhex(hex_util.float_to_ieee754_hex(config.get("attributes").get(attr_name)))
+
+        if config.get("attributes", {}).get("hurtboxes"):
+            hurtboxes = config.get("attributes").get("hurtboxes")
+
+            # Check defined more hurtboxes than allowed
+            if len(hurtboxes) > 11:
+                raise ValueError(
+                    f"Too many hurtboxes defined for {character_folder}. Maximum is 11."
+                )
+
+            hurtbox_offset = attr_offset + 0x104
+
+            # Print current hitboxes using the class
+            for i in range(11):
+                offset = hurtbox_offset + i * (9 * 4)
+                print(Hurtbox.from_bytes(
+                    data[offset:offset + 9*4]
+                ).to_yaml())
+
+            # Set all to disabled first
+            for i in range(11):
+                offset = hurtbox_offset + i * (9 * 4)
+                data[offset:offset + 9*4] = \
+                    Hurtbox.disabled().to_bytes()
+
+            for i, hbox in enumerate(hurtboxes):
+                hurtbox_def = Hurtbox(
+                    bone=hbox["bone"],
+                    height=hbox["height"],
+                    grabbable=hbox["grabbable"],
+                    offset=hbox["offset"],
+                    size=hbox["size"]
+                )
+
+                offset = hurtbox_offset + i * (9 * 4)
+
+                data[offset:offset + 9*4] = \
+                    hurtbox_def.to_bytes()
+
+        # Set action used for the opponent when using a throw
+        if config.get("attributes", {}).get("forward_throw_animation") or config.get("attributes", {}).get("back_throw_animation"):
+            table_offset_pointer = attr_offset + 0x338
+            table_offset = int.from_bytes(
+                data[table_offset_pointer+2:table_offset_pointer+4], byteorder="big") * 4 + 4
+
+            fthrow = config.get("attributes", {}).get(
+                "forward_throw_animation")
+
+            if fthrow is not None:
+                fthrow = int(fthrow, 16)
+
+            bthrow = config.get("attributes", {}).get(
+                "back_throw_animation")
+
+            if bthrow is not None:
+                bthrow = int(bthrow, 16)
+
+            for i in range(53):
+                curr_offset = table_offset + i*8
+
+                if fthrow is not None:
+                    data[curr_offset:curr_offset+4] = fthrow.to_bytes(
+                        4, 'big')
+
+                if bthrow is not None:
+                    data[curr_offset+4:curr_offset +
+                         8] = bthrow.to_bytes(4, 'big')
+
+        # Update pointers to new external files we're adding to the main bin
+        # From config->offsets->main, get the second number. That's the address for the first entry in a linked list for external files in data (main.bin file)
+        # each entry has 2 parts: AAAABBBB where AAAA is the address of the next entry (divided by 4) and BBBB has some data that is written
+        # First, let's go through the list until the last element, where AAAA will be "FFFF". Let's just print each entry until the last one
+        offset = int(config['offsets']['main'][1], 16)
+        pos = offset
+        next_pos = None
+
+        while True:
+            # Read next address (first 2 bytes)
+            next_bytes = data[pos:pos+2]
+            next_pos = int.from_bytes(next_bytes, byteorder='big') * 4
+
+            if next_pos == 0xFFFF * 4:
+                # Found end of list
+                print(f"Last entry in the External file list: {pos:X}")
+
+                # Calculate how many new entries we need
+                num_new_entries = config.get("extend_main_reqlist", 0)
+
+                if num_new_entries == 0:
+                    break
+
+                # Create new space at end of data
+                original_size = len(data)
+                new_size = original_size + \
+                    (num_new_entries * 4)  # Each entry is 4 bytes
+                data.extend(bytes(new_size - original_size))
+
+                # Update current FFFF entry to point to first new entry
+                data[pos:pos+2] = (original_size //
+                                   4).to_bytes(2, byteorder='big')
+
+                # Add new entries
+                new_pos = original_size
+                for i in range(num_new_entries):
+                    # Set pointer to next entry
+                    if i < num_new_entries - 1:
+                        next_entry = new_pos + 4
+                        data[new_pos:new_pos +
+                             2] = (next_entry // 4).to_bytes(2, byteorder='big')
+                    else:
+                        # Last entry points to FFFF
+                        data[new_pos:new_pos +
+                             2] = (0xFFFF).to_bytes(2, byteorder='big')
+
+                    # Set second part to 0000 for now
+                    data[new_pos+2:new_pos +
+                         4] = (0x0000).to_bytes(2, byteorder='big')
+
+                    new_pos += 4
+
+                break
+
+            pos = next_pos
+
+        with open(f"{output_path}/main.bin", 'wb') as binary_file:
+            binary_file.write(data)
+
+        # Check for sword trail definitions
+        character_sword_trail_add_list = {}
+
+        for i, (placeholder, data) in enumerate(config.get("sword_trails", {}).items()):
+            self.sword_trail_add_list.append(
+                f"add_sword_trail("
+                f"{character_folder.upper()}_TRAIL_{placeholder}, "
+                f"Character.id.{character_folder.upper()}, "
+                f"{data['part']}, "
+                f"{data['axis']}, "
+                f"{data['color1']}, "
+                f"{data['color2']}, "
+                f"{data['start_pos']}, "
+                f"{data['end_pos']})"
+            )
+
+            self.SWORD_TRAIL_COUNT += 1
+
+            character_sword_trail_add_list[placeholder] = f"{
+                (self.SWORD_TRAIL_COUNT + 1)*4:2X}"
+        print(f"Sword trails to add: {character_sword_trail_add_list}")
+
+        if os.path.exists(f"{original_path}/moveset/"):
+            moveset_files = os.listdir(f"{original_path}/moveset/")
+            moveset_files = [
+                mf for mf in moveset_files if mf.lower().endswith(".bin")]
+            moveset_files.sort()
+        else:
+            moveset_files = []
+
+        # Do not allow sounds mapped with the highest bit set (0x8000 or higher)
+        # as this bit is used in command D8 to indicate whether to play the original
+        # sound along with the new one instead of overriding it
+        for sfx_id, sfx_file_name in config.get("sounds", {}).items():
+            sfx_int = int(sfx_id, 16)
+            if sfx_int & 0x8000 != 0:
+                logger.warning(
+                    f"Invalid SFX ID 0x{sfx_id} in config['sounds']. SFX IDs greater than or equal to 0x8000 are not allowed, as the highest bit is used in command D8 to indicate whether to play the original sound along with the new one instead of overriding it."
+                )
+
+        for moveset_file in moveset_files:
+            print(f"Compiling moveset file: {moveset_file}")
+
+            with open(f"{original_path}/moveset/{moveset_file}", 'rb') as binary_file:
+                data = bytearray(binary_file.read())
+
+            pos = 0
+
+            while pos < len(data):
+                command = data[pos:pos+1].hex().upper()
+                command_size = (COMMAND_SIZES.get(command) or 1) * 4
+
+                # Replace sounds
+                if command in ["38", "3C", "40", "44", "48", "4C", "50", "D8"]:
+                    sfx = data[pos+2:pos+4].hex().upper()
+
+                    if sfx in config.get("sounds", {}):
+                        print(
+                            f"REPLACING SFX: {command} - SOUND ID [{sfx}] -> [{config['sounds'][sfx]}](0x{character_sound_add_list.get(config['sounds'][sfx])})")
+                        # Replace the original 4 digits with the new ones
+                        new_sfx = bytes.fromhex(
+                            character_sound_add_list.get(config['sounds'][sfx]))
+                        data[pos+2:pos+4] = new_sfx
+                    else:
+                        sfx_int = int(sfx, 16)
+
+                        if sfx_int > self.LAST_REMIX_SFX_ID and command != "D8":
+                            logger.error(
+                                f"Invalid SFX ID 0x{sfx} in {original_path}/moveset/{moveset_file}. "
+                                f"SFX IDs greater than the last Remix SFX ID (0x{self.LAST_REMIX_SFX_ID:04X}) must be mapped through config['sounds']. "
+                                f"Otherwise, a different character order would cause the SFX ID to point to a different sound than intended."
+                            )
+
+                # Replace sword trails
+                if command in ["CC"]:
+                    trail = data[pos+1:pos+2].hex().upper()
+
+                    if trail in character_sword_trail_add_list:
+                        data[pos+1:pos+2] = bytes.fromhex(
+                            character_sword_trail_add_list[trail])
+
+                        logger.info(f"REPLACING SWORD_TRAIL: {
+                            trail} -> {character_sword_trail_add_list[trail]}")
+                pos += command_size
+
+            with open(f"{output_path}/moveset/{moveset_file}", 'wb') as binary_file:
+                binary_file.write(data)
+
+        # Check main asm syntax
+        asm_util.validate_asm(f"{original_path}/main.asm")
+
+        # For any included files in main.asm, check syntax as well
+        included_files = asm_util.get_included_files(
+            f"{original_path}/main.asm")
+
+        for included_file in included_files:
+            included_file_path = os.path.join(os.path.dirname(
+                f"{original_path}/main.asm"), included_file)
+            asm_util.validate_asm(included_file_path)
+
+        # Compile main asm
+        main_data = open(
+            f"{original_path}/main.asm", 'r', encoding="utf-8").readlines()
+
+        with open(f"{output_path}/main.asm", 'w', encoding="utf-8") as main_compiled_file:
+            appended_movesets = False
+
+            for line in main_data:
+                main_compiled_file.write(line)
+
+                if line.lstrip().startswith("scope") and not appended_movesets:
+                    main_compiled_file.write(
+                        "\t// Moveset files, auto generated\n")
+                    for moveset_file in moveset_files:
+                        moveset_file = moveset_file.split(".")[0]
+                        main_compiled_file.write(
+                            f'\tmoveset_{moveset_file}:\n'
+                        )
+                        main_compiled_file.write(
+                            f'\tinsert {moveset_file},"moveset/{moveset_file}.bin"\n')
+                    main_compiled_file.write("\n")
+
+                    if len(config.get('sounds', {})) > 0:
+                        main_compiled_file.write(
+                            "\t// Sound IDs, auto generated\n")
+
+                        main_compiled_file.write("\tscope FGM {\n")
+
+                        for (sfx_name, sfx_id) in character_sound_add_list.items():
+
+                            main_compiled_file.write(
+                                f'\t\tconstant {sfx_name.upper()}(0x{sfx_id})\n')
+
+                        main_compiled_file.write("\t}\n\n")
+
+                    if len(extra_files_merged_offsets_str) > 0:
+                        main_compiled_file.write(
+                            "\t// External file offsets, auto generated\n")
+                        main_compiled_file.write(
+                            "\tscope FILE_OFFSETS {\n")
+                        for offset in extra_files_merged_offsets_str:
+                            main_compiled_file.write(f"\t\t{offset}\n")
+                        main_compiled_file.write("\t}\n\n")
+
+                    charge_smash_frames = {
+                        "forward": config.get('charge_smash_frames', {}).get('forward', '0'),
+                        "up": config.get('charge_smash_frames', {}).get('up', '0'),
+                        "down": config.get('charge_smash_frames', {}).get('down', '0'),
+                        "unused": 0
+                    }
+
+                    main_compiled_file.write(
+                        "\t// Charged smash attack frame data\n\tOS.align(4)\n\tcharge_smash_frames:\n")
+
+                    for direction in charge_smash_frames:
+                        main_compiled_file.write(
+                            f'\tdb {charge_smash_frames[direction]}\t// {direction}\n')
+
+                    main_compiled_file.write(
+                        f'\tChargeSmashAttacks.set_charged_smash_attacks(Character.id.{character_folder.upper()}, charge_smash_frames)\n\n')
+
+                    appended_movesets = True
+
+

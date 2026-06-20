@@ -1,0 +1,9 @@
+{
+    "terminal.integrated.defaultProfile.linux": "pipenv",
+    "terminal.integrated.profiles.linux": {
+        "pipenv": {
+            "path": "bash",
+            "args": ["-c", "pipenv shell"]
+        }
+    }
+}

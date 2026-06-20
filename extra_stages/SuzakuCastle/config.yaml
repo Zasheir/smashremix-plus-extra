@@ -1,0 +1,29 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Suzaku Castle"
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["3394", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+mushroom_kingdom_camera: true
+
+magnifying_glass_color: [80, 128, 144] # Either HTML color or [R, G, B]
+
+music:
+  main: "STREETFIGHTER2_RYU_THEME"
+  occasional: "STREETFIGHTER2_KEN_THEME"
+  rare: -1
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-1800,0]
+    p2: [1800,0]
+    p3: [-600,0]
+    p4: [600,0]
+  neutral:
+    p1: [-1800,0]
+    p2: [1800,0]
+    p3: [-600,0]
+    p4: [600,0]

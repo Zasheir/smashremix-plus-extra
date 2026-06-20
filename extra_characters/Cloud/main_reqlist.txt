@@ -1,0 +1,94 @@
+00E0 Link Move Set
+0161 Link Entry
+${FILE_6}
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+0161 Link Entry
+0161 Link Entry
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+${CHARACTER} Link Character
+0147 Link Shield Pose
+0147 Link Shield Pose
+0147 Link Shield Pose
+0147 Link Shield Pose
+0147 Link Shield Pose
+0147 Link Shield Pose
+0147 Link Shield Pose
+0147 Link Shield Pose
+0147 Link Shield Pose
+END OF REQ LIST

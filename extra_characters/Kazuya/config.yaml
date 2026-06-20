@@ -1,0 +1,58 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["00C4", "0000"]
+  character: ["0004", "7B04"]
+
+definitions:
+  base_character: CAPTAIN
+
+charge_smash_frames:
+  up: 7
+  forward: 3
+  down: 2
+
+results:
+  name: "Kazuya"
+  name_scale: 0.78
+  name_x: 25
+  wins_x: 175
+  
+sounds:
+  "FFF0": kaz_hurt 
+  "FFF1": kaz_ko 
+  "FFF2": kaz_toah 
+  "FFF3": kaz_uia 
+  "FFF4": kaz_ya 
+  "FFF5": kaz_yag
+  "FFF6": kaz_ho
+  "FFF7": selected
+  "FFF8": kaz_starko
+  "FFF9": kaz_stun
+
+announcer_fgm: "FFF7"
+
+attributes:
+  death_fgm: "FFF1"
+  star_ko_fgm: "FFF8"
+  damaged_fgm: "FFF0"
+  gravity: 3.3186806751171773
+  max_fall_speed: 57.899587852094776
+  aerial_friction: 0.37777778996085687
+  aerial_speed_max_x: 27.991834272708207
+  jump_vel_x: 0.3927933918042063
+  aerial_jump_height: 0.9
+  base_jump_height: 16
+  jump_height_multi: 0.9
+  ledge_grab_y: 600
+
+singleplayer:
+  alt_name_width: 43
+
+# Files 6, 7, 8, 9
+# [Filename (without .bin), InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+files: [
+  "0x0",
+  "0x0",
+  "0x0",
+  "0x0"
+]

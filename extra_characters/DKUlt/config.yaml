@@ -1,0 +1,32 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["0188", "0000"]
+  character: ["0004", "CE7C"]
+
+definitions:
+  base_character: DONKEY
+  series_logo_css: DONKEY_KONG
+  series_logo_model: DONKEY_KONG
+
+dk_cargo: true
+
+name: "DK Ultimate" 
+num_costumes: 5
+
+results:
+  name: "DK ULT"
+  name_scale: 1
+  name_x: 30
+  wins_x: 180
+  
+# Files 6, 7, 8, 9
+# [Filename (without .bin), InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+files: [
+  "0x0",
+  "0x0",
+  "0x0",
+  "0x0"
+]
+
+# sounds:
+# "FFF0": Announcer

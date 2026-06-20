@@ -1,0 +1,30 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Launch Base Zone"
+
+series: SONIC
+
+training_background: SECTOR_Z
+sss_zoom: 0.55
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["2F24", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "SONIC3_BIG_ARM"
+  occasional: "SONICNKNUCKLES_DEATH_EGG"
+  rare: "SONIC2_BOSS"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-1700,15]
+    p2: [1700,15]
+    p3: [-800,15]
+    p4: [800,15]
+  neutral:
+    p1: [-1700,15]
+    p2: [1700,15]
+    p3: [-800,15]
+    p4: [800,15]

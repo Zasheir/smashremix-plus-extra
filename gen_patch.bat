@@ -1,0 +1,1 @@
+"smashremix\xdelta" -f -s "smashremix\roms\ssb.rom" ssb64asm_extra.z64 smashremix_extra.xdelta
