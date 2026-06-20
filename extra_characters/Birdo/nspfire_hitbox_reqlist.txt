@@ -1,0 +1,4 @@
+${nspfire_gfx}
+${nspfire_gfx}
+${nspfire_gfx}
+END OF REQ LIST
