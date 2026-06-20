@@ -1,0 +1,71 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["0514", "0000"]
+  character: ["0008", "D11C"]
+
+definitions:
+  base_character: MARIO
+  series_logo_css: GAME_AND_WATCH
+  select_pose: 2
+
+# shield_pose: "0x12A"
+
+files: [
+  ["projectile_hitbox", "3FFFC", "0000"],
+  "0x164",
+  ["projectile_gfx", "0058", "3FFFC"],
+  "0x0"
+]
+
+tag_team_preloads: [
+  "projectile_hitbox"
+]
+
+name: "Mr. Game & Watch 3D"
+
+num_costumes: 12
+
+charge_smash_frames:
+  up: 6
+  forward: 8
+  down: 6
+
+results:
+  name: "Mr. G&W THREE D"
+  name_scale: 0.4
+  name_x: 25
+  wins_x: 180
+
+sounds:
+  "057B": ANNOUNCER
+  "057C": ATK_STRONG
+  "057D": ATK_WEAK
+  "057E": BEEP
+  "057F": BIIP
+  "0580": BOOP
+  "0581": CHANT
+  "0582": DMG
+  "0583": TECH
+  "0584": JUMP
+  "0585": KO
+  "0586": STAR_KO
+  "0587": TAUNT
+  "0588": UPB
+  "0589": NEUTRALB
+  "058A": DOWNB
+
+announcer_fgm: "057B"
+
+attributes:
+  death_fgm: "0585"
+  star_ko_fgm: "0586"
+  damaged_fgm: "0582"
+  attack_sfx_1: "057C"
+  attack_sfx_2: "057D"
+  attack_sfx_3: "057E"
+  heavy_lift_fgm: "057F"
+  max_air_speed: 31.250
+  max_fall_speed: 42.000
+  ecb_width: 125.000
+  ledge_grab_y: 368.000
+  weight: 1.250

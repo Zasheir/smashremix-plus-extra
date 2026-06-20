@@ -1,0 +1,87 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["0728", "0000"]
+  character: ["0008", "3FFFC"]
+
+definitions:
+  base_character: MARIO
+  series_logo_css: GAME_AND_WATCH
+  select_pose: 1
+
+# shield_pose: "0x12A"
+
+files: [
+  ["projectile_hitbox", "3FFFC", "0000"],
+  "0x164",
+  ["projectile_gfx", "0058", "3FFFC"],
+  "0x0"
+]
+
+tag_team_preloads: [
+  "projectile_hitbox"
+]
+
+name: "Mr. Game & Watch Plus"
+
+num_costumes: 7
+
+charge_smash_frames:
+  up: 6
+  forward: 8
+  down: 6
+
+results:
+  name: "Mr. G&W Plus"
+  name_scale: 0.5
+  name_x: 25
+  wins_x: 180
+
+victory_theme:
+  bend_range_overrides: [
+    [19, 1200]
+  ]
+
+singleplayer:
+  alt_name_width: 99
+
+sounds:
+  "057B": ANNOUNCER
+  "057C": SMASH1
+  "057D": SMASH2
+  "057E": TILT1
+  "057F": TILT2
+  "0580": TILT3
+  "0581": CHANT
+  "0582": DMG
+  "0583": TECH
+  "0584": JUMP
+  "0585": KO
+  "0586": STAR_KO
+  "0587": TAUNT
+  "0588": JAB
+  "0589": NEUTRALB
+  "058A": DOWNB
+  "058B": DJUMP
+  "058C": NAIR
+  "058D": AIR1
+  "058E": UP1
+  "058F": UP2
+  "0590": STEP
+
+announcer_fgm: "057B"
+
+attributes:
+  size_multi: 1.12
+  dash_speed: 50.000
+  dash_run_frames: 14.000
+  death_fgm: "0585"
+  star_ko_fgm: "0586"
+  damaged_fgm: "0582"
+  attack_sfx_1: "057C"
+  attack_sfx_2: "057D"
+  attack_sfx_3: "058D"
+  heavy_lift_fgm: "057F"
+  gravity: 2.450
+  max_fall_speed: 45.000
+  weight: 1.200
+  shield_size: 280.000
