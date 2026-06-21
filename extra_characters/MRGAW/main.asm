@@ -429,16 +429,30 @@ scope GameAndWatch2D {
     // Modify Menu Action Parameters                // Action           // Animation                // Moveset Data             // Flags
     //Character.edit_menu_action_parameters(MRGAW,      0xE,                File.DRM_1P_CPU_POSE,       0x80000000,                 -1)
 
-    Character.table_patch_start(variants, Character.id.MRGAW, 0x4)
-    db      Character.id.NONE
-    db      Character.id.NONE // set as POLYGON variant for MRGAW
-    db      Character.id.NONE
-    db      Character.id.NONE
-    OS.patch_end()
+    scope DPad {
+        if {defined Character.CHARACTER_ADDED_MRGAWPLUS} {
+            constant LEFT(Character.id.MRGAWPLUS)
+        } else {
+            constant LEFT(Character.id.NONE)
+        }
 
-    ; Character.table_patch_start(variant_original, Character.id.NDRM, 0x4)
-    ; dw      Character.id.MRGAW // set Dr. Mario as original character (not Mario, who NDRM is a clone of)
-    ; OS.patch_end()
+        if {defined Character.CHARACTER_ADDED_MRGAWTHREED} {
+            constant UP(Character.id.MRGAWTHREED)
+        } else {
+            constant UP(Character.id.NONE)
+        }
+
+        constant RIGHT(Character.id.NONE)
+
+        constant DOWN(Character.id.NONE)
+    }
+
+    Character.table_patch_start(variants, Character.id.MRGAW, 0x4)
+    db      DPad.UP    // set as SPECIAL variant for GAW PLUS
+    db      DPad.DOWN  // set as POLYGON variant for MRGAW
+    db      DPad.LEFT
+    db      DPad.RIGHT // set as SPECIAL variant for GAW 3D
+    OS.patch_end()
 
     // Set subroutines for special move initiations.
     Character.table_patch_start(ground_dsp, Character.id.MRGAW, 0x4)

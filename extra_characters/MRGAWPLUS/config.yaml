@@ -25,6 +25,8 @@ name: "Mr. Game & Watch Plus"
 
 num_costumes: 7
 
+dpad_original: "MRGAW"
+
 charge_smash_frames:
   up: 6
   forward: 8

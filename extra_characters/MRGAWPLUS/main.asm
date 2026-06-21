@@ -436,16 +436,11 @@ scope GameAndWatchPLUS2D {
     // Modify Menu Action Parameters                // Action           // Animation                // Moveset Data             // Flags
     //Character.edit_menu_action_parameters(MRGAWPLUS,      0xE,                File.DRM_1P_CPU_POSE,       0x80000000,                 -1)
 
-    Character.table_patch_start(variants, Character.id.MRGAWPLUS, 0x4)
-    db      Character.id.NONE
-    db      Character.id.NONE // set as POLYGON variant for MRGAWPLUS
-    db      Character.id.NONE
-    db      Character.id.NONE
-    OS.patch_end()
-
-    ; Character.table_patch_start(variant_original, Character.id.NDRM, 0x4)
-    ; dw      Character.id.MRGAWPLUS // set Dr. Mario as original character (not Mario, who NDRM is a clone of)
-    ; OS.patch_end()
+    if {defined Character.CHARACTER_ADDED_MRGAW} {
+        Character.table_patch_start(variant_original, Character.id.MRGAWPLUS, 0x4)
+        dw      Character.id.MRGAW // set Mr. Game & Watch as original character (not Mario, who MRGAWPLUS is a clone of)
+        OS.patch_end()
+    }
 
     // Set subroutines for special move initiations.
     Character.table_patch_start(ground_dsp, Character.id.MRGAWPLUS, 0x4)
