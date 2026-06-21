@@ -617,46 +617,46 @@ class CharacterProcessor:
 
         portrait_texture = "portrait_offsets.MARIO"
 
-        # # Check for portrait image and use if found
-        # if os.path.isfile(f"{output_path}/portrait.png"):
-        #     pixels, w, h = get_image_data(
-        #         f"{output_path}/portrait.png"
-        #     )
-        #     portrait_texture = append_image(
-        #         "scripts/0A05.bin",
-        #         "scripts/0A05.bin",
-        #         pixels,
-        #         w, h,
-        #         ImageMode.RGBA5551
-        #     )
-        #     portrait_texture += 16
-        #
-        #     portrait_texture = f"0x{portrait_texture:0X}"
-        #
-        #     # Check for flash portrait
-        #     if os.path.isfile(f"{output_path}/portrait_flash.png"):
-        #         pixels, w, h = get_image_data(
-        #             f"{output_path}/portrait_flash.png"
-        #         )
-        #         portrait_texture = append_image(
-        #             "scripts/0A05.bin",
-        #             "scripts/0A05.bin",
-        #             pixels,
-        #             w, h,
-        #             ImageMode.RGBA5551
-        #         )
-        #     else:
-        #         # If not found, append the regular portrait as the flash portrait
-        #         pixels, w, h = get_image_data(
-        #             f"{output_path}/portrait.png"
-        #         )
-        #         portrait_texture = append_image(
-        #             "scripts/0A05.bin",
-        #             "scripts/0A05.bin",
-        #             pixels,
-        #             w, h,
-        #             ImageMode.RGBA5551
-        #         )
+        # Check for portrait image and use if found
+        if os.path.isfile(f"{output_path}/portrait.png"):
+            if os.path.getsize("scripts/0A05.bin") + (2144 * 2) < 0x3FFFC:
+                pixels, w, h = get_image_data(
+                    f"{output_path}/portrait.png"
+                )
+                portrait_texture = append_image(
+                    "scripts/0A05.bin",
+                    "scripts/0A05.bin",
+                    pixels,
+                    w, h,
+                    ImageMode.RGBA5551
+                )
+
+                portrait_texture = f"0x{portrait_texture:08X} + 0x10"
+
+                # Check for flash portrait
+                if os.path.isfile(f"{output_path}/portrait_flash.png"):
+                    pixels, w, h = get_image_data(
+                        f"{output_path}/portrait_flash.png"
+                    )
+                    append_image(
+                        "scripts/0A05.bin",
+                        "scripts/0A05.bin",
+                        pixels,
+                        w, h,
+                        ImageMode.RGBA5551
+                    )
+                else:
+                    # If not found, append the regular portrait as the flash portrait
+                    pixels, w, h = get_image_data(
+                        f"{output_path}/portrait.png"
+                    )
+                    append_image(
+                        "scripts/0A05.bin",
+                        "scripts/0A05.bin",
+                        pixels,
+                        w, h,
+                        ImageMode.RGBA5551
+                    )
 
         self.add_to_css_strings.append(
             f"add_to_css(Character.id.{character_folder.upper()}, "
