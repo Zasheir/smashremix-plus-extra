@@ -382,6 +382,35 @@ scope MKnuckles {
     Character.add_new_action(MKNUCKLES, DSP_Air_Jump,       -1,             ActionParams.DSP_Air_Jump,          0x1E,           MKnucklesDSP.air_move_main_,       MKnucklesDSP.air_move_interrupt_,         MKnucklesDSP.air_movement_physics_,   MKnucklesDSP.air_move_collision_)
     Character.add_new_action(MKNUCKLES, DSP_Air_End,        -1,             ActionParams.DSP_Air_End,           0x1E,           0x800D94E8,                        0,                                        0x800D91EC,                           MKnucklesDSP.air_end_collision_)
 
+    scope DPad {
+        if {defined Character.CHARACTER_ADDED_CBKNUCKLES} {
+            constant LEFT(Character.id.CBKNUCKLES)
+        } else {
+            constant LEFT(Character.id.NONE)
+        }
+
+        if {defined Character.CHARACTER_ADDED_KNUCKLES} {
+            constant UP(Character.id.KNUCKLES)
+        } else {
+            constant UP(Character.id.NONE)
+        }
+
+        if {defined Character.CHARACTER_ADDED_CBMKNUCKLES} {
+            constant RIGHT(Character.id.CBMKNUCKLES)
+        } else {
+            constant RIGHT(Character.id.NONE)
+        }
+
+        constant DOWN(Character.id.NONE)
+    }
+
+    Character.table_patch_start(variants, Character.id.MKNUCKLES, 0x4)
+    db      DPad.UP    // set as SPECIAL variant for KNUCKLES
+    db      DPad.DOWN
+    db      DPad.LEFT  // set as SPECIAL variant for COWBOY KNUCKLES
+    db      DPad.RIGHT // set as SPECIAL variant for COWBOY MODERN KNUCKLES
+    OS.patch_end()
+
     // Set crowd chant FGM.
     Character.table_patch_start(crowd_chant_fgm, Character.id.MKNUCKLES, 0x2)
     dh FGM.CHANT

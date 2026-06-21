@@ -382,6 +382,12 @@ scope CBKnuckles {
     Character.add_new_action(CBKNUCKLES, DSP_Air_Jump,          -1,             ActionParams.DSP_Air_Jump,          0x1E,           CBKnucklesDSP.air_move_main_,       CBKnucklesDSP.air_move_interrupt_,         CBKnucklesDSP.air_movement_physics_,   CBKnucklesDSP.air_move_collision_)
     Character.add_new_action(CBKNUCKLES, DSP_Air_End,           -1,             ActionParams.DSP_Air_End,           0x1E,           0x800D94E8,                         0,                                         0x800D91EC,                            CBKnucklesDSP.air_end_collision_)
 
+    if {defined Character.CHARACTER_ADDED_MKNUCKLES} {
+        Character.table_patch_start(variant_original, Character.id.CBKNUCKLES, 0x4)
+        dw      Character.id.MKNUCKLES // set MKnuckles as original character (not Fox, who Knuckles is a clone of)
+        OS.patch_end()
+    }
+
     // Set crowd chant FGM.
     Character.table_patch_start(crowd_chant_fgm, Character.id.CBKNUCKLES, 0x2)
     dh FGM.CHANT
