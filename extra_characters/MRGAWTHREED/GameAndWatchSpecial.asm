@@ -108,7 +108,7 @@ scope GameAndWatchNSP {
 		lli   t3, 0x0022		// make medium punch the hit sound
 		sh    t3, 0x0146(v1)
 		
-		sw    r0, 0x010C(v1)	// make damage type normal
+		sw    r0, 0x010C(v1)	        // make damage type normal
 		
 		//lli   at, 0x0096		// make the sausage appear on the pan (change x position)
 		//sw    at, 0x0110(v1)
@@ -116,8 +116,8 @@ scope GameAndWatchNSP {
 		lli   at, 0x0006		// change damage to 6 instead of 7
 		sw    at, 0x0104(v1)
 		
-		//lli   t3, 0x		// change hitbox size to 200 (test)
-		//sw    t3, 0x0128(v1)
+		lui   t3, 0x42C8		// change hitbox size to 100 (test)
+		sw    t3, 0x0128(v1)
 		// end new code
 		
 		
@@ -530,8 +530,8 @@ scope GameAndWatchUSP {
     constant END(0x5)
 
     // floating point constants for physics and fsm
-    constant AIR_Y_SPEED(0x437A)            // current setting - float32 250
-    constant GROUND_Y_SPEED(0x437A)         // current setting - float32 250
+    constant AIR_Y_SPEED(0x4378)            // current setting - float32 248
+    constant GROUND_Y_SPEED(0x4378)         // current setting - float32 248
     constant X_SPEED(0x3e00)                // current setting - float32 0.125
     constant GRAV_ACCELERATION(0x4148)      // current setting - float32 12.5
     constant END_AIR_ACCELERATION(0x3f00)   // current setting - float32 0.5 used to be 0x3C20 or 0.00977
