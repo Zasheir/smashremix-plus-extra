@@ -116,7 +116,6 @@ class CharacterAppender:
     def prepare_files(self):
         """Process all character and stage folders, registering files with FileManager."""
         for character_folder in self.char_folders:
-            print(f"== {character_folder} ==")
             self._process_character(character_folder)
 
         for stage_folder in self.stage_folders:

@@ -25,6 +25,6 @@ The build consists of two parts:
 - **Windows: `build.bat`**
   - Manual steps:
     - `python -m pipenv install`
-    - `python -m pipenv run character_appender.py && patch_extra.bat > output.log`
+    - `python -m pipenv run character_appender.py && patch_extra.bat`
 - **Linux:**
   - `python3 character_appender.py && wine patch_extra.bat > output.log`
