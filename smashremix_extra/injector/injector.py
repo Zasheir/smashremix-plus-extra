@@ -17,6 +17,7 @@ MODIFIED_FILES = [
     (0x0023, "scripts/0023.bin",  0x00004, 0x3FFFC, 2), # 3D series logos (Results, Data)
     (0x153E, "scripts/153E.bin",  0x00970, 0x3FFFC, 2), # Stage icons 2
     (0x0A05, "scripts/0A05.bin",  0x00810, 0x3FFFC, 2), # Character portraits
+    (0x0A06, "scripts/0A06.bin",  0x00210, 0x3FFFC, 2), # CSS images
     (0x10F5, "scripts/10F5.bin",  0x02410, 0x3FFFC, 2), # Data screen bios
     (0x10F6, "scripts/10F6.bin",  0x00A10, 0x3FFFC, 2), # Data screen names, works, special attacks
 ]
@@ -177,5 +178,5 @@ class ROMInjector:
             f.write(rom_data)
 
         if on_progress:
-            on_progress(f"Done — wrote {self._output_rom}")
+            on_progress(f"Done - wrote {self._output_rom}")
         print(f"ROM written → {self._output_rom}")

@@ -55,12 +55,13 @@ def get_attrib_offset(main_file_path: str) -> str:
 def extract_files(smashremix_path: str) -> None:
     """Extract the ROM files that need to be edited from original.z64 into scripts/."""
     FILES_TO_EXTRACT = [
-        0xC,     # 1p vs screen nameplate
-        0x11,    # CSS nameplate
-        0x14,    # Big series logo (background in CSS, stage series logo)
-        0x23,    # 3d series logo used in the Results screen
+        0xC,     # 1P nameplates
+        0x11,    # CSS nameplates
+        0x14,    # 2D series logos (CSS, SSS)
+        0x23,    # 3D series logos (Results, Data)
         0x153E,  # Stage icons 2
         0xA05,   # Character portraits
+        0xA06,   # CSS images
         0x10F5,  # Data screen bios
         0x10F6,  # Data screen names, works, special attacks
     ]

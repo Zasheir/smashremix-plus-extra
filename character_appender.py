@@ -105,6 +105,7 @@ class CharacterAppender:
             last_sfx_id=last_sfx_id,
             last_remix_sfx_id=last_remix_sfx_id,
             sword_trail_count=sword_trail_count,
+            characters_exist = self.char_folders,
         )
         self.stage_proc = StageProcessor()
 
@@ -339,7 +340,7 @@ class CharacterAppender:
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
             line="\n".join(
-                [f"\tdb Character.id.{name.upper()}" for name in self.char_folders]),
+                [f"\tdb Character.id.{name.upper()}" for name in self.char_proc.bonus_chars]),
             inserter=lineinfile.AfterFirst(r"db Character.id.PIANO")
         )
 
@@ -354,7 +355,7 @@ class CharacterAppender:
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
             line=f'\tconstant NUM_BONUS_CHARS({
-                num_bonus_chars+len(self.char_folders)})',
+                num_bonus_chars+len(self.char_proc.bonus_chars)})',
             regexp=r'.*constant NUM_BONUS_CHARS\(.*\)'
         )
 
@@ -508,6 +509,28 @@ class CharacterAppender:
             line="\t\t"+"\n\t\t".join(dwStrings),
             inserter=lineinfile.AfterLast(
                 r"^\s*(dw offset)\.*")
+        )
+
+
+        offsetStrings = []
+        variantStrings = []
+        for cf, variant_icon in self.char_proc.css_dpad_icons.items():
+            offsetStrings.append(
+                f"constant {cf.upper()}(0x{variant_icon:0X} + 0x10)"
+            )
+
+            variantStrings.append(
+                f"\t\tlli     t2, Character.id.{cf.upper()}\n"
+                f"\t\tbeql    a1, t2, _draw_icon          // If {cf.upper()}, then draw {cf.upper()} stock icon\n"
+                f"\t\taddiu   a1, at, VARIANT_ICON_OFFSET.{cf.upper()} // a1 = {cf.upper()} footer struct"
+            )
+
+        add_to_scope("src/CharacterSelect.asm", "scope VARIANT_ICON_OFFSET", offsetStrings)
+
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line="\n".join(variantStrings),
+            inserter=lineinfile.AfterLast(r".*// a1 = ROY footer struct")
         )
 
         # CharacterDataScreen.asm

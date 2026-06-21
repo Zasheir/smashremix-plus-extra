@@ -28,12 +28,15 @@ class CharacterProcessor:
         last_sfx_id: int,
         last_remix_sfx_id: int,
         sword_trail_count: int,
+        characters_exist: list,
     ):
         self.name_texture_default = name_texture_default
         self.LAST_SFX_ID = last_sfx_id
         self.LAST_REMIX_SFX_ID = last_remix_sfx_id
         self.SWORD_TRAIL_COUNT = sword_trail_count
+        self.characters_exist = characters_exist
 
+        self.bonus_chars = []
         self.character_defs = []
         self.results_screen_defs = []
         self.add_to_css_strings = []
@@ -49,6 +52,7 @@ class CharacterProcessor:
         self.character_data_screen_order = []
         self.data_screen_big_border_defs = []
         self.results_j_win_defs = []
+        self.css_dpad_icons = {}
         self.yoshi_jump_defs = []
         self.yoshi_shield_defs = [[] for _ in range(8)]
         self.yoshi_grab1_defs = []
@@ -668,6 +672,25 @@ class CharacterProcessor:
             f"{portrait_texture}, "
             f"BOOKEND_BONUS_PORTRAIT)"
         )
+
+        # Add character to bonus slot if not variant or variant not existing
+        if not config.get("dpad_original", "") in self.characters_exist:
+            self.bonus_chars.append(character_folder)
+
+        # Check for D-Pad/Variant icon and add if found
+        if os.path.isfile(f"{output_path}/dpad.png"):
+            pixels, w, h = get_image_data(
+                f"{output_path}/dpad.png"
+            )
+            variant_icon = append_image(
+                "scripts/0A06.bin",
+                "scripts/0A06.bin",
+                pixels,
+                w, h,
+                ImageMode.RGBA5551
+            )
+
+            self.css_dpad_icons[character_folder.upper()] = variant_icon
 
         # Generate results screen definition
         victory_theme = "0x0B"
