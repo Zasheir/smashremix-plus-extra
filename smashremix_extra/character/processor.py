@@ -47,6 +47,7 @@ class CharacterProcessor:
         self.character_skins = []
         self.character_series_models = {}
         self.character_series_textures = {}
+        self.character_portrait_defs = []
         self.character_tag_team_preloads = []
         self.character_data_screen_defs = []
         self.character_data_screen_order = []
@@ -621,9 +622,13 @@ class CharacterProcessor:
 
         portrait_texture = "portrait_offsets.MARIO"
 
-        # Check for portrait image and use if found
-        if os.path.isfile(f"{output_path}/portrait.png"):
-            if os.path.getsize("scripts/0A05.bin") + (2144 * 2) < 0x3FFFC:
+        # If portrait override character exists, use their portrait
+        if config.get("dpad_original", "") in self.characters_exist and os.path.isfile(
+            f"extra_characters/{config.get("dpad_original", "")}/portrait.png"):
+                portrait_texture = f"portrait_offsets.{config.get("dpad_original", "").upper()}"
+        # Otherwise, check for portrait image and use if found
+        elif os.path.isfile(f"{output_path}/portrait.png"):
+            if os.path.getsize("scripts/0A05.bin") + (0x860 * 2) < 0x3FFFC:
                 pixels, w, h = get_image_data(
                     f"{output_path}/portrait.png"
                 )
@@ -635,7 +640,9 @@ class CharacterProcessor:
                     ImageMode.RGBA5551
                 )
 
-                portrait_texture = f"0x{portrait_texture:08X} + 0x10"
+                self.character_portrait_defs.append(
+                    f"constant {character_folder.upper()}(0x{portrait_texture:08X} + 0x10)")
+                portrait_texture = f"portrait_offsets.{character_folder.upper()}"
 
                 # Check for flash portrait
                 if os.path.isfile(f"{output_path}/portrait_flash.png"):
@@ -651,9 +658,6 @@ class CharacterProcessor:
                     )
                 else:
                     # If not found, append the regular portrait as the flash portrait
-                    pixels, w, h = get_image_data(
-                        f"{output_path}/portrait.png"
-                    )
                     append_image(
                         "scripts/0A05.bin",
                         "scripts/0A05.bin",

@@ -375,7 +375,7 @@ class CharacterAppender:
 
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
-            line="\t"+"\n\t".join(model_req_strings),
+            line="\n\t// EXTRA\n\t"+"\n\t".join(model_req_strings),
             inserter=lineinfile.AfterLast(r".*add_alt_req_list\(Character.*")
         )
 
@@ -511,6 +511,7 @@ class CharacterAppender:
                 r"^\s*(dw offset)\.*")
         )
 
+        add_to_scope("src/CharacterSelect.asm", "scope portrait_offsets", ["// extra"] + self.char_proc.character_portrait_defs)
 
         offsetStrings = []
         variantStrings = []
