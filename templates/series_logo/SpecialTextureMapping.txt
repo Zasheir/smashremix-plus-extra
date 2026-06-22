@@ -1,0 +1,11 @@
+Special Color: FFFFFFFF
+Alt Color Diffuse: B31919FF
+Alt Color Ambient: 262626FF
+Alt Color Diffuse: 001999FF
+Alt Color Ambient: 262626FF
+Alt Color Diffuse: FFB300FF
+Alt Color Ambient: 262626FF
+Alt Color Diffuse: 009919FF
+Alt Color Ambient: 262626FF
+Alt Color Diffuse: 666666FF
+Alt Color Ambient: 000000FF
