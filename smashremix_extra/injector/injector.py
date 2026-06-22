@@ -179,4 +179,4 @@ class ROMInjector:
 
         if on_progress:
             on_progress(f"Done - wrote {self._output_rom}")
-        print(f"ROM written → {self._output_rom}")
+        print(f"ROM written -> {self._output_rom}")
