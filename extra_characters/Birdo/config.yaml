@@ -59,6 +59,7 @@ sounds:
   "FFF3": BirdoHurt
   "FFF4": BirdoDeath
   "FFF5": BirdoSky
+  "FFF6": BirdoANnouncer
   "FFE0": BirdoKiss
   "FFE1": BirdoYeah
   "FFE2": BirdoAllRight
@@ -75,6 +76,8 @@ sounds:
   "FFED": BirdoTeeter
   "FFEE": Chant
   "FFEF": BirdoGrab
+
+announcer_fgm: "FFF6"
 
 sounds_special:
   "FFEE":

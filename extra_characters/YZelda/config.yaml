@@ -63,6 +63,9 @@ sounds:
   "FFF6": YZeldaSleep
   "FFF7": YZeldaDeath
   "FFF8": USP_TELE_START
+  "FFF9": YoungZeldaAnnouncer
+
+announcer_fgm: "FFF9"
 
 attributes:
   death_fgm: "FFF7"

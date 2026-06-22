@@ -48,6 +48,9 @@ sounds:
   "FFE6": vc_stun
   "FFE7": vc_sleep
   "FFE8": vc_teeter
+  "FFE9": AnnouncerCloud
+
+announcer_fgm: "FFE9"
 
 attributes:
   death_fgm: "FFF4"

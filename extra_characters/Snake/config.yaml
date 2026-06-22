@@ -78,6 +78,9 @@ sounds:
   "FFEB": stun
   "FFEC": teeter
   "FFED": grenadepull
+  "FFEE": AnnouncerSnake
+
+announcer_fgm: "FFEE"
 
 attributes:
   death_fgm: "FFF4"

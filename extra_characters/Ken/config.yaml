@@ -52,6 +52,9 @@ sounds:
   "FFE3": YATTA
   "FFE4": SEYA
   "FFE5": YA
+  "FFE6": AnnouncerKen
+
+announcer_fgm: "FFE6"
 
 attributes:
   death_fgm: "FFE2"

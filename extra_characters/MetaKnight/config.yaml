@@ -76,3 +76,6 @@ sounds:
   "FFE3": attack2
   "FFE4": attack3
   "FFE5": jab
+  "FFE6": AnnouncerMeta
+
+announcer_fgm: "FFE6"
