@@ -1,7 +1,7 @@
 # [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
 offsets:
-  main: ["0398", "0000"]
-  character: ["0004", "C33C"]
+  main: ["03C0", "0000"]
+  character: ["0004", "3FFFC"]
 
 definitions:
   base_character: LINK
@@ -49,6 +49,7 @@ sounds:
   "FFE7": vc_sleep
   "FFE8": vc_teeter
   "FFE9": AnnouncerCloud
+  "FFEA": bike
 
 announcer_fgm: "FFE9"
 

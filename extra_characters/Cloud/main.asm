@@ -104,6 +104,9 @@ scope Cloud {
     Character.edit_action_parameters(CLOUD, Action.ShieldBreak,       -1,                               SHIELDBREAK_,   -1)
     Character.edit_action_parameters(CLOUD, Action.Stun,              -1,                               STUN_,          -1)
     Character.edit_action_parameters(CLOUD, Action.Sleep,             -1,                               SLEEP_,         -1)
+    Character.edit_action_parameters(CLOUD, 0xE0,            File.CLOUD_ANIM_ENTRYL,           ENTRY,          0xC0000008)
+    Character.edit_action_parameters(CLOUD, 0xE1,            File.CLOUD_ANIM_ENTRYR,           ENTRY,          0xC0000008)
+    
 
     Character.edit_action_parameters(CLOUD, Action.DownAttackD, File.CLOUD_ANIM_DOWNATTACKD, -1, -1)
     Character.edit_action_parameters(CLOUD, Action.DownAttackU, File.CLOUD_ANIM_DOWNATTACKU, -1, -1)
