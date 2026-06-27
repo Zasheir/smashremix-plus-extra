@@ -526,6 +526,21 @@ scope Snake {
         dw string_0x10D
         dw string_0x10E
         dw string_0x10F
+        dw string_0x110
+        dw string_0x111
+        dw string_0x112
+        dw string_0x113
+        dw string_0x114
+        dw string_0x115
+        dw string_0x116
+        dw string_0x117
+        dw string_0x118
+        dw string_0x119
+        dw string_0x11A
+        dw string_0x11B
+        dw string_0x11C
+        dw string_0x11D
+        dw string_0x11E
         dw Action.string_0x0CF // USmash
         dw Action.string_0x0BD // Taunt
         dw Action.string_0x0BD // Taunt
