@@ -28,5 +28,7 @@ files: [
   "0x0"
 ]
 
-# sounds:
-# "FFF0": Announcer
+sounds:
+  "FFF0": UltDKAnnouncer
+
+announcer_fgm: "FFF0"

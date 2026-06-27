@@ -104,8 +104,8 @@ scope Cloud {
     Character.edit_action_parameters(CLOUD, Action.ShieldBreak,       -1,                               SHIELDBREAK_,   -1)
     Character.edit_action_parameters(CLOUD, Action.Stun,              -1,                               STUN_,          -1)
     Character.edit_action_parameters(CLOUD, Action.Sleep,             -1,                               SLEEP_,         -1)
-    Character.edit_action_parameters(CLOUD, 0xE0,            File.CLOUD_ANIM_ENTRYL,           ENTRY,          0xC0000008)
-    Character.edit_action_parameters(CLOUD, 0xE1,            File.CLOUD_ANIM_ENTRYR,           ENTRY,          0xC0000008)
+    Character.edit_action_parameters(CLOUD, 0xE0,            File.CLOUD_ANIM_ENTRYR,           ENTRY,          0xC0000008)
+    Character.edit_action_parameters(CLOUD, 0xE1,            File.CLOUD_ANIM_ENTRYL,           ENTRY,          0xC0000008)
     
 
     Character.edit_action_parameters(CLOUD, Action.DownAttackD, File.CLOUD_ANIM_DOWNATTACKD, -1, -1)
@@ -278,6 +278,11 @@ scope Cloud {
     // Set action strings
     Character.table_patch_start(action_string, Character.id.CLOUD, 0x4)
     dw  Action.action_string_table
+    OS.patch_end()
+
+    // Remove entry script (no Blue Falcon).
+    Character.table_patch_start(entry_script, Character.id.CLOUD, 0x4)
+    dw 0x8013DD68 // skips entry script
     OS.patch_end()
 
     CLOUD_USP_TWICE:
