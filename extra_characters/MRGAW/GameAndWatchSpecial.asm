@@ -165,7 +165,7 @@ scope GameAndWatchNSP {
 	lli   t3, 0x0022		// make medium punch the hit sound
 	sh    t3, 0x0146(v1)
 
-	lli   at, 0x0028		// set projectile bkb to 40
+	lli   at, 0x0025		// set projectile bkb to 37
 	sw    at, 0x0138(v1)
 
 	lli   at, 0x0023		// set projectile kbs to 35

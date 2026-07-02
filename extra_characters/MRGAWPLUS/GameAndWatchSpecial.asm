@@ -168,10 +168,10 @@ scope GameAndWatchNSP {
 	lli   t3, 0x0022		// make medium punch the hit sound
 	sh    t3, 0x0146(v1)
 
-	lli   at, 0x0028		// set projectile bkb to 40
+	lli   at, 0x0025		// set projectile bkb to 37
 	sw    at, 0x0138(v1)
 
-	lli   at, 0x0024		// set projectile kbs to 36
+	lli   at, 0x0023		// set projectile kbs to 35
 	sw    at, 0x0130(v1)
 
 	sw    r0, 0x010C(v1)	// make damage type normal
@@ -1606,7 +1606,7 @@ scope GameAndWatchDSP {
 	nop
 	lw	a0, 0x0084(a0)					// load character struct into a0
 	ori	a1, 0,  0						// reset a1
-	addiu   a1, a1, 12						// set a1 to the damage given to MRGAWPLUS (currently 12)
+	addiu   a1, a1, 15						// set a1 to the damage given to MRGAWPLUS (currently 15)
 	jal	Character.add_percent_			// args: a0 = character struct, a1 = damage to add
 	nop
 

@@ -65,7 +65,7 @@ sounds:
 announcer_fgm: "057B"
 
 attributes:
-  size_multi: 1.12
+  size_multi: 1.1
   dash_speed: 50.000
   dash_run_frames: 14.000
   death_fgm: "0585"
@@ -77,5 +77,5 @@ attributes:
   heavy_lift_fgm: "057F"
   gravity: 2.450
   max_fall_speed: 45.000
-  weight: 1.200
+  weight: 1.220
   shield_size: 280.000

@@ -530,8 +530,8 @@ scope GameAndWatchUSP {
     constant END(0x5)
 
     // floating point constants for physics and fsm
-    constant AIR_Y_SPEED(0x4378)            // current setting - float32 248
-    constant GROUND_Y_SPEED(0x4378)         // current setting - float32 248
+    constant AIR_Y_SPEED(0x4376)            // current setting - float32 246
+    constant GROUND_Y_SPEED(0x4376)         // current setting - float32 246
     constant X_SPEED(0x3e00)                // current setting - float32 0.125
     constant GRAV_ACCELERATION(0x4148)      // current setting - float32 12.5
     constant END_AIR_ACCELERATION(0x3f00)   // current setting - float32 0.5 used to be 0x3C20 or 0.00977
@@ -1460,11 +1460,11 @@ scope GameAndWatchDSP {
 	nop
 	lw	a0, 0x0084(a0)					// load character struct into a0
 	ori	a1, 0,  0						// reset a1
-	addiu   a1, a1, 12						// set a1 to the damage given to MRGAWTHREED (currently 12)
+	addiu   a1, a1, 15						// set a1 to the damage given to MRGAWTHREED (currently 15)
 	jal	Character.add_percent_			// args: a0 = character struct, a1 = damage to add
 	nop
-		
-		beq    r0, r0, _idle_transition_check
+	
+	beq    r0, r0, _idle_transition_check
         nop
 
 	// TODO: find who to credit for this code. it was from banjospecial.asm
