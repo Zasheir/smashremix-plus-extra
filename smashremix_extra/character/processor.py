@@ -51,6 +51,8 @@ class CharacterProcessor:
         self.character_tag_team_preloads = []
         self.character_data_screen_defs = []
         self.character_data_screen_order = []
+        self.character_lineinfile_patches = []
+        self.character_cloaking_dpl = {}
         self.data_screen_big_border_defs = []
         self.results_j_win_defs = []
         self.css_dpad_icons = {}
@@ -1193,6 +1195,80 @@ class CharacterProcessor:
                 jump_decay=float(config.get(
                     "kirby_jumps").get("jump_decay", 80))
             ))
+
+        # Check for display list fixes from characters (primarily for cloaking device issues)
+        dpl_config = config.get("cloaking_fix", {})
+        fix_list = dpl_config.get("parts", {})
+        if len(fix_list) > 0:
+            self.character_cloaking_dpl[character_folder] = {
+                "fix_logic":   dpl_config.get("fix_logic", "CharEnvColor.override_env_color_._fix"),
+                "clear_logic": dpl_config.get("clear_logic", "CharEnvColor.reset_custom_display_lists_._clear"),
+                "parts": {obj: {} for obj in fix_list}
+            }
+
+        for obj in fix_list:
+            for poly in ["hipoly", "lopoly"]:
+                poly_config = fix_list.get(obj).get(poly, {})
+                if not poly_config:
+                    continue
+
+                offsets = poly_config.get("cmd_offsets", [])
+                part_offset = poly_config.get("part_offset", "")
+                if not offsets or not part_offset:
+                    continue
+
+                default = []
+                alpha = []
+                for i, offset in enumerate(offsets):
+                    default.append(
+                        "0xC4113078" if i < 1
+                        else "RENDER_MODE_DEFAULT"
+                    )
+                    alpha.append("RENDER_MODE_ALPHA")
+
+                self.character_cloaking_dpl[character_folder]["parts"][obj][poly] = {
+                    "part":    part_offset,
+                    "offsets": offsets,
+                    "default": default,
+                    "alpha":   alpha,
+                }
+
+        # Custom lineinfile patches from characters
+        if os.path.exists(f"{original_path}/additions/"):
+            lif_files = os.listdir(f"{original_path}/additions/")
+            lif_files = [f"{original_path}/additions/{lif}" for lif in lif_files if lif.lower().endswith(".yaml")]
+            lif_files.sort()
+        else:
+            lif_files = []
+
+        for lif_yaml in lif_files:
+            patches = yaml.safe_load(open(lif_yaml))
+
+            for patch in patches:
+                patch = patches.get(patch, {})
+
+                patch_path = patch.get("path", "")
+                patch_line = patch.get("line", [])
+                patch_inserter = patch.get("type", "")
+                patch_arg = patch.get("where", "")
+
+                if not patch_path.startswith("src/") or not patch_path.endswith(".asm"):
+                    continue
+
+                if not os.path.exists(patch_path) or not patch_line:
+                    continue
+
+                if isinstance(patch_line, str):
+                    patch_line = [patch_line]
+
+                patch_line = patch.get("prefix", "") + patch.get("suffix", "").join(patch_line)
+
+                self.character_lineinfile_patches.append([
+                    patch_path,
+                    patch_line,
+                    patch_inserter,
+                    patch_arg
+                ])
 
         # Compile main.bin file
         # Replace attributes based on config

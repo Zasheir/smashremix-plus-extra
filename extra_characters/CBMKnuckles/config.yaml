@@ -103,3 +103,19 @@ attributes:
   attack_sfx_1: "060C"
   attack_sfx_2: "060D"
   attack_sfx_3: "060E"
+
+cloaking_fix:
+  parts:
+    head:
+      hipoly:
+        part_offset: "0x918"
+        cmd_offsets: [
+          "0x370",
+          "0x450"
+        ]
+      lopoly:
+        part_offset: "0x918"
+        cmd_offsets: [
+          "0x340",
+          "0x420"
+        ]

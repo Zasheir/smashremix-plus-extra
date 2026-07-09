@@ -132,11 +132,6 @@ scope GameAndWatch {
 		dw string_0x0F7
     }
 
-    // Sound IDs, auto generated (thanks to Krix for this solution)
-    scope FGM {
-        constant MRGAWTHREEDCHANT(0x0691)
-    }
-
     OS.align(16)
 
     // Modify Action Parameters              // Action                      // Animation                  // Moveset Data           // Flags
@@ -467,7 +462,7 @@ scope GameAndWatch {
 
     // Set crowd chant FGM.
     Character.table_patch_start(crowd_chant_fgm, Character.id.MRGAWTHREED, 0x2)
-    dh  FGM.MRGAWTHREEDCHANT
+    dh  FGM.CHANT
     OS.patch_end()
 
     // Set Kirby hat_id

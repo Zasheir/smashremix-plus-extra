@@ -78,3 +78,19 @@ attributes:
   death_fgm: "03E4"
   star_ko_fgm: "02B7"
   damaged_fgm: "02B7"
+
+cloaking_fix:
+  parts:
+    head:
+      hipoly:
+        part_offset: "0x918"
+        cmd_offsets: [
+          "0x3A8",
+          "0x4A8"
+        ]
+      lopoly:
+        part_offset: "0x918"
+        cmd_offsets: [
+          "0x328",
+          "0x420"
+        ]

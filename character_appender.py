@@ -803,6 +803,79 @@ class CharacterAppender:
             inserter=lineinfile.BeforeLast(r".*process_preloads().*")
         )
 
+        # CharEnvColor.asm
+        dpl_struct_defs = []
+        dpl_fix_defs = []
+        dpl_clear_defs = []
+
+        for char, dpl_dict in self.char_proc.character_cloaking_dpl.items():
+            parts = dpl_dict["parts"]
+            for obj in parts:
+                obj_config = parts[obj]
+                hi_config  = obj_config.get("hipoly", {})
+                hi_offsets = hi_config.get("offsets", [])
+                lo_config  = obj_config.get("lopoly", {})
+                lo_offsets = lo_config.get("offsets", [])
+
+                dpl_struct_defs.append(
+                    f"scope custom_display_lists_struct_{char.lower()}_{obj.lower()}: {{\n\t\t"
+                    f"dw OS.FALSE     // 0x0000: initialized flag, high poly\n\t\t"
+                    f"dw {"hi_default" if hi_offsets else "0x0"}  // 0x0004: pointer to default custom hi poly display list, or 0\n\t\t"
+                    f"dw {"hi_alpha" if hi_offsets else "0x0"}    // 0x0008: pointer to alpha custom hi poly display list, or 0\n\t\t"
+                    f"dh {hi_config.get("part", "0x0000")}       // 0x000C: offset to part 0x08 in player struct\n\t\t"
+                    f"dh {hi_offsets[0] if hi_offsets else "0xFFFF"}       // 0x000E: offset to 1st set render mode command for high poly\n\t\t"
+                    f"dh {hi_offsets[1] if len(hi_offsets) > 1 else "0xFFFF"}       // 0x0010: offset to 2nd set render mode command for high poly, or -1\n\t\t"
+                    f"dh {hi_offsets[2] if len(hi_offsets) > 2 else "0xFFFF"}       // 0x0012: offset to 3rd set render mode command for high poly, or -1\n\t\t"
+                    f"dw OS.FALSE     // 0x0014: initialized flag, low poly\n\t\t"
+                    f"dw {"lo_default" if lo_offsets else "0x0"}  // 0x0018: pointer to default custom lo poly display list, or 0\n\t\t"
+                    f"dw {"lo_alpha" if lo_offsets else "0x0"}    // 0x001C: pointer to alpha custom lo poly display list, or 0\n\t\t"
+                    f"dh {lo_config.get("part", "0x0000")}       // 0x0020: offset to part 0x08 in player struct\n\t\t"
+                    f"dh {lo_offsets[0] if lo_offsets else "0xFFFF"}       // 0x0022: offset to 1st set render mode command for high poly\n\t\t"
+                    f"dh {lo_offsets[1] if len(lo_offsets) > 1 else "0xFFFF"}       // 0x0024: offset to 2nd set render mode command for high poly, or -1\n\t\t"
+                    f"dh {lo_offsets[2] if len(lo_offsets) > 2 else "0xFFFF"}       // 0x0026: offset to 3rd set render mode command for high poly, or -1\n\t\t"
+                    f"{f"hi_default:; create_custom_display_list({",".join(hi_config["default"])})\n\t\t" if hi_offsets else ""}"
+                    f"{f"hi_alpha:; create_custom_display_list({",".join(hi_config["alpha"])})" if hi_offsets else ""}" + f"{"\n\t\t" if lo_offsets else ""}"
+                    f"{f"lo_default:; create_custom_display_list({",".join(lo_config["default"])})\n\t\t" if lo_offsets else ""}"
+                    f"{f"lo_alpha:; create_custom_display_list({",".join(lo_config["alpha"])})" if lo_offsets else ""}"
+                    "\n\t}\n"
+                )
+
+            first_part = next(iter(parts))
+            first_dpl_struct = f"custom_display_lists_struct_{char.lower()}_{first_part.lower()}"
+            dpl_fix_defs.append(
+                f"lli     t9, Character.id.{char.upper()}\n\t\t"
+                f"bne     t2, t9, pc() + 16\n\t\t"
+                f"li      v0, {first_dpl_struct}\n\t\t"
+                f"j       {dpl_dict["fix_logic"]}\n\t\t"
+                f"nop"
+            )
+
+            dpl_clear_defs.append(
+                f"nop\n\t\t"
+                f"lli     a2, Character.id.{char.upper()}\n\t\t"
+                f"bne     a0, a2, pc() + 16\n\t\t"
+                f"li      a1, custom_display_lists_struct_{char.lower()}_{first_part.lower()}\n\t\t"
+                f"j       {dpl_dict["clear_logic"]}"
+            )
+
+        lineinfile.add_line_to_file(
+            filepath="src/CharEnvColor.asm",
+            line="\t"+"\n\t".join(dpl_struct_defs),
+            inserter=lineinfile.BeforeLast(r".*scope custom_display_lists_struct_*")
+        )
+
+        lineinfile.add_line_to_file(
+            filepath="src/CharEnvColor.asm",
+            line="\t\t"+"\n\t\t".join(dpl_fix_defs),
+            inserter=lineinfile.BeforeLast(r".*// skip if no fixing necessary*")
+        )
+
+        lineinfile.add_line_to_file(
+            filepath="src/CharEnvColor.asm",
+            line="\t\t"+"\n\t\t".join(dpl_clear_defs),
+            inserter=lineinfile.AfterLast(r".*// if JKIRBY, clear JKIRBY's custom display lists*")
+        )
+
     def _patch_stage_asm(self):
         # Item.asm
         num_items = 0
@@ -1236,6 +1309,33 @@ class CharacterAppender:
 
         self.audio_proc.patch_toggle_asm()
 
+        # lineinfile patches from custom characters
+        for patch in self.char_proc.character_lineinfile_patches:
+            itype = patch[2]
+
+            if itype == "BeforeFirst":
+                insert = lineinfile.BeforeFirst(patch[3])
+            elif itype == "AfterFirst":
+                insert = lineinfile.AfterFirst(patch[3])
+            elif itype == "BeforeLast":
+                insert = lineinfile.BeforeLast(patch[3])
+            elif itype == "AfterLast":
+                insert = lineinfile.AfterLast(patch[3])
+            elif itype != "regexp":
+                continue
+
+            if itype == "regexp":
+                lineinfile.add_line_to_file(
+                    filepath=f"{patch[0]}",
+                    line=patch[1],
+                    regexp=patch[3]
+                )
+            else:
+                lineinfile.add_line_to_file(
+                    filepath=f"{patch[0]}",
+                    line=patch[1],
+                    inserter=insert
+                )
 
 def main(args):
     ca = CharacterAppender(args)
