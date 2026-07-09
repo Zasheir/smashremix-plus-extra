@@ -73,7 +73,7 @@ scope DKUlt {
 
     // Set default costumes
     Character.set_default_costumes(Character.id.DKULT, 0, 1, 2, 3, 2, 3, 4)
-    Teams.add_team_costume(YELLOW, DKULT, 0x8)
+    Teams.add_team_costume(YELLOW, DKULT, 0x1)
 
     // Shield colors for costume matching
     Character.set_costume_shield_colors(DKULT, BROWN, BLACK, RED, BLUE, GREEN, PINK, WHITE, YELLOW)
