@@ -77,5 +77,7 @@ sounds:
   "FFE4": attack3
   "FFE5": jab
   "FFE6": AnnouncerMeta
+  "FFE7": entrysword
+  "FFE8": entryspin
 
 announcer_fgm: "FFE6"

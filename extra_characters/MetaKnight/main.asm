@@ -223,6 +223,11 @@ scope MetaKnight {
     Character.edit_action_parameters(METAKNIGHT, Action.HammerAir, File.METAKNIGHT_ANIM_HAMMER, HAMMER, 0x0)
     Character.edit_action_parameters(METAKNIGHT, Action.HammerLanding, File.METAKNIGHT_ANIM_HAMMER, HAMMER, 0x0)
 
+    //Entry
+
+    Character.edit_action_parameters(METAKNIGHT, 0xE4,            File.METAKNIGHT_ANIM_ENTRYR,           ENTRY,          0x40800008)
+    Character.edit_action_parameters(METAKNIGHT, 0xE5,            File.METAKNIGHT_ANIM_ENTRYL,           ENTRY,          0x40800008)
+
     // Modify Menu Action Parameters              // Action // Animation           // Moveset Data // Flags
     Character.edit_menu_action_parameters(METAKNIGHT, 0x0, File.METAKNIGHT_ANIM_IDLE, eyesNormal, -1)
     Character.edit_menu_action_parameters(METAKNIGHT, 0x1, File.METAKNIGHT_ANIM_WIN1, win1, 0x10800000)
@@ -230,6 +235,7 @@ scope MetaKnight {
     Character.edit_menu_action_parameters(METAKNIGHT, 0x3, File.METAKNIGHT_ANIM_WIN3, win3, -1)
     Character.edit_menu_action_parameters(METAKNIGHT, 0x4, File.METAKNIGHT_ANIM_WIN3, win3, -1)
     Character.edit_menu_action_parameters(METAKNIGHT, 0x5, File.METAKNIGHT_ANIM_LOSE, -1, -1)
+    Character.edit_menu_action_parameters(METAKNIGHT, 0xD, File.METAKNIGHT_ANIM_1PPOSE,  -1, 0x0F000000)
     // // Character.edit_menu_action_parameters(METAKNIGHT, 0xE,      File.GND_1P_CPU,       ONEP,           -1)
     // Character.edit_menu_action_parameters(METAKNIGHT,    0xD,      File.METAKNIGHT_ANIM_CLASSIC, ONEP,           -1)
 
@@ -348,6 +354,11 @@ scope MetaKnight {
     }
     Character.table_patch_start(custom_capture_dk_interrupt, Character.id.METAKNIGHT, 0x4)
     dw capture_action_fix_
+    OS.patch_end()
+
+    // Remove entry script (no Blue Falcon).
+    Character.table_patch_start(entry_script, Character.id.METAKNIGHT, 0x4)
+    dw 0x8013DD68 // skips entry script
     OS.patch_end()
 
     // Used so that items work on the left hand on reused animations
