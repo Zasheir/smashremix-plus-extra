@@ -1,7 +1,7 @@
 # [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
 offsets:
   main: ["00C4", "0000"]
-  character: ["0004", "7B04"]
+  character: ["186C", "3FFFC"]
 
 definitions:
   base_character: CAPTAIN

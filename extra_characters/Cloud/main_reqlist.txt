@@ -88,8 +88,6 @@ ${CHARACTER}
 ${CHARACTER}
 ${CHARACTER}
 ${CHARACTER}
-${CHARACTER}
-${CHARACTER}
 0147 Link Shield Pose
 0147 Link Shield Pose
 0147 Link Shield Pose
