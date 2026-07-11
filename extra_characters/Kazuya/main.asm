@@ -244,13 +244,6 @@ scope Kazuya {
     dw KazuyaUSP.ground_initial_
     OS.patch_end()
 
-    // Set default costumes
-    Character.set_default_costumes(Character.id.KAZUYA, 0, 1, 2, 3, 4, 5, 1)
-    Teams.add_team_costume(YELLOW, KAZUYA, 4)
-
-    // Shield colors for costume matching
-    Character.set_costume_shield_colors(KAZUYA, RED, RED, BLUE, GREEN, YELLOW, PURPLE, BLACK, NA)
-
     // Set Kirby star damage
     Character.table_patch_start(kirby_inhale_struct, 0x8, Character.id.KAZUYA, 0xC)
     dw Character.kirby_inhale_struct.star_damage.DK
@@ -529,4 +522,11 @@ scope Kazuya {
     Character.table_patch_start(ai_behaviour, Character.id.KAZUYA, 0x4)
     dw CPU_ATTACKS
     OS.patch_end()
+
+    // Set default costumes
+    Character.set_default_costumes(Character.id.KAZUYA, 0, 2, 5, 4, 1, 2, 3)
+    Teams.add_team_costume(YELLOW, KAZUYA, 0x4)
+
+    // Shield colors for costume matching
+    Character.set_costume_shield_colors(KAZUYA, WHITE, RED, BLUE, GREEN, YELLOW, BLACK, NA, NA)
 }

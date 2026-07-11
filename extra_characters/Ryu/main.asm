@@ -278,13 +278,6 @@ scope Ryu {
     dw Character.rapid_jab.DISABLED // disable rapid jab
     OS.patch_end()
 
-    // Set default costumes
-    Character.set_default_costumes(Character.id.RYU, 0, 1, 2, 3, 4, 5, 1)
-    Teams.add_team_costume(YELLOW, RYU, 6)
-
-    // Shield colors for costume matching
-    Character.set_costume_shield_colors(RYU, WHITE, LIME, AZURE, BLACK, ORANGE, AZURE, YELLOW, BLACK)
-
     // Set Kirby star damage
     Character.table_patch_start(kirby_inhale_struct, 0x8, Character.id.RYU, 0xC)
     dw Character.kirby_inhale_struct.star_damage.DK
@@ -751,4 +744,11 @@ scope Ryu {
     Character.table_patch_start(action_string, Character.id.RYU, 0x4)
     dw Action.action_string_table
     OS.patch_end()
+
+    // Set default costumes
+    Character.set_default_costumes(Character.id.RYU, 0, 7, 1, 3, 0, 5, 6)
+    Teams.add_team_costume(YELLOW, RYU, 0x4)
+
+    // Shield colors for costume matching
+    Character.set_costume_shield_colors(RYU, WHITE, AZURE, CYAN, BLACK, YELLOW, BLUE, GREEN, PURPLE)
 }

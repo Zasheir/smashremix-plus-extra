@@ -176,13 +176,6 @@ scope Cloud {
     dw action_replace_map_
     OS.patch_end()
 
-    // Set default costumes
-    Character.set_default_costumes(Character.id.CLOUD, 0, 1, 2, 3, 1, 2, 3)
-    Teams.add_team_costume(YELLOW, CLOUD, 0x4)
-
-    // Shield colors for costume matching
-    Character.set_costume_shield_colors(CLOUD, MAGENTA, RED, BLUE, GREEN, YELLOW, PURPLE, BLACK, NA)
-
     // Disable rapid jab
     Character.table_patch_start(rapid_jab, Character.id.CLOUD, 0x4)
     dw      Character.rapid_jab.DISABLED        // disable rapid jab
@@ -359,4 +352,11 @@ scope Cloud {
     Character.table_patch_start(ai_behaviour, Character.id.CLOUD, 0x4)
     dw      CPU_ATTACKS
     OS.patch_end()
+
+    // Set default costumes
+    Character.set_default_costumes(Character.id.CLOUD, 0, 3, 5, 4, 1, 2, 3)
+    Teams.add_team_costume(YELLOW, CLOUD, 0x4)
+
+    // Shield colors for costume matching
+    Character.set_costume_shield_colors(CLOUD, PURPLE, RED, BLUE, GREEN, YELLOW, BLACK, NA, NA)
 }

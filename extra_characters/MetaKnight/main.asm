@@ -361,6 +361,13 @@ scope MetaKnight {
     dw 0x8013DD68 // skips entry script
     OS.patch_end()
 
+    // Set default costumes
+    Character.set_default_costumes(Character.id.METAKNIGHT, 0, 1, 4, 5, 2, 0, 3)
+    Teams.add_team_costume(YELLOW, METAKNIGHT, 1)
+
+    // Shield colors for costume matching
+    Character.set_costume_shield_colors(METAKNIGHT, BLUE, YELLOW, RED, GREEN, BLACK, PINK, NA, NA)
+
     // Used so that items work on the left hand on reused animations
     Character.table_patch_start(static_part, Character.id.METAKNIGHT, 0x8)
     dw 0x00800000 // withheld part 5 - left hand item

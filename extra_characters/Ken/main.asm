@@ -300,7 +300,7 @@ scope Ken {
     Teams.add_team_costume(YELLOW, KEN, 5)
 
     // Shield colors for costume matching
-    Character.set_costume_shield_colors(KEN, RED, BLACK, PURPLE, WHITE, GREEN, YELLOW, AZURE, RED)
+    Character.set_costume_shield_colors(KEN, RED, BLACK, PURPLE, WHITE, GREEN, YELLOW, AZURE, MAGENTA)
 
     // Set Kirby star damage
     Character.table_patch_start(kirby_inhale_struct, 0x8, Character.id.KEN, 0xC)
