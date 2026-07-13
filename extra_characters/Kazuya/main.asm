@@ -27,8 +27,8 @@ scope Kazuya {
     Character.edit_action_parameters(KAZUYA, Action.JumpSquat, File.KAZUYA_ANIM_JUMPSQUAT, -1, -1)
     Character.edit_action_parameters(KAZUYA, Action.ShieldJumpSquat, File.KAZUYA_ANIM_JUMPSQUAT, -1, -1)
 
-    Character.edit_action_parameters(RYU, 0xE0, File.KAZUYA_ANIM_IDLE, -1, -1)
-    Character.edit_action_parameters(RYU, 0xE1, File.KAZUYA_ANIM_IDLE, -1, -1)
+    Character.edit_action_parameters(KAZUYA, 0xE0, File.KAZUYA_ANIM_IDLE, -1, -1)
+    Character.edit_action_parameters(KAZUYA, 0xE1, File.KAZUYA_ANIM_IDLE, -1, -1)
 
     Character.edit_action_parameters(KAZUYA, Action.Taunt, File.KAZUYA_ANIM_TAUNT, 0, -1)
 
