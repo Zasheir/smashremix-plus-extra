@@ -95,3 +95,22 @@ attributes:
   attack_sfx_2: "FFF1"
   attack_sfx_3: "FFF2"
   heavy_lift_fgm: "FFED"
+
+cloaking_fix:
+  fix_logic: Birdo.CloakingFix.fix_
+  clear_logic: Birdo.CloakingFix.clear_
+  parts:
+    racket:
+      hipoly:
+        part_offset: "0x930"
+        cmd_offsets: "0xB8"
+      lopoly:
+        part_offset: "0x930"
+        cmd_offsets: "0xB8"
+    ball:
+      hipoly:
+        part_offset: "0x964"
+        cmd_offsets: "0x70"
+      lopoly:
+        part_offset: "0x964"
+        cmd_offsets: "0x70"

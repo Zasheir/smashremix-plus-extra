@@ -219,4 +219,50 @@ scope Birdo {
     // Shield colors for costume matching
     Character.set_costume_shield_colors(BIRDO, MAGENTA, RED, BLUE, YELLOW, GREEN, WHITE, BLACK, PURPLE, BROWN, NA, NA, NA)
 
-   }
+    scope CloakingFix: {
+        scope fix_: {
+            // s8 = player struct
+            // v0 = first custom part struct (racket)
+            _check_birdo:
+            addiu   sp, sp, -0x0010             // allocate stack space
+            sw      t1, 0x0004(sp)              // save return address
+
+            // Check which part is being displayed
+            lbu     t2, 0x0999(s8)              // t2 = birdo right hand part_id
+            beqzl   t2, _fix_birdo              // if holding racket, then already have correct v0
+            nop
+            b       _check_birdo_2              // otherwise, check if ball needs fixing
+            nop
+
+            _fix_birdo:
+            li      t1, _check_birdo_2          // t1 is the address to return to
+            j       CharEnvColor.override_env_color_._fix
+            nop
+
+            _check_birdo_2:
+            // Check which part is being displayed
+            lbu     t2, 0x09B3(s8)              // t2 = birdo item(?) part_id
+            beqz    t2, _fix_birdo_2            // if holding ball, then fix
+            lw      t1, 0x0004(sp)              // t1 = return address
+            j       CharEnvColor.override_env_color_._return
+            addiu   sp, sp, 0x0010              // allocate stack space
+
+            _fix_birdo_2:
+            li      v0, CharEnvColor.custom_display_lists_struct_birdo_ball
+            j       CharEnvColor.override_env_color_._fix
+            addiu   sp, sp, 0x0010              // allocate stack space
+        }
+
+        scope clear_: {
+            // a1 = first custom part struct (racket)
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_birdo_ball
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            jr      ra                  // return
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+        }
+    }
+
+}

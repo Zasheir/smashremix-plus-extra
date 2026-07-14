@@ -88,3 +88,17 @@ sword_trails:
     color2: "0xFE50B200"
     start_pos: 32
     end_pos: 400
+
+cloaking_fix:
+  parts:
+    sword:
+      hipoly:
+        part_offset: "0x934"
+        cmd_offsets: [
+          "0x208"
+        ]
+      lopoly:
+        part_offset: "0x934"
+        cmd_offsets: [
+          "0x1D0"
+        ]

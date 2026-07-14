@@ -391,6 +391,67 @@ scope MetaKnight {
     dw initial_script_
     OS.patch_end()
 
+    scope CloakingFix: {
+        scope fix_: {
+            // s8 = player struct
+            // v0 = first custom part struct (left inner wing)
+            _check_mk:
+            addiu   sp, sp, -0x0010             // allocate stack space
+            sw      t1, 0x0004(sp)              // save return address
+
+            // Check if wings displayed
+            lw      t2, 0xAE4(s8)               // t2 = wings state
+            li      t1, -1                      // t1 = 0xFFFFFFFF
+            bnel    t2, t1, _fix_mk             // if wings, fix
+            nop
+            lw      t1, 0x0004(sp)              // load return address
+            j       CharEnvColor.override_env_color_._return
+            addiu   sp, sp, 0x0010              // allocate stack space
+
+            _fix_mk:
+            li      t1, _fix_mk_2               // t1 is the address to return to
+            j       CharEnvColor.override_env_color_._fix
+            nop
+
+            _fix_mk_2:
+            li      t1, _fix_mk_3               // t1 is the address to return to
+            li      v0, CharEnvColor.custom_display_lists_struct_metaknight_left_wing_outer
+            j       CharEnvColor.override_env_color_._fix
+            nop
+
+            _fix_mk_3:
+            li      v0, CharEnvColor.custom_display_lists_struct_metaknight_right_wing_inner
+            li      t1, _fix_mk_4               // t1 is the address to return to
+            j       CharEnvColor.override_env_color_._fix
+            nop
+
+            _fix_mk_4:
+            li      v0, CharEnvColor.custom_display_lists_struct_metaknight_right_wing_outer
+            lw      t1, 0x0004(sp)              // load return address
+            j       CharEnvColor.override_env_color_._fix
+            addiu   sp, sp, 0x0010              // allocate stack space
+        }
+
+        scope clear_: {
+            // a1 = first custom part struct (left inner wing)
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_metaknight_left_wing_outer
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_metaknight_right_wing_inner
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_metaknight_right_wing_outer
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            jr      ra                  // return
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+        }
+    }
+
     // Modify Menu Action Parameters // Action // Animation // Moveset Data // Flags
     // Character.edit_menu_action_parameters(METAKNIGHT, 0x0, File.METAKNIGHT_ANIM_TILTU, 0, 0x00000000)
 }

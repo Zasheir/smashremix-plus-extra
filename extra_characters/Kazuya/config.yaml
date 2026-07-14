@@ -58,3 +58,36 @@ files: [
   "0x0",
   "0x0"
 ]
+
+cloaking_fix:
+  fix_logic: Kazuya.CloakingFix.fix_
+  clear_logic: Kazuya.CloakingFix.clear_
+  parts:
+    pant_left_upper:
+      hipoly:
+        part_offset: "0x938"
+        cmd_offsets: "0x70"
+      lopoly:
+        part_offset: "0x938"
+        cmd_offsets: "0x70"
+    pant_left_lower:
+      hipoly:
+        part_offset: "0x93C"
+        cmd_offsets: "0x70"
+      lopoly:
+        part_offset: "0x93C"
+        cmd_offsets: "0x70"
+    pant_right_upper:
+      hipoly:
+        part_offset: "0x94C"
+        cmd_offsets: "0x70"
+      lopoly:
+        part_offset: "0x94C"
+        cmd_offsets: "0x70"
+    pant_right_lower:
+      hipoly:
+        part_offset: "0x950"
+        cmd_offsets: "0x70"
+      lopoly:
+        part_offset: "0x950"
+        cmd_offsets: "0x70"

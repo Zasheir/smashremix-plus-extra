@@ -81,3 +81,36 @@ sounds:
   "FFE8": entryspin
 
 announcer_fgm: "FFE6"
+
+cloaking_fix:
+  fix_logic: MetaKnight.CloakingFix.fix_
+  clear_logic: MetaKnight.CloakingFix.clear_
+  parts:
+    left_wing_inner:
+      hipoly:
+        part_offset: "0x960"
+        cmd_offsets: "0x70"
+      lopoly:
+        part_offset: "0x960"
+        cmd_offsets: "0x70"
+    left_wing_outer:
+      hipoly:
+        part_offset: "0x964"
+        cmd_offsets: "0x70"
+      lopoly:
+        part_offset: "0x964"
+        cmd_offsets: "0x70"
+    right_wing_inner:
+      hipoly:
+        part_offset: "0x968"
+        cmd_offsets: "0x70"
+      lopoly:
+        part_offset: "0x968"
+        cmd_offsets: "0x70"
+    right_wing_outer:
+      hipoly:
+        part_offset: "0x96C"
+        cmd_offsets: "0x70"
+      lopoly:
+        part_offset: "0x96C"
+        cmd_offsets: "0x70"

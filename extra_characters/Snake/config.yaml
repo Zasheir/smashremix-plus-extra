@@ -169,3 +169,13 @@ attributes:
       grabbable: 0
       offset: [93.0, -3.0, 0.0]
       size: [180.0, 70.0, 64.0]
+
+cloaking_fix:
+  parts:
+    neck:
+      hipoly:
+        part_offset: "0x900"
+        cmd_offsets: "0x358"
+      lopoly:
+        part_offset: "0x900"
+        cmd_offsets: "0x300"

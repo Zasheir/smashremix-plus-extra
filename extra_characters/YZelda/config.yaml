@@ -103,3 +103,22 @@ sword_trails:
     color2: "0x80E0FF00"
     start_pos: -10
     end_pos: 30
+
+cloaking_fix:
+  fix_logic: YZelda.CloakingFix.fix_
+  clear_logic: YZelda.CloakingFix.clear_
+  parts:
+    arrow:
+      hipoly:
+        part_offset: "0x92C"
+        cmd_offsets: ["0x170"]
+      lopoly:
+        part_offset: "0x92C"
+        cmd_offsets: ["0x170"]
+    arrow_light:
+      hipoly:
+        part_offset: "0x92C"
+        cmd_offsets: ["0x170"]
+      lopoly:
+        part_offset: "0x92C"
+        cmd_offsets: ["0x170"]

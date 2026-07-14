@@ -613,4 +613,47 @@ scope YZelda {
         nop
     }
 
+    scope CloakingFix: {
+        scope fix_: {
+            // s8 = player struct
+            // v0 = first custom part struct (arrow)
+            addiu   sp, sp, -0x0010             // allocate stack space
+            sw      t1, 0x0004(sp)              // save return address
+
+            _check_yzelda:
+            // Check which part is being displayed
+            li      t1, _check_yzelda_2         // t1 = return address
+            lbu     t2, 0x0997(s8)              // t2 = yzelda right hand part_id
+            lli     t9, 0x0001                  // t9 = special part of hand holding arrow
+            beql    t2, t9, _fix_yzelda         // if holding arrow hand, then already have correct v0
+            nop
+
+            _check_yzelda_2:
+            li      v0, CharEnvColor.custom_display_lists_struct_yzelda_arrow_light
+            lw      t1, 0x0004(sp)              // t1 = return address
+            lbu     t2, 0x0997(s8)              // t2 = yzelda right hand part_id
+            lli     t9, 0x0002                  // t9 = special part of hand holding light arrow
+            beql    t2, t9, _fix_yzelda         // if holding light arrow hand, fix
+            addiu   sp, sp, 0x0010              // allocate stack space
+
+            j       CharEnvColor.override_env_color_._return
+            addiu   sp, sp, 0x0010              // allocate stack space
+
+            _fix_yzelda:
+            j       CharEnvColor.override_env_color_._fix
+            nop                                 // after fix, jr's to t1
+        }
+
+        scope clear_: {
+            // a1 = first custom part struct (arrow)
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_yzelda_arrow_light
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            jr      ra                  // return
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+        }
+    }
+
 }
