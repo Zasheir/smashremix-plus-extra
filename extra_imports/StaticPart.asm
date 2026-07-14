@@ -7,8 +7,8 @@ print "included StaticPart.asm\n"
 // This file sets up "static parts", a counterpart to withheld parts that will always appear.
 // This will allow a static part of the model to exist
 
-include "OS.asm"
-include "Global.asm"
+include "../src/OS.asm"
+include "../src/Global.asm"
 
 scope StaticPart {
     // @ Description

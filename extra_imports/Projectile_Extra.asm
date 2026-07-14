@@ -3,7 +3,7 @@ if !{defined __PROJECTILE_EXTRA__} {
     define __PROJECTILE_EXTRA__()
     print "included Projectile_extra.asm\n"
 
-    include "OS.asm"
+    include "../src/OS.asm"
 
     scope Projectile {
         constant MAX_REMIX_PROJECTILE_NUM(128) // maximum number of extra projectiles that can be added
