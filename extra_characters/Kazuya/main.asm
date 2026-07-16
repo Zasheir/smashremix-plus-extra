@@ -27,8 +27,10 @@ scope Kazuya {
     Character.edit_action_parameters(KAZUYA, Action.JumpSquat, File.KAZUYA_ANIM_JUMPSQUAT, -1, -1)
     Character.edit_action_parameters(KAZUYA, Action.ShieldJumpSquat, File.KAZUYA_ANIM_JUMPSQUAT, -1, -1)
 
-    Character.edit_action_parameters(KAZUYA, 0xE0, File.KAZUYA_ANIM_IDLE, -1, -1)
-    Character.edit_action_parameters(KAZUYA, 0xE1, File.KAZUYA_ANIM_IDLE, -1, -1)
+    Character.edit_action_parameters(KAZUYA, 0xE0, File.KAZUYA_ANIM_ENTRYR, ENTRY, -1)
+    Character.edit_action_parameters(KAZUYA, 0xE1, File.KAZUYA_ANIM_ENTRYL, ENTRY, -1)
+    Character.edit_action(KAZUYA, 0xE0, -1, 0x8013DA94, 0, 0x8013DB2C, 0x800DE348) // LEFT ENTRY
+    Character.edit_action(KAZUYA, 0xE1, -1, 0x8013DA94, 0, 0x8013DB2C, 0x800DE348) // RIGHT ENTRY
 
     Character.edit_action_parameters(KAZUYA, Action.Taunt, File.KAZUYA_ANIM_TAUNT, 0, -1)
 
@@ -181,6 +183,7 @@ scope Kazuya {
     Character.edit_menu_action_parameters(KAZUYA, 0x2, File.KAZUYA_ANIM_WIN1, EMPTY, -1)
     Character.edit_menu_action_parameters(KAZUYA, 0x3, File.KAZUYA_ANIM_WIN1, EMPTY, -1)
     Character.edit_menu_action_parameters(KAZUYA, 0x4, File.KAZUYA_ANIM_WIN1, EMPTY, -1)
+    Character.edit_menu_action_parameters(KAZUYA, 0xD, File.KAZUYA_ANIM_ONEPOSE, ONEPOSE, -1)
 
     // Action replacement map
     scope action_replace_map_: {
