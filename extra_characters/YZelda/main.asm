@@ -422,7 +422,7 @@ scope YZelda {
     Character.edit_menu_action_parameters(YZELDA,  0x5,      File.PEACH_CLAP,            IDLE,                       -1)
     Character.edit_menu_action_parameters(YZELDA,  0x9,      File.PEACH_CONTINUE_FALL,   -1,                         -1)
     Character.edit_menu_action_parameters(YZELDA,  0xA,      File.PEACH_CONTINUE_UP,     -1,                         -1)
-    Character.edit_menu_action_parameters(YZELDA,  0xD,      File.PEACH_1P_POSE,         -1,                         -1)
+    Character.edit_menu_action_parameters(YZELDA,  0xD,      File.YZELDA_ANIM_ONEPOSE,   ONEPOSE,                    -1)
     Character.edit_menu_action_parameters(YZELDA,  0xE,      File.PEACH_CPU_POSE,        -1,                         -1)
 
     // Add Action Parameters                // Action Name      // Base Action  // Animation                // Moveset Data             // Flags
