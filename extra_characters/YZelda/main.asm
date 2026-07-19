@@ -584,12 +584,12 @@ scope YZelda {
         OS.patch_end()
 
         lw      t6, 0x0008(a0)              // t6 = character id
-        lli     at, Character.id.YZELDA     // at = id.YZelda
-        beq     at, t6, _end                // branch if chracter = YZELDA
-        lli     t6, YZeldaUSP.DURATION      // up special duration = YZeldaUSP.DURATION
         lli     at, Character.id.SLIPPY     // at = id.Slippy
-        beq     at, t6, _end                // branch if chracter = SLIPPY
+        beql     at, t6, _end                // branch if character = SLIPPY
         lli     t6, SlippyUSP.DURATION      // up special duration = SlippyUSP.DURATION
+        lli     at, Character.id.YZELDA     // at = id.YZelda
+        beql     at, t6, _end                // branch if character = YZELDA
+        lli     t6, YZeldaUSP.DURATION      // up special duration = YZeldaUSP.DURATION
 
         // if the character isn't Slippy
         addiu   t6, r0, 0x001E              // up special duration = 0x1E (30) (original line 1)
