@@ -822,14 +822,14 @@ class CharacterAppender:
                     f"dw OS.FALSE     // 0x0000: initialized flag, high poly\n\t\t"
                     f"dw {"hi_default" if hi_offsets else "0x0"}  // 0x0004: pointer to default custom hi poly display list, or 0\n\t\t"
                     f"dw {"hi_alpha" if hi_offsets else "0x0"}    // 0x0008: pointer to alpha custom hi poly display list, or 0\n\t\t"
-                    f"dh {hi_config.get("part", "0x0000")}       // 0x000C: offset to part 0x08 in player struct\n\t\t"
+                    f"dh {hi_config.get("part", "0x0000")}       // 0x000C: offset to part in player struct\n\t\t"
                     f"dh {hi_offsets[0] if hi_offsets else "0xFFFF"}       // 0x000E: offset to 1st set render mode command for high poly\n\t\t"
                     f"dh {hi_offsets[1] if len(hi_offsets) > 1 else "0xFFFF"}       // 0x0010: offset to 2nd set render mode command for high poly, or -1\n\t\t"
                     f"dh {hi_offsets[2] if len(hi_offsets) > 2 else "0xFFFF"}       // 0x0012: offset to 3rd set render mode command for high poly, or -1\n\t\t"
                     f"dw OS.FALSE     // 0x0014: initialized flag, low poly\n\t\t"
                     f"dw {"lo_default" if lo_offsets else "0x0"}  // 0x0018: pointer to default custom lo poly display list, or 0\n\t\t"
                     f"dw {"lo_alpha" if lo_offsets else "0x0"}    // 0x001C: pointer to alpha custom lo poly display list, or 0\n\t\t"
-                    f"dh {lo_config.get("part", "0x0000")}       // 0x0020: offset to part 0x08 in player struct\n\t\t"
+                    f"dh {lo_config.get("part", "0x0000")}       // 0x0020: offset to part in player struct\n\t\t"
                     f"dh {lo_offsets[0] if lo_offsets else "0xFFFF"}       // 0x0022: offset to 1st set render mode command for high poly\n\t\t"
                     f"dh {lo_offsets[1] if len(lo_offsets) > 1 else "0xFFFF"}       // 0x0024: offset to 2nd set render mode command for high poly, or -1\n\t\t"
                     f"dh {lo_offsets[2] if len(lo_offsets) > 2 else "0xFFFF"}       // 0x0026: offset to 3rd set render mode command for high poly, or -1\n\t\t"
@@ -860,7 +860,7 @@ class CharacterAppender:
 
         lineinfile.add_line_to_file(
             filepath="src/CharEnvColor.asm",
-            line="\t"+"\n\t".join(dpl_struct_defs),
+            line="\t"+"\n\t".join(dpl_struct_defs)+"\n",
             inserter=lineinfile.BeforeLast(r".*scope custom_display_lists_struct_*")
         )
 

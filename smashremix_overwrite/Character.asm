@@ -3002,6 +3002,22 @@ scope Character {
         fill (Character.NUM_CHARACTERS * 0x4)
         OS.align(4)
 
+        // ftMainSetStatus: 800E6F24 + 2C
+        // Save previous action for later access
+        scope on_action_changed_save_previous_action: {
+            OS.patch_start(0x62754, 0x800E6F54)
+            jal on_action_changed_save_previous_action
+            sw r0, 0x7c(sp) // original line 1: unk_callback = NULL;
+            _return:
+            OS.patch_end()
+
+            lw at, 0x24(s1) // at = original action id
+            sw at, 0x50(sp) // save original action id on stack (seems like this address is not used)
+
+            jr ra
+            sw t7, 0x84(sp) // original line 2
+        }
+
         // ftMainSetStatus: 800E6F24 + B80
         scope on_action_changed_hook: {
             OS.patch_start(0x632A4, 0x800E7AA4)
@@ -3028,6 +3044,7 @@ scope Character {
             beqz t1, _end // if no entry, skip
             nop
 
+            lw a2, 0x50(sp) // argument 2 = previous action id
             or a0, s1, r0 // argument 0 = character struct
             jalr t1 // call function
             lw a1, 0x94(sp) // argument 1 = new action id

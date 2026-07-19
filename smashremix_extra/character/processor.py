@@ -1213,6 +1213,8 @@ class CharacterProcessor:
                     continue
 
                 offsets = poly_config.get("cmd_offsets", [])
+                if isinstance(offsets, str):
+                    offsets = [offsets]
                 part_offset = poly_config.get("part_offset", "")
                 if not offsets or not part_offset:
                     continue
