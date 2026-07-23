@@ -1,3 +1,7 @@
+<p align="center">
+ <img width="320" alt="Smash Remix +EXTRA" src=".github/sr-extra.png">
+</p>
+
 # Extra content build system
 
 ## Prerequisites
@@ -27,4 +31,4 @@ The build consists of two parts:
     - `python -m pipenv install`
     - `python -m pipenv run character_appender.py && patch_extra.bat`
 - **Linux:**
-  - `python3 character_appender.py && wine patch_extra.bat > output.log`
+  - `python3 character_appender.py && wine patch_extra.bat`
