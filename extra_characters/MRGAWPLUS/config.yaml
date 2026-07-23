@@ -72,6 +72,87 @@ sounds:
 
 announcer_fgm: "057B"
 
+cloaking_fix:
+  fix_logic: GameAndWatchPLUS2D.CloakingFix.fix_
+  clear_logic: GameAndWatchPLUS2D.CloakingFix.clear_
+  parts:
+    fish_bowl:
+      hipoly:
+        part_offset: "0x928"
+        cmd_offsets: "0x28"
+    torch:
+      hipoly:
+        part_offset: "0x92C"
+        cmd_offsets: "0xE8"
+    turtle:
+      hipoly:
+        part_offset: "0x92C"
+        cmd_offsets: "0x28"
+    fish_one:
+      hipoly:
+        part_offset: "0x92C"
+        cmd_offsets: "0x28"
+    key:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x28"
+    wind:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x110"
+    parachute:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x28"
+    card_one:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x130"
+    card_two:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x130"
+    card_three:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x130"
+    card_four:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x130"
+    card_five:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x130"
+    card_six:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x130"
+    card_seven:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x130"
+    card_eight:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x130"
+    card_nine:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x130"
+    fire_one:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x28"
+    fire_two:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x28"
+    fish_two:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x28"
+
 attributes:
   size_multi: 1.1
   dash_speed: 50.000

@@ -499,5 +499,252 @@ scope GameAndWatch2D {
     // Insert AI attack options
     include "AI.asm"
 
+    scope CloakingFix: {
+        scope fix_: {
+            // s8 = player struct
+            // v0 = first custom part struct (fish_bowl)
+            addiu   sp, sp, -0x0010             // allocate stack space
+            sw      t1, 0x0004(sp)              // save return address
+
+            _check_gnw_fish_bowl:
+            //li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_fish_bowl
+            li      t1, _check_gnw_torch        // t1 = return address
+            lbu     t2, 0x0995(s8)              // t2 = g&w arm part_id
+            lli     t9, 0x0003                  // t9 = special part of fish_bowl
+            beql    t2, t9, _fix                // if fish_bowl, fix
+            nop
+
+            _check_gnw_torch:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_torch
+            li      t1, _check_gnw_turtle        // t1 = return address
+            lbu     t2, 0x0997(s8)              // t2 = g&w item part_id
+            lli     t9, 0x0004                  // t9 = special part of torch
+            beql    t2, t9, _fix                // if torch, fix
+            nop
+
+            _check_gnw_turtle:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_turtle
+            li      t1, _check_gnw_fish_one        // t1 = return address
+            lbu     t2, 0x0997(s8)              // t2 = g&w item part_id
+            lli     t9, 0x0005                  // t9 = special part of turtle
+            beql    t2, t9, _fix                // if turtle, fix
+            nop
+
+            _check_gnw_fish_one:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_fish_one
+            li      t1, _check_gnw_key        // t1 = return address
+            lbu     t2, 0x0997(s8)              // t2 = g&w item part_id
+            lli     t9, 0x0006                  // t9 = special part of fish_one
+            beql    t2, t9, _fix                // if fish_one, fix
+            nop
+
+            _check_gnw_key:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_key
+            li      t1, _check_gnw_wind        // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0003                  // t9 = special part of key
+            beql    t2, t9, _fix                // if key, fix
+            nop
+
+            _check_gnw_wind:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_wind
+            li      t1, _check_gnw_parachute        // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0005                  // t9 = special part of wind
+            beql    t2, t9, _fix                // if wind, fix
+            nop
+
+            _check_gnw_parachute:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_parachute
+            li      t1, _check_gnw_card_one        // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0009                  // t9 = special part of parachute
+            beql    t2, t9, _fix                // if parachute, fix
+            nop
+
+            _check_gnw_card_one:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_card_one
+            li      t1, _check_gnw_card_two        // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x000A                  // t9 = special part of card_one
+            beql    t2, t9, _fix                // if card_one, fix
+            nop
+
+            _check_gnw_card_two:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_card_two
+            li      t1, _check_gnw_card_three        // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x000B                  // t9 = special part of card_two
+            beql    t2, t9, _fix                // if card_two, fix
+            nop
+
+            _check_gnw_card_three:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_card_three
+            li      t1, _check_gnw_card_four   // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x000C                  // t9 = special part of card_three
+            beql    t2, t9, _fix                // if card_three, fix
+            nop
+
+            _check_gnw_card_four:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_card_four
+            li      t1, _check_gnw_card_five   // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x000D                  // t9 = special part of card_four
+            beql    t2, t9, _fix                // if card_four, fix
+            nop
+
+            _check_gnw_card_five:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_card_five
+            li      t1, _check_gnw_card_six   // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x000E                  // t9 = special part of card_five
+            beql    t2, t9, _fix                // if card_five, fix
+            nop
+
+            _check_gnw_card_six:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_card_six
+            li      t1, _check_gnw_card_seven   // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x000F                  // t9 = special part of card_six
+            beql    t2, t9, _fix                // if card_six, fix
+            nop
+
+            _check_gnw_card_seven:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_card_seven
+            li      t1, _check_gnw_card_eight   // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0010                  // t9 = special part of card_seven
+            beql    t2, t9, _fix                // if card_seven, fix
+            nop
+
+            _check_gnw_card_eight:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_card_eight
+            li      t1, _check_gnw_card_nine   // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0011                  // t9 = special part of card_eight
+            beql    t2, t9, _fix                // if card_eight, fix
+            nop
+
+            _check_gnw_card_nine:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_card_nine
+            li      t1, _check_gnw_fire_one   // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0012                  // t9 = special part of card_nine
+            beql    t2, t9, _fix                // if card_nine, fix
+            nop
+
+            _check_gnw_fire_one:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_fire_one
+            li      t1, _check_gnw_fire_two   // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0013                  // t9 = special part of fire_one
+            beql    t2, t9, _fix                // if fire_one, fix
+            nop
+
+            _check_gnw_fire_two:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_fire_two
+            li      t1, _check_gnw_fish_two   // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0014                  // t9 = special part of fire_two
+            beql    t2, t9, _fix                // if fire_two, fix
+            nop
+
+            _check_gnw_fish_two:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgaw_fish_two
+            lw      t1, 0x0004(sp)              // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0015                  // t9 = special part of fish_two
+            beql    t2, t9, _fix                // if fish_two, fix
+            addiu   sp, sp, 0x0010              // allocate stack space
+
+            j       CharEnvColor.override_env_color_._return
+            addiu   sp, sp, 0x0010              // allocate stack space
+
+            _fix:
+            j       CharEnvColor.override_env_color_._fix
+            nop                                 // after fix, jr's to t1
+        }
+
+        scope clear_: {
+            // a1 = first custom part struct (fish_bowl)
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_torch
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_turtle
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_fish_one
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_key
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_wind
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_parachute
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_card_one
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_card_two
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_card_three
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_card_four
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_card_five
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_card_six
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_card_seven
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_card_eight
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_card_nine
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_fire_one
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_fire_two
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+
+            li      a1, CharEnvColor.custom_display_lists_struct_mrgaw_fish_two
+            sw      r0, 0x0000(a1)      // clear high poly initialized flag
+            jr      ra                  // return
+            sw      r0, 0x0014(a1)      // clear low poly initialized flag
+        }
+    }
+
 }
 
