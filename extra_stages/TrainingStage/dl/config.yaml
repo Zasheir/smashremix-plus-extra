@@ -8,6 +8,13 @@ offsets:
 
 mushroom_kingdom_camera: true
 
+music:
+  main: KH2FM_CAVERN_OF_REMEMBRANCE
+  occasional: FORGONE
+  rare: CORRIDORS_OF_TIME
+  rare2: BLUE_RESORT
+
+
 spawn_locations:
   default:
     p1: [-1400,910]

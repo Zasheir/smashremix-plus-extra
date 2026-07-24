@@ -16,7 +16,7 @@ music:
   main: "OPEN_YOUR_HEART"
   occasional: "SONICADVENTURE_EMERALD_COAST"
   rare: "KNUCKLESCHAOTIX_SEASCAPE"
-  rare2: -1
+  rare2: "KNUCKLESCHAOTIX_DOOR_INTO_SUMMER"
 
 spawn_locations:
   default:
