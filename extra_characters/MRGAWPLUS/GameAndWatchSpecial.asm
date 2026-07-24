@@ -174,16 +174,11 @@ scope GameAndWatchNSP {
 	lli   at, 0x0023		// set projectile kbs to 35
 	sw    at, 0x0130(v1)
 
-	sw    r0, 0x010C(v1)	// make damage type normal
+	sw    r0, 0x010C(v1)	        // make damage type normal
 
-	//lli   at, 0x0096		// make the sausage appear on the pan (change x position)
-	//sw    at, 0x0110(v1)
-
-	lli   at, 0x0005		// change damage to 5 instead of 7
+	lli   at, 0x0005		// change damage to 5
 	sw    at, 0x0104(v1)
 
-	//lli   t3, 0x		// change hitbox size to 200 (test)
-	//sw    t3, 0x0128(v1)
 	// end new code
 
 

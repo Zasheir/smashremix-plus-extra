@@ -82,6 +82,18 @@ cloaking_fix:
       hipoly:
         part_offset: "0x928"
         cmd_offsets: "0x28"
+    flag:
+      hipoly:
+        part_offset: "0x92C"
+        cmd_offsets: "0x28"
+    blaster_one:
+      hipoly:
+        part_offset: "0x92C"
+        cmd_offsets: "0xD0"
+    blaster_two:
+      hipoly:
+        part_offset: "0x92C"
+        cmd_offsets: "0xC8"
     torch:
       hipoly:
         part_offset: "0x92C"
@@ -94,6 +106,10 @@ cloaking_fix:
       hipoly:
         part_offset: "0x92C"
         cmd_offsets: "0x28"
+    bell:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x28"
     key:
       hipoly:
         part_offset: "0x958"
@@ -102,6 +118,10 @@ cloaking_fix:
       hipoly:
         part_offset: "0x958"
         cmd_offsets: "0x110"
+    chair:
+      hipoly:
+        part_offset: "0x958"
+        cmd_offsets: "0x28"
     parachute:
       hipoly:
         part_offset: "0x958"
