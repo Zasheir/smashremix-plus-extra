@@ -643,17 +643,6 @@ scope YZelda {
             j       CharEnvColor.override_env_color_._fix
             nop                                 // after fix, jr's to t1
         }
-
-        scope clear_: {
-            // a1 = first custom part struct (arrow)
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-
-            li      a1, CharEnvColor.custom_display_lists_struct_yzelda_arrow_light
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            jr      ra                  // return
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-        }
     }
 
 }

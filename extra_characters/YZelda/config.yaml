@@ -106,7 +106,6 @@ sword_trails:
 
 cloaking_fix:
   fix_logic: YZelda.CloakingFix.fix_
-  clear_logic: YZelda.CloakingFix.clear_
   parts:
     arrow:
       hipoly:

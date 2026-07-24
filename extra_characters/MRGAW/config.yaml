@@ -64,7 +64,6 @@ sounds:
 
 cloaking_fix:
   fix_logic: GameAndWatch2D.CloakingFix.fix_
-  clear_logic: GameAndWatch2D.CloakingFix.clear_
   parts:
     fish_bowl:
       hipoly:

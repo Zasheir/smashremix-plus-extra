@@ -74,7 +74,6 @@ announcer_fgm: "057B"
 
 cloaking_fix:
   fix_logic: GameAndWatchPLUS2D.CloakingFix.fix_
-  clear_logic: GameAndWatchPLUS2D.CloakingFix.clear_
   parts:
     fish_bowl:
       hipoly:

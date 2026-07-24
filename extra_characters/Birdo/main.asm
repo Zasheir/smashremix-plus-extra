@@ -252,17 +252,6 @@ scope Birdo {
             j       CharEnvColor.override_env_color_._fix
             addiu   sp, sp, 0x0010              // allocate stack space
         }
-
-        scope clear_: {
-            // a1 = first custom part struct (racket)
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-
-            li      a1, CharEnvColor.custom_display_lists_struct_birdo_ball
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            jr      ra                  // return
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-        }
     }
 
 }

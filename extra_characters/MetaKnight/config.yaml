@@ -84,7 +84,6 @@ announcer_fgm: "FFE6"
 
 cloaking_fix:
   fix_logic: MetaKnight.CloakingFix.fix_
-  clear_logic: MetaKnight.CloakingFix.clear_
   parts:
     left_wing_inner:
       hipoly:

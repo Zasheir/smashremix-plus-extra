@@ -98,7 +98,6 @@ attributes:
 
 cloaking_fix:
   fix_logic: Birdo.CloakingFix.fix_
-  clear_logic: Birdo.CloakingFix.clear_
   parts:
     racket:
       hipoly:

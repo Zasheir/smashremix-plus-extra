@@ -566,24 +566,5 @@ scope Kazuya {
             j       CharEnvColor.override_env_color_._fix
             addiu   sp, sp, 0x0010              // allocate stack space
         }
-
-        scope clear_: {
-            // a1 = first custom part struct (left upper pant)
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-
-            li      a1, CharEnvColor.custom_display_lists_struct_kazuya_pant_left_lower
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-
-            li      a1, CharEnvColor.custom_display_lists_struct_kazuya_pant_right_upper
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-
-            li      a1, CharEnvColor.custom_display_lists_struct_kazuya_pant_right_lower
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            jr      ra                  // return
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-        }
     }
 }

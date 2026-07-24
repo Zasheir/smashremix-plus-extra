@@ -61,7 +61,6 @@ files: [
 
 cloaking_fix:
   fix_logic: Kazuya.CloakingFix.fix_
-  clear_logic: Kazuya.CloakingFix.clear_
   parts:
     pant_left_upper:
       hipoly:

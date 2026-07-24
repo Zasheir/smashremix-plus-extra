@@ -52,7 +52,7 @@ class CharacterProcessor:
         self.character_data_screen_defs = []
         self.character_data_screen_order = []
         self.character_lineinfile_patches = []
-        self.character_cloaking_dpl = {}
+        self.character_cloaking_fix = {}
         self.data_screen_big_border_defs = []
         self.results_j_win_defs = []
         self.css_dpad_icons = {}
@@ -1199,13 +1199,7 @@ class CharacterProcessor:
         # Check for display list fixes from characters (primarily for cloaking device issues)
         dpl_config = config.get("cloaking_fix", {})
         fix_list = dpl_config.get("parts", {})
-        if len(fix_list) > 0:
-            self.character_cloaking_dpl[character_folder] = {
-                "fix_logic":   dpl_config.get("fix_logic", "CharEnvColor.override_env_color_._fix"),
-                "clear_logic": dpl_config.get("clear_logic", "CharEnvColor.reset_custom_display_lists_._clear"),
-                "parts": {obj: {} for obj in fix_list}
-            }
-
+        parts = {obj: {} for obj in fix_list}
         for obj in fix_list:
             for poly in ["hipoly", "lopoly"]:
                 poly_config = fix_list.get(obj).get(poly, {})
@@ -1228,20 +1222,90 @@ class CharacterProcessor:
                     )
                     alpha.append("RENDER_MODE_ALPHA")
 
-                self.character_cloaking_dpl[character_folder]["parts"][obj][poly] = {
+                parts[obj][poly] = {
                     "part":    part_offset,
-                    "offsets": offsets,
+                    "cmd":     offsets,
                     "default": default,
                     "alpha":   alpha,
                 }
 
+        if parts:
+            self.character_cloaking_fix[character_folder] = {
+                "struct_defs": [],
+                "fix_defs": [],
+                "clear_defs": [],
+                "clear_asm": []
+            }
+
+            first_part = next(iter(parts))
+            first_dpl_struct = f"custom_display_lists_struct_{character_folder.lower()}_{first_part.lower()}"
+            self.character_cloaking_fix[character_folder]["fix_defs"].append(
+                f"lli     t9, Character.id.{character_folder.upper()}\n\t\t"
+                f"bne     t2, t9, pc() + 16\n\t\t"
+                f"li      v0, {first_dpl_struct}\n\t\t"
+                f"j       {dpl_config.get("fix_logic", "CharEnvColor.override_env_color_._fix")}\n\t\t"
+                f"nop"
+            )
+
+            self.character_cloaking_fix[character_folder]["clear_defs"].append(
+                f"nop\n\t\t"
+                f"li      a1, custom_display_lists_struct_{character_folder.lower()}_{first_part.lower()}\n\t\t"
+                f"lli     a2, Character.id.{character_folder.upper()}\n\t\t"
+                f"beq     a0, a2, _clear{f"_{character_folder.lower()}" if len(parts) > 1 else ""}"
+            )
+
+            for idx, obj in enumerate(parts):
+                obj_config = parts[obj]
+                hi_config  = obj_config.get("hipoly", {})
+                lo_config  = obj_config.get("lopoly", {})
+                hi_offsets = hi_config.get("cmd", [])
+                lo_offsets = lo_config.get("cmd", [])
+
+                self.character_cloaking_fix[character_folder]["struct_defs"].append(
+                    f"scope custom_display_lists_struct_{character_folder.lower()}_{obj.lower()}: {{\n\t\t"
+                    f"dw OS.FALSE     // 0x0000: initialized flag, high poly\n\t\t"
+                    f"dw {"hi_default" if hi_offsets else "0x0"}  // 0x0004: pointer to default custom hi poly display list, or 0\n\t\t"
+                    f"dw {"hi_alpha" if hi_offsets else "0x0"}    // 0x0008: pointer to alpha custom hi poly display list, or 0\n\t\t"
+                    f"dh {hi_config.get("part", "0x0000")}       // 0x000C: offset to part in player struct\n\t\t"
+                    f"dh {hi_offsets[0] if hi_offsets else "0xFFFF"}       // 0x000E: offset to 1st set render mode command for high poly\n\t\t"
+                    f"dh {hi_offsets[1] if len(hi_offsets) > 1 else "0xFFFF"}       // 0x0010: offset to 2nd set render mode command for high poly, or -1\n\t\t"
+                    f"dh {hi_offsets[2] if len(hi_offsets) > 2 else "0xFFFF"}       // 0x0012: offset to 3rd set render mode command for high poly, or -1\n\t\t"
+                    f"dw OS.FALSE     // 0x0014: initialized flag, low poly\n\t\t"
+                    f"dw {"lo_default" if lo_offsets else ("hi_default" if hi_offsets else "0x0")}  // 0x0018: pointer to default custom lo poly display list, or 0\n\t\t"
+                    f"dw {"lo_alpha" if lo_offsets else ("hi_alpha" if hi_offsets else "0x0")}    // 0x001C: pointer to alpha custom lo poly display list, or 0\n\t\t"
+                    f"dh {lo_config.get("part", hi_config.get("part", "0x0000"))}       // 0x0020: offset to part in player struct\n\t\t"
+                    f"dh {lo_offsets[0] if lo_offsets else (hi_offsets[0] if hi_offsets else "0xFFFF")}       // 0x0022: offset to 1st set render mode command for high poly\n\t\t"
+                    f"dh {lo_offsets[1] if len(lo_offsets) > 1 else (hi_offsets[1] if len(hi_offsets) > 1 else "0xFFFF")}       // 0x0024: offset to 2nd set render mode command for high poly, or -1\n\t\t"
+                    f"dh {lo_offsets[2] if len(lo_offsets) > 2 else (hi_offsets[2] if len(hi_offsets) > 2 else "0xFFFF")}       // 0x0026: offset to 3rd set render mode command for high poly, or -1\n\t\t"
+                    f"{f"hi_default:; create_custom_display_list({",".join(hi_config["default"])})\n\t\t" if hi_offsets else ""}"
+                    f"{f"hi_alpha:; create_custom_display_list({",".join(hi_config["alpha"])})" if hi_offsets else ""}" + f"{"\n\t\t" if lo_offsets else ""}"
+                    f"{f"lo_default:; create_custom_display_list({",".join(lo_config["default"])})\n\t\t" if lo_offsets else ""}"
+                    f"{f"lo_alpha:; create_custom_display_list({",".join(lo_config["alpha"])})" if lo_offsets else ""}"
+                    "\n\t}\n"
+                )
+
+                if len(parts) > 1:
+                    self.character_cloaking_fix[character_folder]["clear_asm"].append(
+                        # if first part, add label
+                        f"{f"_clear_{character_folder.lower()}:\n\t\t" if idx == 0 else ""}"
+                        f"// {obj.lower()}\n\t\t"
+
+                        # if not first part, need to load part struct
+                        f"{f"li      a1, custom_display_lists_struct_{character_folder.lower()}_{obj.lower()}\n\t\t" if idx != 0 else ""}"
+
+                        # if last part, branch to final clear
+                        f"{"b       _clear\n\t\tnop\n\t\t" if idx == len(parts) - 1 else ""}"
+                        # if not last part, clear as usual
+                        f"{"sw      r0, 0x0000(a1)              // clear high poly initialized flag\n\t\t" if idx != len(parts) - 1 else ""}"
+                        f"{"sw      r0, 0x0014(a1)              // clear low poly initialized flag" if idx != len(parts) - 1 else ""}"
+                    )
+
         # Custom lineinfile patches from characters
+        lif_files = []
         if os.path.exists(f"{original_path}/additions/"):
             lif_files = os.listdir(f"{original_path}/additions/")
             lif_files = [f"{original_path}/additions/{lif}" for lif in lif_files if lif.lower().endswith(".yaml")]
             lif_files.sort()
-        else:
-            lif_files = []
 
         for lif_yaml in lif_files:
             patches = yaml.safe_load(open(lif_yaml))

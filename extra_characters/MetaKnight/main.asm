@@ -431,25 +431,6 @@ scope MetaKnight {
             j       CharEnvColor.override_env_color_._fix
             addiu   sp, sp, 0x0010              // allocate stack space
         }
-
-        scope clear_: {
-            // a1 = first custom part struct (left inner wing)
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-
-            li      a1, CharEnvColor.custom_display_lists_struct_metaknight_left_wing_outer
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-
-            li      a1, CharEnvColor.custom_display_lists_struct_metaknight_right_wing_inner
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-
-            li      a1, CharEnvColor.custom_display_lists_struct_metaknight_right_wing_outer
-            sw      r0, 0x0000(a1)      // clear high poly initialized flag
-            jr      ra                  // return
-            sw      r0, 0x0014(a1)      // clear low poly initialized flag
-        }
     }
 
     // Modify Menu Action Parameters // Action // Animation // Moveset Data // Flags
