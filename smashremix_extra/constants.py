@@ -37,6 +37,23 @@ SHIELD_POSES = {
     "YOSHI": "0x0154"
 }
 
+TWELVECB_DEFEAT = {
+    "MARIO": "0x222",
+    "METAL": "0x222",
+    "FOX": "0x2B1",
+    "DONKEY": "0x34F",
+    "SAMUS": "0x3E8",
+    "LUIGI": "0x222",
+    "LINK": "0x48A",
+    "KIRBY": "0x51D",
+    "JIGGLYPUFF": "0x51D",
+    "CAPTAIN": "0x617",
+    "NESS": "0x6AF",
+    "PIKACHU": "0x80E",
+    "YOSHI": "0x745",
+    "BOSS": "0"
+}
+
 COMMAND_SIZES = {
     "0C": 5,
     "0D": 5,

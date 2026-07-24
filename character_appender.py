@@ -795,6 +795,13 @@ class CharacterAppender:
                 r'.*// use normal width otherwise.*')
         )
 
+        # TwelveCharBattle.asm
+        lineinfile.add_line_to_file(
+            filepath="src/TwelveCharBattle.asm",
+            line="\t"+"\n\t".join(self.char_proc.character_12cb_defs),
+            inserter=lineinfile.AfterLast(r".*// ADD NEW CHARACTERS HERE.*")
+        )
+
         # TagTeam.asm
         lineinfile.add_line_to_file(
             filepath="src/TagTeam.asm",

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from smashremix_extra.constants import (
     SMASHREMIX_PATH as smashremix_path,
-    PRIMARY_MOVESETS, SHIELD_POSES, COMMAND_SIZES, ExtraFile,
+    PRIMARY_MOVESETS, SHIELD_POSES, TWELVECB_DEFEAT, COMMAND_SIZES, ExtraFile,
 )
 from smashremix_extra.image_appender import append_image, get_image_data, ImageMode
 from smashremix_extra.rom_util import get_attrib_offset
@@ -48,6 +48,7 @@ class CharacterProcessor:
         self.character_series_models = {}
         self.character_series_textures = {}
         self.character_portrait_defs = []
+        self.character_12cb_defs = []
         self.character_tag_team_preloads = []
         self.character_data_screen_defs = []
         self.character_data_screen_order = []
@@ -1088,6 +1089,14 @@ class CharacterProcessor:
                 f"\n\t\tbeq     v0, at, _large_border       // branch to use large border"
             )
 
+        # 12 Character Battle defeat parameters
+        anim = config.get("12cb", {}).get("anim", TWELVECB_DEFEAT.get(config['definitions']['base_character']))
+        moveset = config.get("12cb", {}).get("moveset", "defeated_moveset")
+        flags = config.get("12cb", {}).get("flags", 0)
+        self.character_12cb_defs.append(
+            f"add_defeat_parameters({anim}, {moveset}, {flags}) // {character_folder.upper()}"
+        )
+
         # Add Tag Team preloads
         self.character_tag_team_preloads.append(
             f"add_preload(Character.id.{character_folder.upper()}, "
@@ -1217,7 +1226,7 @@ class CharacterProcessor:
                 alpha = []
                 for i, offset in enumerate(offsets):
                     default.append(
-                        "0xC4113078" if i < 1
+                        poly_config.get("render_mode", "0xC4113878") if i < 1
                         else "RENDER_MODE_DEFAULT"
                     )
                     alpha.append("RENDER_MODE_ALPHA")
