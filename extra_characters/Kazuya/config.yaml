@@ -37,6 +37,7 @@ attributes:
   death_fgm: "FFF1"
   star_ko_fgm: "FFF8"
   damaged_fgm: "FFF0"
+  heavy_lift_fgm: "FFF3"
   gravity: 3.3186806751171773
   max_fall_speed: 57.899587852094776
   aerial_friction: 0.37777778996085687

@@ -77,6 +77,7 @@ attributes:
   attack_sfx_1: "FFF2"
   attack_sfx_2: "FFF6"
   attack_sfx_3: "FFF2"
+  heavy_lift_fgm: "FFF1"
 
 # sword trail definitions
 sword_trails:
