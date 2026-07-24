@@ -1,0 +1,58 @@
+00D0 Fox Move Set
+0B76 Wolf Reflector
+0B77 Wolfen
+0B5A Wolf Projectile Hitbox
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B47 Wolf Weapon
+0B47 Wolf Weapon
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0B59 Wolf Character
+0C9B Wolf Shield Pose
+0C9B Wolf Shield Pose
+0C9B Wolf Shield Pose
+0C9B Wolf Shield Pose
+0C9B Wolf Shield Pose
+0C9B Wolf Shield Pose
+0C9B Wolf Shield Pose
+0C9B Wolf Shield Pose
+0C9B Wolf Shield Pose
+END OF REQ LIST

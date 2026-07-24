@@ -1,0 +1,93 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["0140", "0000"]
+  character: ["0008", "3FFFC"]
+
+definitions:
+  base_character: FOX
+  series_logo_css: REMIX
+  select_pose: 4
+
+shield_pose: "0x013A"
+
+name: "Rebecca"
+
+num_costumes: 5
+
+# charge_smash_frames:
+#   up: 3
+#   forward: 3
+#   down: 2
+
+results:
+  name: "Rebecca"
+  name_scale: 0.9
+  name_x: 20
+  wins_x: 185
+
+files: [
+  ["laser_hitbox", "3FFFC", "0000"],
+  ["reflector_gfx", "0224", "3FFFC"],
+  ["slash_gfx", "0058", "3FFFC"],
+  ["laser_gfx", "0064", "3FFFC"]
+]
+
+tag_team_preloads: [
+  "laser_hitbox",
+  "laser_gfx",
+  "slash_gfx",
+  "reflector_gfx"
+]
+
+sounds:
+  "1000": "GUN"
+  "1001": "KO"
+  "1002": "STAR_KO"
+  "1003": "TAUNT"
+  "1004": "SHIELD_BREAK"
+  "1005": "DIZZY"
+  "1006": "SLEEP"
+  "1007": "USP"
+  "1008": "VICTORY1"
+  "1009": "VICTORY2"
+  #"100A": "CHANT"
+  "100B": "GRUNT1"
+  "100C": "GRUNT2"
+  "100D": "GRUNT3"
+  "100E": "GRUNTLOW"
+  "100F": "GRUNTMID"
+  "1010": "HURT1"
+  "1011": "HURT2"
+  "1012": "HURT3"
+  "1013": "HURT4"
+  "1014": "HURT5"
+
+sounds_special:
+  "1006":
+    fgm_type: SLEEP
+    length: "0x120"
+
+attributes:
+  death_fgm: "1001"
+  star_ko_fgm: "1002"
+  damaged_fgm: "1010"
+  attack_sfx_1: "100B"
+  attack_sfx_2: "100C"
+  attack_sfx_3: "100D"
+  heavy_lift_fgm: "100B"
+
+cloaking_fix:
+  parts:
+    head:
+      hipoly:
+        part_offset: "0x918"
+        cmd_offsets: [
+          "0x1E0",
+          "0x2C0"
+        ]
+      lopoly:
+        part_offset: "0x918"
+        cmd_offsets: [
+          "0x1E8",
+          "0x2D0"
+        ]

@@ -1,0 +1,25 @@
+reflector-graphic-patch1:
+  path: 'src/Wolf/Wolf.asm'
+  line: [
+    "lli     t0, Character.id.REBECCA    // t0 = id.REBECCA",
+    "bne     t6, t0, pc() + 16           // Skip if not Rebecca",
+    "li      a0, Rebecca.reflect_graphic_struct",
+    "b       _end",
+    "nop\n\n"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: BeforeFirst
+  where: '.*li		a0, 0x8012E0EC'
+
+# Hacky way of avoiding smashremix_overwrite
+# Should have appender support for GFX.asm/GFXRoutine.asm stuff instead
+reflector-gfx-routine:
+  path: 'src/GFXRoutine.asm'
+  line : [
+    "add_gfx_routine(REBECCA_DSP, Rebecca.DSP_GFX, 60, OS.TRUE)",
+  ]
+  prefix: "\t"
+  suffix: "\n\t"
+  type: BeforeFirst
+  where: '.*// write gfx routines to ROM'

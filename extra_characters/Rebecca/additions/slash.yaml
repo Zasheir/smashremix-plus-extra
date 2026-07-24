@@ -1,0 +1,18 @@
+slash-graphic-patch:
+  path: 'src/captainshared.asm'
+  line: [
+    "slash_anim_struct_REBECCA:",
+    "dw  0x020F0000",
+    "dw  Character.REBECCA_file_8_ptr",
+    "dw  0x501C0000",
+    "OS.copy_segment(0xA9AF8, 0x0008)",
+    "dw  Size.falcon.punch.render_routine_",
+    "dw  0x000008F0                  // customized because this animation was added to an existing file, these are offsets",
+    "dw  0x00000A90                  // customized because this animation was added to an existing file, these are offsets",
+    "dw  0x00000000                  // beginning of graphic within file, normally 0, but unique since added to another file",
+    "dw  0x00000ABC                  // customized because this animation was added to an existing file, these are offsets\n\n"
+  ]
+  prefix: "\t"
+  suffix: "\n\t"
+  type: BeforeFirst
+  where: '.*slash_anim_struct_WOLF:'
