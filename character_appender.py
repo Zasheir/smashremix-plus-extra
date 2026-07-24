@@ -234,10 +234,9 @@ class CharacterAppender:
         )
 
         # Update internal name
-        # TODO: Update name. Temporary name for online play
         lineinfile.add_line_to_file(
             filepath="main.asm",
-            line='db "MARIO CARD"',
+            line='db "REMIX EXTRA"',
             regexp=r'db\s+"SMASH REMIX"'
         )
 
@@ -274,9 +273,11 @@ class CharacterAppender:
                     version_string = m.group(1)
                     break
 
+        with open("version.txt", 'r', encoding='utf-8') as f:
+            extra_version = f.read()
         lineinfile.add_line_to_file(
             filepath="src/Boot.asm",
-            line=f'\tstring_version:; String.insert("{version_string} + EXTRA")',
+            line=f'\tstring_version:; String.insert("{version_string} {extra_version}")',
             regexp=r'.*string_version.*'
         )
 

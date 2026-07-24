@@ -2,10 +2,11 @@ import argparse
 import hashlib
 
 TEMPLATE = """[{}]
-GoodName=SmashRemix2.0.0-extra
+GoodName=SmashRemix2.0.1 {}
 CRC={} {}
 RefMD5=5AAC6E652C5CF1E37A466AC0073E88CA
 CountPerOp=1"""
+
 
 def main(filename):
     with open(filename, "rb") as f:
@@ -16,7 +17,10 @@ def main(filename):
     hex1 = val1.hex().upper()
     hex2 = val2.hex().upper()
 
-    print(TEMPLATE.format(md5, hex1, hex2))
+    with open("version.txt", 'r', encoding='utf-8') as f:
+        version = f.read()
+
+    print(TEMPLATE.format(md5, version, hex1, hex2))
 
 
 if __name__ == "__main__":

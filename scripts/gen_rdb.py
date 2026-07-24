@@ -1,8 +1,8 @@
 import argparse
 
 TEMPLATE = """[{}-{}-C:45]
-Good Name=SmashRemix2.0.0-extra
-Internal Name=SmashRemix-extra
+Good Name=SmashRemix2.0.1 {}
+Internal Name=SmashRemixExtra
 Status=Compatible
 Counter Factor=1
 Culling=1
@@ -21,7 +21,11 @@ def main(filename):
         val2 = f.read(4)
     hex1 = val1.hex().upper()
     hex2 = val2.hex().upper()
-    print(TEMPLATE.format(hex1, hex2))
+
+    with open("version.txt", 'r', encoding='utf-8') as f:
+        version = f.read()
+
+    print(TEMPLATE.format(hex1, hex2, version))
 
 
 if __name__ == "__main__":
