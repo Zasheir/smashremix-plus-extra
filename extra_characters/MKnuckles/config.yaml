@@ -26,6 +26,10 @@ results:
   name_x: 25
   wins_x: 180
 
+12cb:
+  anim: "File.MKNUCKLES_ANIM_DOWNSTAND_U"
+  moveset: "defeated_moveset_sonic"
+
 data_screen:
   name_x: 20
   name_y: 50

@@ -19,6 +19,9 @@ results:
   name_x: 30
   wins_x: 170
 
+12cb:
+  anim: "File.TERRY_ANIM_DOWNSTANDU"
+
 # FROM: to
 # Will switch all audio commands with id FROM to the generated ID for filename "to.aifc"
 # So in your moveset commands replace any audio calls to these IDs

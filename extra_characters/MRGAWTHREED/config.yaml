@@ -32,6 +32,9 @@ charge_smash_frames:
   forward: 8
   down: 6
 
+12cb:
+  anim: "File.MRGAWTHREED_ANIM_DOWNSTANDU"
+
 results:
   name: "Mr. G&W THREE D"
   name_scale: 0.4

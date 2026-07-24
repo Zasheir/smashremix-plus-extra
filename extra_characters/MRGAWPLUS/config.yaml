@@ -38,6 +38,9 @@ results:
   name_x: 25
   wins_x: 180
 
+12cb:
+  anim: "File.MRGAWPLUS_ANIM_DOWNSTANDU"
+
 victory_theme:
   bend_range_overrides: [
     [19, 1200]

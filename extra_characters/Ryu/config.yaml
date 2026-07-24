@@ -11,6 +11,9 @@ charge_smash_frames:
   forward: 6
   down: 1
 
+12cb:
+  anim: "File.RYU_ANIM_DOWNSTANDU"
+
 results:
   name: "Ryu"
   name_scale: 1

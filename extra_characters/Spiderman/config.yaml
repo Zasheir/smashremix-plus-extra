@@ -13,7 +13,9 @@ results:
   name_scale: 0.65
   name_x: 20
   wins_x: 185
-  
+
+12cb:
+  anim: "File.SPIDERMAN_ANIM_DOWNSTANDU"
 
 # FROM: to
 # Will switch all audio commands with id FROM to the generated ID for filename "to.aifc"

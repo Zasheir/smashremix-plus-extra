@@ -27,6 +27,9 @@ files:
     ["hadouken_gfx", "0058", "3FFFC"],
   ]
 
+12cb:
+  anim: "File.KEN_ANIM_DOWNSTANDU"
+
 tag_team_preloads: ["hadouken_hitbox"]
 
 sounds:

@@ -25,6 +25,9 @@ charge_smash_frames:
   forward: 7
   down: 6
 
+12cb:
+  anim: "File.PEACH_DOWN_STAND_U"
+
 victory_theme:
   master_volume_override: 127
 

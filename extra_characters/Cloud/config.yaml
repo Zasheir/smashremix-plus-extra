@@ -22,6 +22,9 @@ results:
   name_x: 30
   wins_x: 170
 
+12cb:
+  anim: "File.CLOUD_ANIM_DOWNSTANDU"
+
 sounds:
   "FFF0": vc_attack_dsmash
   "FFF1": vc_attack_fsmash
