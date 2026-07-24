@@ -107,13 +107,10 @@ scope GameAndWatchNSP {
 		// new code
 		lli   t3, 0x0022		// make medium punch the hit sound
 		sh    t3, 0x0146(v1)
-		
+
 		sw    r0, 0x010C(v1)	        // make damage type normal
 		
-		//lli   at, 0x0096		// make the sausage appear on the pan (change x position)
-		//sw    at, 0x0110(v1)
-		
-		lli   at, 0x0006		// change damage to 6 instead of 7
+		lli   at, 0x0006		// change damage to 6
 		sw    at, 0x0104(v1)
 		
 		lui   t3, 0x42C8		// change hitbox size to 100 (test)

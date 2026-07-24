@@ -176,7 +176,7 @@ scope GameAndWatchNSP {
 
 	sw    r0, 0x010C(v1)		// make damage type normal
 
-	lli   at, 0x0005		// change damage to 5 instead of 7
+	lli   at, 0x0005		// change damage to 5
 	sw    at, 0x0104(v1)
 
 	mtc1    r0, f4                      // f4 = 0

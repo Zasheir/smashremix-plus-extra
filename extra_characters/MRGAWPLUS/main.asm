@@ -496,10 +496,34 @@ scope GameAndWatchPLUS2D {
 
             _check_gnw_fish_bowl:
             //li      v0, CharEnvColor.custom_display_lists_struct_mrgawplus_fish_bowl
-            li      t1, _check_gnw_torch        // t1 = return address
+            li      t1, _check_gnw_flag        // t1 = return address
             lbu     t2, 0x0995(s8)              // t2 = g&w arm part_id
             lli     t9, 0x0003                  // t9 = special part of fish_bowl
             beql    t2, t9, _fix                // if fish_bowl, fix
+            nop
+
+            _check_gnw_flag:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgawplus_flag
+            li      t1, _check_gnw_blaster_one  // t1 = return address
+            lbu     t2, 0x0997(s8)              // t2 = g&w arm part_id
+            lli     t9, 0x0001                  // t9 = special part of flag
+            beql    t2, t9, _fix                // if flag, fix
+            nop
+
+            _check_gnw_blaster_one:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgawplus_blaster_one
+            li      t1, _check_gnw_blaster_two  // t1 = return address
+            lbu     t2, 0x0997(s8)              // t2 = g&w arm part_id
+            lli     t9, 0x0002                  // t9 = special part of blaster_one
+            beql    t2, t9, _fix                // if blaster_one, fix
+            nop
+
+            _check_gnw_blaster_two:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgawplus_blaster_two
+            li      t1, _check_gnw_torch        // t1 = return address
+            lbu     t2, 0x0997(s8)              // t2 = g&w arm part_id
+            lli     t9, 0x0003                  // t9 = special part of blaster_two
+            beql    t2, t9, _fix                // if blaster_two, fix
             nop
 
             _check_gnw_torch:
@@ -520,10 +544,18 @@ scope GameAndWatchPLUS2D {
 
             _check_gnw_fish_one:
             li      v0, CharEnvColor.custom_display_lists_struct_mrgawplus_fish_one
-            li      t1, _check_gnw_key        // t1 = return address
+            li      t1, _check_gnw_bell        // t1 = return address
             lbu     t2, 0x0997(s8)              // t2 = g&w item part_id
             lli     t9, 0x0006                  // t9 = special part of fish_one
             beql    t2, t9, _fix                // if fish_one, fix
+            nop
+
+            _check_gnw_bell:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgawplus_bell
+            li      t1, _check_gnw_key        // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0001                  // t9 = special part of bell
+            beql    t2, t9, _fix                // if bell, fix
             nop
 
             _check_gnw_key:
@@ -536,10 +568,18 @@ scope GameAndWatchPLUS2D {
 
             _check_gnw_wind:
             li      v0, CharEnvColor.custom_display_lists_struct_mrgawplus_wind
-            li      t1, _check_gnw_parachute        // t1 = return address
+            li      t1, _check_gnw_chair        // t1 = return address
             lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
             lli     t9, 0x0005                  // t9 = special part of wind
             beql    t2, t9, _fix                // if wind, fix
+            nop
+
+            _check_gnw_chair:
+            li      v0, CharEnvColor.custom_display_lists_struct_mrgawplus_chair
+            li      t1, _check_gnw_parachute    // t1 = return address
+            lbu     t2, 0x09AD(s8)              // t2 = g&w grab part_id
+            lli     t9, 0x0006                  // t9 = special part of chair
+            beql    t2, t9, _fix                // if chair, fix
             nop
 
             _check_gnw_parachute:
