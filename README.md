@@ -32,3 +32,23 @@ The build consists of two parts:
     - `python -m pipenv run character_appender.py && patch_extra.bat`
 - **Linux:**
   - `python3 character_appender.py && wine patch_extra.bat`
+
+## FAQ
+- "Where do I download this MOD?"  
+Head over to the 'Releases' section and download the latest version.  
+- "Is this a new Smash Remix update?"  
+This mod is NOT an official Smash Remix update, it builds off Remix, and adds cool stuff from the community!  
+- "What is the purpose of Smash Remix +EXTRA?"  
+We wanted to design a project that will allow users to add their own custom content on top of Smash Remix. We added content across the community into +EXTRA as an example, and even added new additions. Smash Remix +EXTRA is packaged with tools to assist and ease that process of importing your own work into the game.  
+- "Will this work on the original N64?"  
+Because the filesize is over 64MB, most flash carts will not run it. As long as your flashcart is compatible with larger rom sizes, it can work, but no guarantee.  
+- "It crashes on the character select screen?"  
+This is known, but we couldn't fix it on time. We wanted to release the project so people can use the character import tools and enjoy the new content for now.  
+- "Can you add >Insert Character Here<"  
+No, but now YOU can! This mod is designed to help anybody bring in whatever character, stage, song & additional content they want into the game. We even have 3D Game & Watch!  
+- "How do I add something to this mod?"  
+You can download the source code of this mod and use the additional characters and stages as references!  
+- "Will there be future updates?"  
+We will focus on some bug fixes, polish, and pesky crashes, but the project is designed to encourage people to add their own content within the game.  
+- "Where can I go to ask more questions / for extra help?"  
+You can head over to the [Smash Remix Discord Server](https://discord.gg/ChpN332), we can help there.  
