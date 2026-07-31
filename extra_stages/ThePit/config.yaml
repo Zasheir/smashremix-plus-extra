@@ -15,8 +15,8 @@ mushroom_kingdom_camera: true
 music:
   main: MORTALKOMBAT_TECHNO_SYNDROME
   occasional: ARCUSODYSSEY_PRAY_FOR_VICTORY
-  rare: BATTLETOADS_WOOKIE_HOLE
-  rare2: FF10_FIGHT_WITH_SEYMOUR
+  rare: KH2FM_CAVERN_OF_REMEMBRANCE
+  rare2: BATTLETOADS_WOOKIE_HOLE
 
 series_position:
   x: 4.25
