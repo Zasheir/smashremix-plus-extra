@@ -20,6 +20,9 @@ from smashremix_extra.audio.processor import AudioProcessor
 from smashremix_extra.injector import ROMInjector, MODIFIED_FILES
 
 
+DYNAMIC_CSS_HEAP_COUNT = 5
+
+
 class CharacterAppender:
     def __init__(self, args):
         if not os.path.exists(os.path.join(smashremix_path, "src/File.asm")):
@@ -399,6 +402,13 @@ class CharacterAppender:
             regexp=r'.*constant HEAP_SIZE\(.*\)'
         )
 
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line=(f'\t\tconstant ACTIVE_HEAP_COUNT('
+                  f'{DYNAMIC_CSS_HEAP_COUNT})'),
+            inserter=lineinfile.AfterLast(r'.*constant HEAP_SIZE\(.*\)')
+        )
+
         # Change ram threshold
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
@@ -410,6 +420,135 @@ class CharacterAppender:
             filepath="src/CharacterSelect.asm",
             line=f'\t\tlui t7, 0x8050 // t7 = ram threshold',
             regexp=r'\s*lui\s*t7, 0x8078'
+        )
+
+        # Five heaps preserve one transition slot without the RAM cost of all eight.
+        for _ in range(2):
+            lineinfile.add_line_to_file(
+                filepath="src/CharacterSelect.asm",
+                line=(f'\t\tlli s2, dynamic_css.ACTIVE_HEAP_COUNT '
+                      '// s2 = loop index'),
+                regexp=r'\s*lli\s+s2, 0x0008\s+// s2 = loop index'
+            )
+
+        for _ in range(2):
+            lineinfile.add_line_to_file(
+                filepath="src/CharacterSelect.asm",
+                line=(f'\t\tlli t2, dynamic_css.ACTIVE_HEAP_COUNT - 1 '
+                      '// t2 = times to loop - 1'),
+                regexp=r'\s*lli\s+t2, 0x0007\s+// t2 = times to loop - 1'
+            )
+
+        # Bound eviction before it can walk into a declared but uninitialized slot.
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line=(
+                "\t\tsltiu   at, v0, dynamic_css.ACTIVE_HEAP_COUNT\n"
+                "\t\tbeqz    at, _heap_exhausted\n"
+                "\t\tnop"
+            ),
+            inserter=lineinfile.AfterLast(
+                r'.*addiu\s+v0, v0, 0x0001\s+// v0 = next heap slot'
+            )
+        )
+
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line=(
+                "\t\tb       _clear\n"
+                "\t\tnop\n\n"
+                "\t\t_heap_exhausted:\n"
+                "\t\tb       _end\n"
+                "\t\tlli     v0, 0x0000"
+            ),
+            inserter=lineinfile.AfterLast(
+                r'.*// if here, then the slot is \*definitely\* unused! \(I hope\)'
+            )
+        )
+
+        # If all active heaps are render-protected, reject this transition safely.
+        # The original caller stores s4 immediately after this hook, so the prior
+        # character/model must be restored instead of returning a null model.
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line=(
+                "\t\tbeqz    v0, _heap_busy\n"
+                "\t\tnop\n"
+                "\t\tlw      t0, 0x0000(v0)             // t0 = custom heap struct\n"
+                "\t\tb       _use_alt_heap\n"
+                "\t\tnop\n\n"
+                "\t\t_heap_busy:\n"
+                "\t\tlw      t9, 0x0008(sp)             // t9 = new player struct\n"
+                "\t\tlli     a0, 0x0000                 // a0 = validating current slot\n"
+                "\t\tlbu     t7, 0x000D(t9)             // t7 = requesting port\n"
+                "\t\tli      t8, dynamic_css.curr_slot_used_by_port\n"
+                "\t\taddu    t8, t8, t7\n"
+                "\t\tlbu     t7, 0x0000(t8)             // t7 = current slot for port\n"
+                "\t\tsltiu   at, t7, dynamic_css.ACTIVE_HEAP_COUNT\n"
+                "\t\tbeqz    at, _try_previous_slot\n"
+                "\t\tnop\n"
+                "\t\tb       _validate_candidate_slot\n"
+                "\t\tnop\n\n"
+                "\t\t_try_previous_slot:\n"
+                "\t\tlli     a0, 0x0001                 // a0 = validating previous slot\n"
+                "\t\tlbu     t7, 0x000D(t9)             // t7 = requesting port\n"
+                "\t\tli      t8, dynamic_css.slot_used_by_port\n"
+                "\t\taddu    t8, t8, t7\n"
+                "\t\tlbu     t7, 0x0000(t8)             // t7 = previous slot for port\n"
+                "\t\tsltiu   at, t7, dynamic_css.ACTIVE_HEAP_COUNT\n"
+                "\t\tbeqz    at, _heap_busy_use_mario\n"
+                "\t\tnop\n\n"
+                "\t\t_validate_candidate_slot:\n"
+                "\t\tli      t8, dynamic_css.heap_slot_0\n"
+                "\t\tsll     t7, t7, 0x0004\n"
+                "\t\taddu    t8, t8, t7\n"
+                "\t\tlw      t7, 0x0004(t8)             // t7 = prior character id\n"
+                "\t\tlli     at, Character.id.NONE\n"
+                "\t\tbeq     t7, at, _candidate_invalid\n"
+                "\t\tnop\n"
+                "\t\tli      t8, 0x80116E10\n"
+                "\t\tsll     t0, t7, 0x0002\n"
+                "\t\taddu    t8, t8, t0\n"
+                "\t\tlw      t3, 0x0000(t8)             // t3 = prior character struct\n"
+                "\t\tbeqz    t3, _candidate_invalid\n"
+                "\t\tnop\n"
+                "\t\tlw      t4, 0x0028(t3)             // t4 = prior main file pointer ptr\n"
+                "\t\tbeqz    t4, _candidate_invalid\n"
+                "\t\tnop\n"
+                "\t\tlw      t6, 0x0060(t3)             // t6 = prior model offset\n"
+                "\t\tlw      t5, 0x0000(t4)             // t5 = prior main file\n"
+                "\t\tbeqz    t5, _candidate_invalid\n"
+                "\t\tnop\n"
+                "\t\tb       _commit_restored_character\n"
+                "\t\tnop\n\n"
+                "\t\t_candidate_invalid:\n"
+                "\t\tbeqz    a0, _try_previous_slot\n"
+                "\t\tnop\n"
+                "\t\tb       _heap_busy_use_mario\n"
+                "\t\tnop\n\n"
+                "\t\t_commit_restored_character:\n"
+                "\t\tsw      t7, 0x0000(s6)             // reject requested character\n"
+                "\t\tsw      t7, 0x0008(t9)             // restore player character id\n"
+                "\t\tsw      t3, 0x09C4(t9)             // restore character struct\n"
+                "\t\tlw      ra, 0x0004(sp)\n"
+                "\t\tor      v0, t9, r0\n"
+                "\t\taddiu   sp, sp, 0x0020\n"
+                "\t\tb       _end\n"
+                "\t\tnop\n\n"
+                "\t\t_heap_busy_use_mario:\n"
+                "\t\tlli     t7, Character.id.MARIO\n"
+                "\t\tli      t8, 0x80116E10\n"
+                "\t\tlw      t3, 0x0000(t8)             // t3 = Mario character struct\n"
+                "\t\tlw      t4, 0x0028(t3)             // t4 = Mario main file pointer ptr\n"
+                "\t\tlw      t6, 0x0060(t3)             // t6 = Mario model offset\n"
+                "\t\tlw      t5, 0x0000(t4)             // t5 = Mario main file\n"
+                "\t\tb       _commit_restored_character\n"
+                "\t\tnop"
+            ),
+            regexp=(
+                r'\s*lw\s+t0, 0x0000\(v0\)\s+'
+                r'// t0 = custom heap struct'
+            )
         )
 
         # Character Data uses its own heap recycler
@@ -1294,10 +1433,10 @@ class CharacterAppender:
 
 def main(args):
     ca = CharacterAppender(args)
-    ca.prepare_files()
-    ca.inject_files_in_rom()
     ca.copy_remix_src()
     ca.overwrite_files()
+    ca.prepare_files()
+    ca.inject_files_in_rom()
     ca.edit_src_files()
 
 
