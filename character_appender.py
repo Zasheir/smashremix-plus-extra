@@ -438,6 +438,18 @@ class CharacterAppender:
             regexp=r'\s*lli\s+t2, 0x0007\s+// t2 = times to loop - 1'
         )
 
+        # Character Data uses its own heap recycler
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line=(
+                "\t\tOS.read_byte(Global.current_screen, t7)\n"
+                "\t\tlli t8, Global.screen.DATA_CHARACTERS\n"
+                "\t\tbeq t7, t8, _normal_load\n"
+                "\t\tnop\n"
+            ),
+            inserter=lineinfile.BeforeLast(r".*// Custom heap Logic:")
+        )
+
         idStrings = []
         offsetStrings = []
         xyStrings = []
