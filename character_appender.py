@@ -412,32 +412,6 @@ class CharacterAppender:
             regexp=r'\s*lui\s*t7, 0x8078'
         )
 
-        # Use only 4 dynamic slots on the character select screen
-        # TODO: this might break console support. If there's no other option, we can have this as an option
-        lineinfile.add_line_to_file(
-            filepath="src/CharacterSelect.asm",
-            line=f'\t\tlli s2, 0x0004 // s2 = loop index',
-            regexp=r'\s*lli\s+s2, 0x0008\s+// s2 = loop index'
-        )
-
-        lineinfile.add_line_to_file(
-            filepath="src/CharacterSelect.asm",
-            line=f'\t\tlli s2, 0x0004 // s2 = loop index',
-            regexp=r'\s*lli\s+s2, 0x0008\s+// s2 = loop index'
-        )
-
-        lineinfile.add_line_to_file(
-            filepath="src/CharacterSelect.asm",
-            line=f'\t\tlli t2, 0x0003 // t2 = times to loop - 1',
-            regexp=r'\s*lli\s+t2, 0x0007\s+// t2 = times to loop - 1'
-        )
-
-        lineinfile.add_line_to_file(
-            filepath="src/CharacterSelect.asm",
-            line=f'\t\tlli t2, 0x0003 // t2 = times to loop - 1',
-            regexp=r'\s*lli\s+t2, 0x0007\s+// t2 = times to loop - 1'
-        )
-
         idStrings = []
         offsetStrings = []
         xyStrings = []
