@@ -29,8 +29,12 @@ if %ERRORLEVEL% neq 0 (
 
 echo BUILD SUCCESS
 
-"%ASM%\chksum64.exe" "%ROM%" >> "%LOG%" 2>&1
-"%ASM%\rn64crc.exe" -u >> "%LOG%" 2>&1
+"%ASM%\rn64crc.exe" -u "%ROM%" >> "%LOG%" 2>&1
+if errorlevel 1 (
+    echo CRC UPDATE FAILED
+    type "%LOG%"
+    exit /b 1
+)
 
 echo Build log exported to "%LOG%"
 exit /b 0
