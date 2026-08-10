@@ -511,8 +511,8 @@ class CharacterAppender:
             filepath="src/CharacterSelect.asm",
             line="\t\t"+"\n\t\t".join([
                 'OS.read_byte(Global.current_screen, t7)',
-                'lli t8, Global.screen.DATA_CHARACTERS',
-                'beq t7, t8, _normal_load',
+                'lli     t8, Global.screen.DATA_CHARACTERS',
+                'beq     t7, t8, _normal_load',
                 'nop'
             ]),
             inserter=lineinfile.BeforeLast(r".*// Custom heap Logic:")
