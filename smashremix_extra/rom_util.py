@@ -71,6 +71,8 @@ def extract_files(smashremix_path: str) -> None:
     )
     print(f"original.z64 has {len(rom_file_entries)} files")
 
+    os.makedirs("scripts", exist_ok=True)
+
     for file_id in FILES_TO_EXTRACT:
         print(f"Extracting file {file_id:04X} from original.z64")
         with open(f"scripts/{file_id:04X}.bin", "wb") as f:

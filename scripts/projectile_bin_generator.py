@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Template-based generator/editor for extra-character projectile "gfx" and
-"hitbox" bin files (e.g. scripts/examples/shuriken_projectile/shuriken_gfx.bin /
+"hitbox" bin files (e.g. templates/shuriken_projectile/shuriken_gfx.bin /
 shuriken_hitbox.bin).
 
 Scope (deliberately conservative): this does NOT build these files from
@@ -28,9 +28,9 @@ you currently need to hand-edit the frame offsets reported by
 projectile_bin_annotator.py's `gfx` command -- that isn't covered here yet.
 
 Usage:
-    python3 scripts/projectile_bin_generator.py hitbox --template scripts/examples/shuriken_projectile/shuriken_hitbox.bin --out new_hitbox.bin --damage 12 --angle 45
-    python3 scripts/projectile_bin_generator.py gfx --template scripts/examples/shuriken_projectile/shuriken_gfx.bin --out new_gfx.bin --frame-waits 0,4,4,2
-    python3 scripts/projectile_bin_generator.py gfx --template scripts/examples/shuriken_projectile/shuriken_gfx.bin --out new_gfx.bin --palette F800,07E0,001F,...(16 hex RGBA5551 values)
+    python3 scripts/projectile_bin_generator.py hitbox --template templates/shuriken_projectile/shuriken_hitbox.bin --out new_hitbox.bin --damage 12 --angle 45
+    python3 scripts/projectile_bin_generator.py gfx --template templates/shuriken_projectile/shuriken_gfx.bin --out new_gfx.bin --frame-waits 0,4,4,2
+    python3 scripts/projectile_bin_generator.py gfx --template templates/shuriken_projectile/shuriken_gfx.bin --out new_gfx.bin --palette F800,07E0,001F,...(16 hex RGBA5551 values)
 """
 
 import argparse

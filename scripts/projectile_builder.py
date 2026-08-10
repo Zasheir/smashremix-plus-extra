@@ -19,16 +19,16 @@ the spec's frames: list calls for -- growing or shrinking the
 sprite-pointer array and animation script as needed, not just patching
 values into a fixed-size structure.
 
-Example YAML spec (see scripts/examples/shuriken_projectile/shuriken_projectile.yaml,
+Example YAML spec (see templates/shuriken_projectile/shuriken_projectile.yaml,
 a runnable end-to-end example with a public 3-frame spinning shuriken sprite):
 
-    output_gfx: scripts/examples/shuriken_projectile/shuriken_gfx.bin
-    output_hitbox: scripts/examples/shuriken_projectile/shuriken_hitbox.bin
+    output_gfx: templates/shuriken_projectile/shuriken_gfx.bin
+    output_hitbox: templates/shuriken_projectile/shuriken_hitbox.bin
 
     frames:
-      - scripts/examples/shuriken_projectile/shuriken1.bmp
-      - scripts/examples/shuriken_projectile/shuriken2.bmp
-      - scripts/examples/shuriken_projectile/shuriken3.bmp
+      - templates/shuriken_projectile/shuriken1.bmp
+      - templates/shuriken_projectile/shuriken2.bmp
+      - templates/shuriken_projectile/shuriken3.bmp
     frame_wait: 2             # frames to hold each frame (or a per-frame list, e.g. [5, 1, 2] --
                               # frame_wait[k] is exactly how long image k is visible, no
                               # off-by-one to think about; the tool handles the underlying
@@ -61,7 +61,7 @@ used automatically, and otherwise DEFAULT_GFX_BASE_BYTES already covers
 value for any given file (its InternalFileTableOffsetBytes).
 
 Usage:
-    python3 scripts/projectile_builder.py scripts/examples/shuriken_projectile/shuriken_projectile.yaml
+    python3 scripts/projectile_builder.py templates/shuriken_projectile/shuriken_projectile.yaml
 """
 
 import argparse
