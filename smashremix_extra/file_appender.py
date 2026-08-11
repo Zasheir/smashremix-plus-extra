@@ -177,7 +177,7 @@ if __name__ == "__main__":
     args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 
     append_file(
-        args.file_path, args.file_data_offset, args.file_table_offset,
+        args.file_path, args.file_original_offset, args.file_table_offset,
         args.target_file_path, args.target_table_offset,
         args.out
     )
