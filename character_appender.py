@@ -395,6 +395,14 @@ class CharacterAppender:
             inserter=lineinfile.AfterLast(r".*ADD NEW CHARACTERS HERE")
         )
 
+        # Sonic's alt_malloc_table entry sums his main model (0x16320) and Classic Sonic's model
+        # (0x170E8); the 0x22260 term doesn't correspond to any known file and is dropped here.
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line=f'\tdw  0x16320 + 0x170E8 + 0x200 // 0x3B - SONIC',
+            regexp=r'.*0x16320 \+ 0x22260 \+ 0x170E8 \+ 0x200.*'
+        )
+
         # Increase dynamic css heap size
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
@@ -422,7 +430,6 @@ class CharacterAppender:
             regexp=r'\s*lui\s*t7, 0x8078'
         )
 
-        # Five heaps preserve one transition slot without the RAM cost of all eight.
         for _ in range(2):
             lineinfile.add_line_to_file(
                 filepath="src/CharacterSelect.asm",
@@ -439,116 +446,52 @@ class CharacterAppender:
                 regexp=r'\s*lli\s+t2, 0x0007\s+// t2 = times to loop - 1'
             )
 
-        # Bound eviction before it can walk into a declared but uninitialized slot.
+        # clear_first_obsolete_heap_slot_'s eviction search has no bound of its own - it walks past
+        # heap_slot_0 looking for a slot not currently claimed by a player, trusting that with 8
+        # slots and at most 4 players one is always spare. With only ACTIVE_HEAP_COUNT slots actually
+        # initialized above, if it didn't find a candidate in range it would fall through into
+        # heap_slot_4+, whose backing heap_struct was never given a real floor/ceiling (they're
+        # left zeroed), so malloc would then hand out memory from a null heap - this is what was
+        # causing the malloc errors/instability with 4 players on the CSS at once.
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
-            line=(
-                "\t\tsltiu   at, v0, dynamic_css.ACTIVE_HEAP_COUNT\n"
-                "\t\tbeqz    at, _heap_exhausted\n"
-                "\t\tnop"
-            ),
-            inserter=lineinfile.AfterLast(
-                r'.*addiu\s+v0, v0, 0x0001\s+// v0 = next heap slot'
-            )
+            line="\t\t"+"\n\t\t".join(['slti    at, v0, dynamic_css.ACTIVE_HEAP_COUNT // at = 1 if v0 is still a real slot',
+                'beqz    at, _out_of_slots // if v0 ran past the real slots, stop and fall back instead of reading garbage']),
+            inserter=lineinfile.AfterFirst(r'addiu\s+v0,\s*v0,\s*0x0001\s+// v0 = next heap slot')
         )
 
+        # If no obsolete slot is found, fall back to a second pass that only enforces the hard
+        # safety rule (never evict a slot that's char_id-matched to one of the 4 currently active
+        # players, t1-t4) and drops the softer "was used last frame" anti-flicker rule. With
+        # ACTIVE_HEAP_COUNT(5) real slots holding at most 4 distinct active character ids, at least
+        # one slot can never match t1-t4, so this pass is guaranteed to find a genuinely safe slot
+        # instead of corrupting a live one. _forced_zero is an unreachable safety net in case that
+        # guarantee is ever violated.
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
-            line=(
-                "\t\tb       _clear\n"
-                "\t\tnop\n\n"
-                "\t\t_heap_exhausted:\n"
-                "\t\tb       _end\n"
-                "\t\tlli     v0, 0x0000"
-            ),
-            inserter=lineinfile.AfterLast(
-                r'.*// if here, then the slot is \*definitely\* unused! \(I hope\)'
-            )
-        )
-
-        # If all active heaps are render-protected, reject this transition safely.
-        # The original caller stores s4 immediately after this hook, so the prior
-        # character/model must be restored instead of returning a null model.
-        lineinfile.add_line_to_file(
-            filepath="src/CharacterSelect.asm",
-            line=(
-                "\t\tbeqz    v0, _heap_busy\n"
-                "\t\tnop\n"
-                "\t\tlw      t0, 0x0000(v0)             // t0 = custom heap struct\n"
-                "\t\tb       _use_alt_heap\n"
-                "\t\tnop\n\n"
-                "\t\t_heap_busy:\n"
-                "\t\tlw      t9, 0x0008(sp)             // t9 = new player struct\n"
-                "\t\tlli     a0, 0x0000                 // a0 = validating current slot\n"
-                "\t\tlbu     t7, 0x000D(t9)             // t7 = requesting port\n"
-                "\t\tli      t8, dynamic_css.curr_slot_used_by_port\n"
-                "\t\taddu    t8, t8, t7\n"
-                "\t\tlbu     t7, 0x0000(t8)             // t7 = current slot for port\n"
-                "\t\tsltiu   at, t7, dynamic_css.ACTIVE_HEAP_COUNT\n"
-                "\t\tbeqz    at, _try_previous_slot\n"
-                "\t\tnop\n"
-                "\t\tb       _validate_candidate_slot\n"
-                "\t\tnop\n\n"
-                "\t\t_try_previous_slot:\n"
-                "\t\tlli     a0, 0x0001                 // a0 = validating previous slot\n"
-                "\t\tlbu     t7, 0x000D(t9)             // t7 = requesting port\n"
-                "\t\tli      t8, dynamic_css.slot_used_by_port\n"
-                "\t\taddu    t8, t8, t7\n"
-                "\t\tlbu     t7, 0x0000(t8)             // t7 = previous slot for port\n"
-                "\t\tsltiu   at, t7, dynamic_css.ACTIVE_HEAP_COUNT\n"
-                "\t\tbeqz    at, _heap_busy_use_mario\n"
-                "\t\tnop\n\n"
-                "\t\t_validate_candidate_slot:\n"
-                "\t\tli      t8, dynamic_css.heap_slot_0\n"
-                "\t\tsll     t7, t7, 0x0004\n"
-                "\t\taddu    t8, t8, t7\n"
-                "\t\tlw      t7, 0x0004(t8)             // t7 = prior character id\n"
-                "\t\tlli     at, Character.id.NONE\n"
-                "\t\tbeq     t7, at, _candidate_invalid\n"
-                "\t\tnop\n"
-                "\t\tli      t8, 0x80116E10\n"
-                "\t\tsll     t0, t7, 0x0002\n"
-                "\t\taddu    t8, t8, t0\n"
-                "\t\tlw      t3, 0x0000(t8)             // t3 = prior character struct\n"
-                "\t\tbeqz    t3, _candidate_invalid\n"
-                "\t\tnop\n"
-                "\t\tlw      t4, 0x0028(t3)             // t4 = prior main file pointer ptr\n"
-                "\t\tbeqz    t4, _candidate_invalid\n"
-                "\t\tnop\n"
-                "\t\tlw      t6, 0x0060(t3)             // t6 = prior model offset\n"
-                "\t\tlw      t5, 0x0000(t4)             // t5 = prior main file\n"
-                "\t\tbeqz    t5, _candidate_invalid\n"
-                "\t\tnop\n"
-                "\t\tb       _commit_restored_character\n"
-                "\t\tnop\n\n"
-                "\t\t_candidate_invalid:\n"
-                "\t\tbeqz    a0, _try_previous_slot\n"
-                "\t\tnop\n"
-                "\t\tb       _heap_busy_use_mario\n"
-                "\t\tnop\n\n"
-                "\t\t_commit_restored_character:\n"
-                "\t\tsw      t7, 0x0000(s6)             // reject requested character\n"
-                "\t\tsw      t7, 0x0008(t9)             // restore player character id\n"
-                "\t\tsw      t3, 0x09C4(t9)             // restore character struct\n"
-                "\t\tlw      ra, 0x0004(sp)\n"
-                "\t\tor      v0, t9, r0\n"
-                "\t\taddiu   sp, sp, 0x0020\n"
-                "\t\tb       _end\n"
-                "\t\tnop\n\n"
-                "\t\t_heap_busy_use_mario:\n"
-                "\t\tlli     t7, Character.id.MARIO\n"
-                "\t\tli      t8, 0x80116E10\n"
-                "\t\tlw      t3, 0x0000(t8)             // t3 = Mario character struct\n"
-                "\t\tlw      t4, 0x0028(t3)             // t4 = Mario main file pointer ptr\n"
-                "\t\tlw      t6, 0x0060(t3)             // t6 = Mario model offset\n"
-                "\t\tlw      t5, 0x0000(t4)             // t5 = Mario main file\n"
-                "\t\tb       _commit_restored_character\n"
-                "\t\tnop"
-            ),
-            regexp=(
-                r'\s*lw\s+t0, 0x0000\(v0\)\s+'
-                r'// t0 = custom heap struct'
-            )
+            line="\t\t"+"\n\t\t".join([
+                '_out_of_slots:',
+                'li      t0, dynamic_css.heap_slot_0',
+                'addiu   v0, r0, -0x0001',
+                '_loop_2:',
+                'addiu   v0, v0, 0x0001   // v0 = next heap slot',
+                'slti    at, v0, dynamic_css.ACTIVE_HEAP_COUNT // at = 1 if v0 is still a real slot',
+                'beqz    at, _forced_zero // unreachable in practice; force-reuse slot 0 rather than read past the array',
+                'lw      at, 0x0004(t0)   // at = slot\'s char_id',
+                'beql    at, t1, _loop_2  // if slot\'s char_id still in use, skip',
+                'addiu   t0, t0, 0x0010   // t0 = next heap slot address',
+                'beql    at, t2, _loop_2',
+                'addiu   t0, t0, 0x0010',
+                'beql    at, t3, _loop_2',
+                'addiu   t0, t0, 0x0010',
+                'beql    at, t4, _loop_2',
+                'addiu   t0, t0, 0x0010',
+                'b       _clear',
+                'nop',
+                '_forced_zero:',
+                'lli     v0, 0x0000 // v0 = 0'
+            ]),
+            inserter=lineinfile.BeforeFirst(r'\s*_clear:')
         )
 
         # Character Data uses its own heap recycler
