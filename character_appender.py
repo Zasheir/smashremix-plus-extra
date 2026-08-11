@@ -20,9 +20,6 @@ from smashremix_extra.audio.processor import AudioProcessor
 from smashremix_extra.injector import ROMInjector, MODIFIED_FILES
 
 
-DYNAMIC_CSS_HEAP_COUNT = 5
-
-
 class CharacterAppender:
     def __init__(self, args):
         if not os.path.exists(os.path.join(smashremix_path, "src/File.asm")):
@@ -184,11 +181,18 @@ class CharacterAppender:
         )
 
     def overwrite_files(self):
-        # Overwrite src/ with smashremix_overwrite/
+        # Overwrite src/ with smashremix_overwrite/. Resolved relative to this
+        # file rather than CWD, since smashremix_overwrite ships alongside
+        # character_appender.py and callers may run this from a different
+        # working directory (e.g. a content repo that pulls this in as a
+        # submodule, with its own extra_characters/build/src at CWD).
         print("Overwriting source code with custom files...")
 
+        smashremix_overwrite_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "smashremix_overwrite")
+
         shutil.copytree(
-            "smashremix_overwrite",
+            smashremix_overwrite_path,
             "src",
             dirs_exist_ok=True
         )
@@ -204,7 +208,14 @@ class CharacterAppender:
 
     def _patch_src_paths(self, original_size):
         # main.asm
-        # In all .asm files in src/, replace paths
+        # In all .asm files in src/, replace paths.
+        # These paths get embedded as text for the assembler (bass) to resolve
+        # at assembly time, run with CWD at the content repo root - so unlike
+        # smashremix_path's own (possibly absolute, __file__-anchored) value
+        # used for this script's own file I/O, what we embed here must be a
+        # path relative to CWD, or bass ends up trying to resolve an absolute
+        # path relative to itself.
+        smashremix_path_relative = os.path.relpath(smashremix_path, os.getcwd())
         asm_files = []
 
         for root, dirs, files in os.walk("src"):
@@ -216,9 +227,9 @@ class CharacterAppender:
                         content = f.read()
 
                     content = content.replace(
-                        "../build/", f"../{smashremix_path}/build/")
+                        "../build/", f"../{smashremix_path_relative}/build/")
                     content = content.replace(
-                        "roms/original.z64", f"{smashremix_path}/roms/original_extra.z64")
+                        "roms/original.z64", f"{smashremix_path_relative}/roms/original_extra.z64")
 
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(content)
@@ -227,9 +238,9 @@ class CharacterAppender:
             main_content = f.read()
 
         main_content = main_content.replace(
-            "assembler/", f"{smashremix_path}/assembler/")
+            "assembler/", f"{smashremix_path_relative}/assembler/")
         main_content = main_content.replace(
-            "roms/original.z64", f"{smashremix_path}/roms/original_extra.z64")
+            "roms/original.z64", f"{smashremix_path_relative}/roms/original_extra.z64")
 
         with open("main.asm", 'w', encoding='utf-8') as f:
             f.write(main_content)
@@ -282,7 +293,9 @@ class CharacterAppender:
                     version_string = m.group(1)
                     break
 
-        with open("version.txt", 'r', encoding='utf-8') as f:
+        version_txt_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "version.txt")
+        with open(version_txt_path, 'r', encoding='utf-8') as f:
             extra_version = f.read()
         lineinfile.add_line_to_file(
             filepath="src/Boot.asm",
@@ -412,8 +425,7 @@ class CharacterAppender:
 
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
-            line=(f'\t\tconstant ACTIVE_HEAP_COUNT('
-                  f'{DYNAMIC_CSS_HEAP_COUNT})'),
+            line=f'\t\tconstant ACTIVE_HEAP_COUNT(5)',
             inserter=lineinfile.AfterLast(r'.*constant HEAP_SIZE\(.*\)')
         )
 
@@ -497,12 +509,12 @@ class CharacterAppender:
         # Character Data uses its own heap recycler
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
-            line=(
-                "\t\tOS.read_byte(Global.current_screen, t7)\n"
-                "\t\tlli t8, Global.screen.DATA_CHARACTERS\n"
-                "\t\tbeq t7, t8, _normal_load\n"
-                "\t\tnop\n"
-            ),
+            line="\t\t"+"\n\t\t".join([
+                'OS.read_byte(Global.current_screen, t7)',
+                'lli     t8, Global.screen.DATA_CHARACTERS',
+                'beq     t7, t8, _normal_load',
+                'nop'
+            ]),
             inserter=lineinfile.BeforeLast(r".*// Custom heap Logic:")
         )
 

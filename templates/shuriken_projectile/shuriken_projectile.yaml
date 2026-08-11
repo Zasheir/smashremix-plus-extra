@@ -1,10 +1,10 @@
-output_gfx: scripts/examples/shuriken_projectile/shuriken_gfx.bin
-output_hitbox: scripts/examples/shuriken_projectile/shuriken_hitbox.bin
+output_gfx: templates/shuriken_projectile/shuriken_gfx.bin
+output_hitbox: templates/shuriken_projectile/shuriken_hitbox.bin
 
 frames:
-  - scripts/examples/shuriken_projectile/shuriken1.bmp
-  - scripts/examples/shuriken_projectile/shuriken2.bmp
-  - scripts/examples/shuriken_projectile/shuriken3.bmp
+  - templates/shuriken_projectile/shuriken1.bmp
+  - templates/shuriken_projectile/shuriken2.bmp
+  - templates/shuriken_projectile/shuriken3.bmp
 
 frame_wait: 3
 

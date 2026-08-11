@@ -1,6 +1,12 @@
+import os
 from dataclasses import dataclass
 
-SMASHREMIX_PATH = "smashremix"
+# Resolved relative to this file rather than CWD, since the smashremix
+# submodule ships alongside this package and callers may run the appender
+# from a different working directory (e.g. a content repo that pulls this
+# in as a submodule, with its own extra_characters/build/src at CWD).
+SMASHREMIX_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "smashremix")
 
 VARIANT_TYPES = ["dl", "omega", "remix", "remix2", "remix3", "remix4", "remix5", "remix6"]
 

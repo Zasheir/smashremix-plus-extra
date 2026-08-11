@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 set ROM=ssb64asm_extra.z64
 set LOG=output.log
-set ASM=smashremix\assembler
+set ASM=%~dp0smashremix\assembler
 
 echo. > "%ROM%"
 echo Building "%ROM%"...
