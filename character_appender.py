@@ -24,13 +24,13 @@ class CharacterAppender:
     def __init__(self, args):
         if not os.path.exists(os.path.join(smashremix_path, "src/File.asm")):
             print("\n"
-                f"ERROR: Smash Remix source code not found in '{smashremix_path}' folder. "
-                f"Initialize submodules (Git) or download source manually.")
+                  f"ERROR: Smash Remix source code not found in '{smashremix_path}' folder. "
+                  f"Initialize submodules (Git) or download source manually.")
             sys.exit(1)
 
         if not os.path.exists(os.path.join(smashremix_path, "roms/ssb.rom")):
             print("\n"
-                "ERROR: Vanilla SSB64 USA ROM titled 'ssb.rom' not in 'smashremix/roms' folder!")
+                  "ERROR: Vanilla SSB64 USA ROM titled 'ssb.rom' not in 'smashremix/roms' folder!")
             sys.exit(1)
 
         if not os.path.exists(os.path.join(smashremix_path, "roms/original.z64")):
@@ -111,7 +111,7 @@ class CharacterAppender:
             last_sfx_id=last_sfx_id,
             last_remix_sfx_id=last_remix_sfx_id,
             sword_trail_count=sword_trail_count,
-            characters_exist = self.char_folders,
+            characters_exist=self.char_folders,
         )
         self.stage_proc = StageProcessor()
 
@@ -215,7 +215,8 @@ class CharacterAppender:
         # used for this script's own file I/O, what we embed here must be a
         # path relative to CWD, or bass ends up trying to resolve an absolute
         # path relative to itself.
-        smashremix_path_relative = os.path.relpath(smashremix_path, os.getcwd())
+        smashremix_path_relative = os.path.relpath(
+            smashremix_path, os.getcwd())
         asm_files = []
 
         for root, dirs, files in os.walk("src"):
@@ -408,13 +409,13 @@ class CharacterAppender:
             inserter=lineinfile.AfterLast(r".*ADD NEW CHARACTERS HERE")
         )
 
-        # Sonic's alt_malloc_table entry sums his main model (0x16320) and Classic Sonic's model
-        # (0x170E8); the 0x22260 term doesn't correspond to any known file and is dropped here.
-        lineinfile.add_line_to_file(
-            filepath="src/CharacterSelect.asm",
-            line=f'\tdw  0x16320 + 0x170E8 + 0x200 // 0x3B - SONIC',
-            regexp=r'.*0x16320 \+ 0x22260 \+ 0x170E8 \+ 0x200.*'
-        )
+        # # Sonic's alt_malloc_table entry sums his main model (0x16320) and Classic Sonic's model
+        # # (0x170F0); the 0x22260 term doesn't correspond to any known file and is dropped here.
+        # lineinfile.add_line_to_file(
+        #     filepath="src/CharacterSelect.asm",
+        #     line=f'\tdw  0x16320 + 0x200 + 0x170F0 + 0x200 // 0x3B - SONIC',
+        #     regexp=r'.*0x16320 \+ 0x22260 \+ 0x170E8 \+ 0x200.*'
+        # )
 
         # Increase dynamic css heap size
         lineinfile.add_line_to_file(
@@ -468,8 +469,9 @@ class CharacterAppender:
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
             line="\t\t"+"\n\t\t".join(['slti    at, v0, dynamic_css.ACTIVE_HEAP_COUNT // at = 1 if v0 is still a real slot',
-                'beqz    at, _out_of_slots // if v0 ran past the real slots, stop and fall back instead of reading garbage']),
-            inserter=lineinfile.AfterFirst(r'addiu\s+v0,\s*v0,\s*0x0001\s+// v0 = next heap slot')
+                                       'beqz    at, _out_of_slots // if v0 ran past the real slots, stop and fall back instead of reading garbage']),
+            inserter=lineinfile.AfterFirst(
+                r'addiu\s+v0,\s*v0,\s*0x0001\s+// v0 = next heap slot')
         )
 
         # If no obsolete slot is found, fall back to a second pass that only enforces the hard
@@ -598,7 +600,8 @@ class CharacterAppender:
                 r"^\s*(dw offset)\.*")
         )
 
-        add_to_scope("src/CharacterSelect.asm", "scope portrait_offsets", ["// extra"] + self.char_proc.character_portrait_defs)
+        add_to_scope("src/CharacterSelect.asm", "scope portrait_offsets",
+                     ["// extra"] + self.char_proc.character_portrait_defs)
 
         offsetStrings = []
         variantStrings = []
@@ -613,7 +616,8 @@ class CharacterAppender:
                 f"\t\taddiu   a1, at, VARIANT_ICON_OFFSET.{cf.upper()} // a1 = {cf.upper()} footer struct"
             )
 
-        add_to_scope("src/CharacterSelect.asm", "scope VARIANT_ICON_OFFSET", offsetStrings)
+        add_to_scope("src/CharacterSelect.asm",
+                     "scope VARIANT_ICON_OFFSET", offsetStrings)
 
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
@@ -904,19 +908,22 @@ class CharacterAppender:
             lineinfile.add_line_to_file(
                 filepath="src/CharEnvColor.asm",
                 line="\t"+"\n\t".join(char_fix["struct_defs"])+"\n",
-                inserter=lineinfile.BeforeLast(r".*scope custom_display_lists_struct_*")
+                inserter=lineinfile.BeforeLast(
+                    r".*scope custom_display_lists_struct_*")
             )
 
             lineinfile.add_line_to_file(
                 filepath="src/CharEnvColor.asm",
                 line="\t\t"+"\n\t\t".join(char_fix["fix_defs"]),
-                inserter=lineinfile.BeforeLast(r".*// skip if no fixing necessary*")
+                inserter=lineinfile.BeforeLast(
+                    r".*// skip if no fixing necessary*")
             )
 
             lineinfile.add_line_to_file(
                 filepath="src/CharEnvColor.asm",
                 line="\t\t"+"\n\t\t".join(char_fix["clear_defs"]),
-                inserter=lineinfile.AfterLast(r".*// if JKIRBY, clear JKIRBY's custom display lists*")
+                inserter=lineinfile.AfterLast(
+                    r".*// if JKIRBY, clear JKIRBY's custom display lists*")
             )
 
             lineinfile.add_line_to_file(
@@ -1385,6 +1392,7 @@ class CharacterAppender:
                     line=patch[1],
                     inserter=insert
                 )
+
 
 def main(args):
     ca = CharacterAppender(args)
