@@ -3,7 +3,8 @@
 </p>
 
 # Extra content build system
-
+- **NOTE: This is not an official update to "Smash Remix" This is only a tool to add fan content to the game. The patches we provide are a community effort of new content all in one patch.**  
+- If you would like to download our newest patch, please go here: [Latest Release](https://github.com/joaorb64/smashremix-plus-extra/releases)
 ## Prerequisites
 - Windows: [Python 3.12+](https://www.python.org/downloads/latest/pymanager), pipenv
   - pipenv gets installed automatically by build.bat - to install manually, run `python -m pip install pipenv` in a terminal
