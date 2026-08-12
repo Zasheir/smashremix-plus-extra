@@ -27,10 +27,22 @@ import tempfile
 APPENDER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SMASHREMIX_DIR = os.path.join(APPENDER_DIR, "smashremix")
 SMASHREMIX_SCRIPTS_DIR = os.path.join(SMASHREMIX_DIR, "scripts")
-# character_appender.py builds against the *content* repo that embeds
-# appender/ as a submodule (extra_characters/, src/, main.asm, build/ all
-# live there, cwd-relative) - not against paths inside appender/ itself.
+# character_appender.py builds against the content repo embedding appender/
+# as a submodule (extra_characters/, src/, main.asm, build/ live there).
 CONTENT_ROOT = os.path.dirname(APPENDER_DIR)
+
+
+def leading_zero_word_offset(data):
+    """Count leading 4-byte zero words in an animation file's data."""
+    offset = 0
+    i = 0
+    while i + 4 <= len(data):
+        if int.from_bytes(data[i:i+4], 'big') == 0:
+            offset += 1
+            i += 4
+        else:
+            break
+    return offset * 4
 
 
 def load_extra_overrides(overrides_path):
@@ -47,11 +59,11 @@ def load_extra_overrides(overrides_path):
 
 
 def find_animation_definitions(character_name, roots):
-    """Same regex-based scan as gen_editable_rom.get_character_animation_definitions,
-    but over an arbitrary list of root directories. Extra characters (like Terry)
-    declare their Character.edit_action_parameters(...) calls in their own
-    extra_characters/<Name>/main.asm rather than in the shared src/Character.asm
-    that gen_editable_rom.py only looks at, so its src/-only scan misses them."""
+    """Same regex scan as gen_editable_rom.get_character_animation_definitions,
+    but over arbitrary root dirs - extra characters declare their
+    Character.edit_action_parameters(...) calls in their own
+    extra_characters/<Name>/main.asm, which gen_editable_rom.py's
+    src/-only scan misses."""
     animation_entries = []
 
     for root_dir in roots:
@@ -118,10 +130,8 @@ def main():
 
     workdir = tempfile.mkdtemp(prefix="gen_editable_rom_extra_")
     try:
-        # gen_editable_rom.py hardcodes paths (src/, build/, roms/,
-        # assembler/) relative to the process cwd, so we assemble a working
-        # directory with the pieces it expects: extra-character source from
-        # the appender repo, everything else from the smashremix checkout.
+        # gen_editable_rom.py hardcodes src/, build/, roms/, assembler/
+        # relative to cwd, so assemble a workdir with what it expects.
         os.symlink(os.path.join(CONTENT_ROOT, "src"),
                    os.path.join(workdir, "src"))
         os.symlink(os.path.join(SMASHREMIX_DIR, "build"),
@@ -150,24 +160,14 @@ def main():
 
         ergen = ger.EditableROMGenerator(RunArgs())
 
-        # file_shield can be a literal hex ID baked into Character.asm
-        # instead of a File.xxx name. If it points at this character's own
-        # shield pose file, rewrite it as a File.xxx reference so
-        # EditableROMGenerator injects it, instead of silently leaving the
-        # parent's vanilla shield pose in place.
+        # file_shield may be a raw hex ID rather than a File.xxx name; if it's
+        # this character's own shield pose, rewrite it as File.xxx so it gets injected.
         shield_field = ergen.character['file_shield']
         if isinstance(shield_field, str) and not shield_field.startswith('File.'):
             own_shield_name = f"{args.character}_SHIELD_POSE"
             if own_shield_name in overrides:
                 ergen.character['file_shield'] = f"File.{own_shield_name}"
 
-        # gen_editable_rom.py finds a character's animation overrides by
-        # regex-scanning src/*.asm for Character.edit_action_parameters(...)
-        # calls. That works for standard Remix characters (defined in
-        # src/Character.asm), but extra characters like Terry declare theirs
-        # in their own extra_characters/<Name>/main.asm, which never lands
-        # under src/. Point it at both locations so the reimport actually
-        # finds them.
         ergen.get_character_animation_definitions = lambda: find_animation_definitions(
             ergen.character["name"],
             [os.path.join(workdir, "src"),
@@ -179,10 +179,8 @@ def main():
         finally:
             ergen.cleanup()
 
-        # create_rom() always dumps the (correctly discovered) animations to
-        # an animations/ folder relative to cwd (workdir) as its last step.
-        # Only carry it out to the caller if it was asked for; otherwise it
-        # is discarded along with the rest of workdir below.
+        # create_rom() always dumps animations to workdir/animations/; only
+        # copy them out if requested, else they're discarded with workdir.
         generated_animations_dir = os.path.join(workdir, "animations")
         if args.export_animations and os.path.isdir(generated_animations_dir):
             os.makedirs(animations_dir, exist_ok=True)
@@ -190,6 +188,45 @@ def main():
                             animations_dir, dirs_exist_ok=True)
 
         generated = os.path.join(workdir, os.path.basename(output_path))
+
+        # Recompute internal_file_table_offset for every injected animation
+        # and re-inject any that are wrong.
+        sys.path.insert(0, APPENDER_DIR)
+        from smashremix_extra.injector.injector import ROMInjector
+
+        fixups = []
+        for file_name, action_name, _flags, func in ergen.get_character_animation_definitions():
+            action_id = ger.ACTIONS[action_name] if action_name in ger.ACTIONS else int(
+                action_name, 16)
+            if action_id >= 0xDC:
+                continue
+            action_file = ergen.get_action_animation_file(action_id, func)
+            if not action_file:
+                continue
+            data = ergen.entries[ger.FILES[file_name]].extract('data')
+            correct_offset = leading_zero_word_offset(data)
+            fixups.append((action_file, file_name, data, correct_offset))
+
+        if fixups:
+            injector = ROMInjector(generated, generated)
+            fixed = []
+            for action_file, file_name, data, correct_offset in fixups:
+                if injector.entries[action_file].tbl != correct_offset:
+                    tmp_path = os.path.join(workdir, "_animfix.bin")
+                    with open(tmp_path, "wb") as f:
+                        f.write(data)
+                    injector.modify(action_file, tmp_path,
+                                     correct_offset, 0x3FFFC, compression_level=0)
+                    fixed.append(
+                        f"{file_name} (file 0x{action_file:04X}, offset -> 0x{correct_offset:04X})")
+            if fixed:
+                print(
+                    f"Correcting internal_file_table_offset for {len(fixed)} animation(s):")
+                for line in fixed:
+                    print(f"  {line}")
+                injector.save(on_progress=print)
+                ger.run_windows_command(f"assembler/rn64crc.exe -u {generated}")
+
         shutil.move(generated, output_path)
     finally:
         os.chdir(APPENDER_DIR)

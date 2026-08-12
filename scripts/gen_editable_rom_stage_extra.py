@@ -95,10 +95,7 @@ def get_stage_and_background_ids(vanilla_entries, header_id):
 
 
 def fix_crc(rom_path):
-    """ROMInjector.save()'s own CRC (via SSB.py's FinishROM/calccrc) isn't
-    trusted as the final word - the real appender build (patch_extra.bat)
-    always follows up a Python-injector pass with rn64crc.exe -u, so do the
-    same here."""
+    """Recompute the ROM's CRC via rn64crc.exe."""
     import platform
     import subprocess
 
@@ -115,16 +112,8 @@ def fix_crc(rom_path):
 
 
 def file_offsets(entries, file_id):
-    """tbl/res as ROMInjector.modify() expects them: the real offset, or the
-    0x3FFFC sentinel it treats as "no value".
-
-    These must come from the file being injected (the custom stage's own
-    build), not from whatever vanilla file used to occupy the target slot -
-    tbl in particular looks to be a real, content-dependent offset for
-    stage-geometry files (confirmed: Hyrule Castle's own vanilla stage.bin
-    has tbl=0x3A94, but Suzaku Castle's own stage.bin - despite going into
-    the same slot - was built with tbl=0x3394). Reusing the vanilla slot's
-    value here caused a crash loading the stage on the select screen."""
+    """tbl/res as ROMInjector.modify() expects them, read from the file
+    being injected (not the vanilla slot it's going into)."""
     entry = entries[file_id]
     tbl = entry.tbl if entry.tbl is not None else 0x3FFFC
     res = entry.res if entry.res is not None else 0x3FFFC
