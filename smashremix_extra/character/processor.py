@@ -26,12 +26,14 @@ class CharacterProcessor:
     def __init__(
         self,
         name_texture_default: str,
+        sp_icon_default: str,
         last_sfx_id: int,
         last_remix_sfx_id: int,
         sword_trail_count: int,
         characters_exist: list,
     ):
         self.name_texture_default = name_texture_default
+        self.sp_icon_default = sp_icon_default
         self.LAST_SFX_ID = last_sfx_id
         self.LAST_REMIX_SFX_ID = last_remix_sfx_id
         self.SWORD_TRAIL_COUNT = sword_trail_count
@@ -603,7 +605,7 @@ class CharacterProcessor:
 
 
         # Check for 1P icon and use if found
-        icon_offset = "0x75C0"
+        icon_offset = self.sp_icon_default
         
         if os.path.isfile(f"{output_path}/1p_icon.png"):
             pixels, w, h = get_image_data(
@@ -625,23 +627,24 @@ class CharacterProcessor:
 
         
         # 1P Character Battle versus parameters
-        stage1 = config.get("singleplayer_remix", {}).get("stage1", "DREAM_LAND")
-        stage2 = config.get("singleplayer_remix", {}).get("stage2", stage1)
-        stage3 = config.get("singleplayer_remix", {}).get("stage3", stage1)
+        if config.get("definitions", {}).get("variant_type", "") == "NA":
+            stage1 = config.get("singleplayer_remix", {}).get("stage1", "DREAM_LAND")
+            stage2 = config.get("singleplayer_remix", {}).get("stage2", stage1)
+            stage3 = config.get("singleplayer_remix", {}).get("stage3", stage1)
 
-        self.singleplayer_remix_match_defs.append(
-            f"// {character_folder.title()} match settings"
-            f"\n\t{character_folder.lower()}_match_setting:"
-            f"\n\tdw  0x00000000 // flag"
-            f"\n\tdb  Character.id.{character_folder.upper()} // Character ID"
-            f"\n\tdb  Stages.id.{stage1} // Stage Option 1"
-            f"\n\tdb  Stages.id.{stage2} // Stage Option 2"
-            f"\n\tdb  Stages.id.{stage3} // Stage Option 3"
-            f"\n\tdw  {name_texture_sp} + 0x10 // name texture"
-            f"\n\tdw  {announcer_fgm} // Announcer Call"
-            f"\n\tdw  0x00006F80 // Model Scale"
-            f"\n\tdw  progress_icon.{character_folder.upper()} // Progress Icon"
-        )
+            self.singleplayer_remix_match_defs.append(
+                f"// {character_folder.title()} match settings"
+                f"\n\t{character_folder.lower()}_match_setting:"
+                f"\n\tdw  0x00000000 // flag"
+                f"\n\tdb  Character.id.{character_folder.upper()} // Character ID"
+                f"\n\tdb  Stages.id.{stage1} // Stage Option 1"
+                f"\n\tdb  Stages.id.{stage2} // Stage Option 2"
+                f"\n\tdb  Stages.id.{stage3} // Stage Option 3"
+                f"\n\tdw  {name_texture_sp} + 0x10 // name texture"
+                f"\n\tdw  {announcer_fgm} // Announcer Call"
+                f"\n\tdw  0x00006F80 // Model Scale"
+                f"\n\tdw  progress_icon.{character_folder.upper()} // Progress Icon"
+            )
 
 
 

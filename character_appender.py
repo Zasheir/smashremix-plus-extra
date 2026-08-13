@@ -57,6 +57,16 @@ class CharacterAppender:
         )
         self.name_texture_default = f"0x{name_texture_offset:08X} + 0x10"
 
+
+        default_sp_icon_pixels, w, h = get_image_data(
+            "extra_resources/1p_icon.png")
+        sp_icon_offset = append_image(
+            "scripts/000B.bin", "scripts/000B.bin",
+            default_sp_icon_pixels, w, h, ImageMode.RGBA5551
+        )
+        self.sp_icon_default = f"0x{sp_icon_offset:08X} + 0x10"
+
+
         self.char_folders = [cf for cf in os.listdir("extra_characters") if os.path.isdir(
             os.path.join("extra_characters", cf)) and not cf.startswith("_")]
         self.char_folders.sort()
@@ -108,6 +118,7 @@ class CharacterAppender:
 
         self.char_proc = CharacterProcessor(
             name_texture_default=self.name_texture_default,
+            sp_icon_default=self.sp_icon_default,
             last_sfx_id=last_sfx_id,
             last_remix_sfx_id=last_remix_sfx_id,
             sword_trail_count=sword_trail_count,
