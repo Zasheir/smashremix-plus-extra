@@ -631,16 +631,16 @@ class CharacterProcessor:
 
         self.singleplayer_remix_match_defs.append(
             f"// {character_folder.title()} match settings"
-            f"{character_folder.lower()}_match_setting:"
-            f"dw  0x00000000 // flag"
-            f"db  Character.id.{character_folder.upper()} // Character ID"
-            f"db  Stages.id.{stage1} // Stage Option 1"
-            f"db  Stages.id.{stage2} // Stage Option 2"
-            f"db  Stages.id.{stage3} // Stage Option 3"
-            f"dw  {name_texture_sp} // name texture"
-            f"dw  {announcer_fgm} // Announcer Call"
-            f"dw  0x00006F80 // Model Scale"
-            f"dw  progress_icon.{character_folder.upper()} // Progress Icon"
+            f"\n\t{character_folder.lower()}_match_setting:"
+            f"\n\tdw  0x00000000 // flag"
+            f"\n\tdb  Character.id.{character_folder.upper()} // Character ID"
+            f"\n\tdb  Stages.id.{stage1} // Stage Option 1"
+            f"\n\tdb  Stages.id.{stage2} // Stage Option 2"
+            f"\n\tdb  Stages.id.{stage3} // Stage Option 3"
+            f"\n\tdw  {name_texture_sp} + 0x10 // name texture"
+            f"\n\tdw  {announcer_fgm} // Announcer Call"
+            f"\n\tdw  0x00006F80 // Model Scale"
+            f"\n\tdw  progress_icon.{character_folder.upper()} // Progress Icon"
         )
 
 
