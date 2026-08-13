@@ -64,6 +64,7 @@ def extract_files(smashremix_path: str) -> None:
         0xA06,   # CSS images
         0x10F5,  # Data screen bios
         0x10F6,  # Data screen names, works, special attacks
+        0xB,     # 1P icons
     ]
 
     rom_file_entries = SSBtbl.fromROM(

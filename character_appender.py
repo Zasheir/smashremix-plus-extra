@@ -885,6 +885,18 @@ class CharacterAppender:
                 r'.*// use normal width otherwise.*')
         )
 
+        # SinglePlayerModes.asm
+        lineinfile.add_line_to_file(
+            filepath="src/SinglePlayerModes.asm",
+            line="\t"+"\n\t".join(self.char_proc.singleplayer_additions),
+            inserter=lineinfile.AfterLast(r'^\s*add_to_single_player\(.*')
+        )
+        lineinfile.add_line_to_file(
+            filepath="src/SinglePlayerModes.asm",
+            line="\t"+"\n\t".join(self.char_proc.singleplayer_remix_match_defs),
+            inserter=lineinfile.BeforeLast(r".*// Add entry here if a new variant.type.NA character is added UPDATE.*")
+        )
+
         # TwelveCharBattle.asm
         lineinfile.add_line_to_file(
             filepath="src/TwelveCharBattle.asm",
