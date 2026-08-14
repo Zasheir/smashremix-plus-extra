@@ -897,12 +897,13 @@ class CharacterAppender:
         )
 
         # SinglePlayerModes.asm
-        add_to_scope("src/SinglePlayerModes.asm", "progress_icon", self.char_proc.character_1p_icon_defs)
         lineinfile.add_line_to_file(
             filepath="src/SinglePlayerModes.asm",
             line="\t"+"\n\t".join(self.char_proc.singleplayer_remix_match_defs),
             inserter=lineinfile.BeforeLast(r".*// Add entry here if a new variant.type.NA character is added UPDATE.*")
         )
+
+        add_to_scope("src/SinglePlayerModes.asm", "progress_icon", self.char_proc.character_1p_icon_defs)
 
         # TwelveCharBattle.asm
         lineinfile.add_line_to_file(

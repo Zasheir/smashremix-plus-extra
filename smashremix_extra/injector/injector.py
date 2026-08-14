@@ -11,6 +11,7 @@ from .file_appender import pad_rom_file
 # (file_id, local_path, tbl_offset, res_offset, compression_level)
 # ---------------------------------------------------------------------------
 MODIFIED_FILES = [
+    (0x000B, "scripts/000B.bin",  0x01EF8, 0x3FFFC, 2), # 1P icons
     (0x000C, "scripts/000C.bin",  0x00130, 0x3FFFC, 2), # 1P nameplates
     (0x0011, "scripts/0011.bin",  0x00038, 0x3FFFC, 2), # CSS nameplates
     (0x0014, "scripts/0014.bin",  0x00610, 0x3FFFC, 2), # 2D series logos (CSS, SSS)
@@ -20,7 +21,6 @@ MODIFIED_FILES = [
     (0x0A06, "scripts/0A06.bin",  0x00210, 0x3FFFC, 2), # CSS images
     (0x10F5, "scripts/10F5.bin",  0x02410, 0x3FFFC, 2), # Data screen bios
     (0x10F6, "scripts/10F6.bin",  0x00A10, 0x3FFFC, 2), # Data screen names, works, special attacks
-    (0x000B, "scripts/000B.bin",  0x01EF8, 0x3FFFC, 2), # 1P icons
 ]
 
 

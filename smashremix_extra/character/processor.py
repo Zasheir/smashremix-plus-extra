@@ -600,13 +600,9 @@ class CharacterProcessor:
                 f"\n\t\tlli     t6, 0x{config.get("singleplayer", {}).get("alt_name_width"):04X}                        // t6 = width of \"{character_folder.title()}\""
             )
 
-
-
-
-
         # Check for 1P icon and use if found
         icon_offset = self.sp_icon_default
-        
+
         if os.path.isfile(f"{output_path}/1p_icon.png"):
             pixels, w, h = get_image_data(
                 f"{output_path}/1p_icon.png"
@@ -619,35 +615,37 @@ class CharacterProcessor:
                 ImageMode.RGBA5551
             )
             icon_offset = f"0x{icon_offset:X} + 0x10"
-        
+
         self.character_1p_icon_defs.append(
             f"constant {character_folder.upper()}({icon_offset})")
-        
+
         singleplayer_icon = f"progress_icon.{character_folder.upper()}"
 
-        
-        # 1P Character Battle versus parameters
-        if config.get("definitions", {}).get("variant_type", "") == "NA":
-            stage1 = config.get("singleplayer_remix", {}).get("stage1", "DREAM_LAND")
-            stage2 = config.get("singleplayer_remix", {}).get("stage2", stage1)
-            stage3 = config.get("singleplayer_remix", {}).get("stage3", stage1)
+        # Remix 1P Character Battle versus parameters
+        if config.get("definitions", {}).get("variant_type", "SPECIAL") == "NA":
+            sp_config = config.get("singleplayer_remix", {})
 
-            self.singleplayer_remix_match_defs.append(
-                f"// {character_folder.title()} match settings"
-                f"\n\t{character_folder.lower()}_match_setting:"
-                f"\n\tdw  0x00000000 // flag"
-                f"\n\tdb  Character.id.{character_folder.upper()} // Character ID"
-                f"\n\tdb  Stages.id.{stage1} // Stage Option 1"
-                f"\n\tdb  Stages.id.{stage2} // Stage Option 2"
-                f"\n\tdb  Stages.id.{stage3} // Stage Option 3"
-                f"\n\tdw  {name_texture_sp} + 0x10 // name texture"
-                f"\n\tdw  {announcer_fgm} // Announcer Call"
-                f"\n\tdw  0x00006F80 // Model Scale"
-                f"\n\tdw  progress_icon.{character_folder.upper()} // Progress Icon"
-            )
+            flag = sp_config.get("flag", "00000000")
 
+            stage1 = sp_config.get("stage1", "DREAM_LAND")
+            stage2 = sp_config.get("stage2", stage1)
+            stage3 = sp_config.get("stage3", stage1)
 
+            scale = sp_config.get("scale", "6F80").zfill(8)
 
+            self.singleplayer_remix_match_defs.extend([
+                f"// {character_folder.title()} match settings",
+                f"{character_folder.lower()}_match_setting:",
+                f"dw  0x{flag} // flag",
+                f"db  Character.id.{character_folder.upper()} // Character ID",
+                f"db  Stages.id.{stage1} // Stage Option 1",
+                f"db  Stages.id.{stage2} // Stage Option 2",
+                f"db  Stages.id.{stage3} // Stage Option 3",
+                f"dw  {name_texture_sp} + 0x10 // name texture",
+                f"dw  {announcer_fgm} // Announcer Call",
+                f"dw  0x{scale} // Model Scale",
+                f"dw  progress_icon.{character_folder.upper()} // Progress Icon\n",
+            ])
 
         # Get series to use for character
         series_css = config.get("definitions", {}).get(
