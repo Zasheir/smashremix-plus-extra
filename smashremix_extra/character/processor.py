@@ -595,9 +595,9 @@ class CharacterProcessor:
         # Use alternate width for character's 1P name texture if defined
         if config.get("singleplayer", {}).get("alt_name_width"):
             self.singleplayer_name_width_defs.append(
-                f"lli     t6, Character.id.{character_folder.upper()}            // t6 = {character_folder.upper()}"
-                f"\n\t\tbeql    t0, t6, _alt_width                // use alt width if {character_folder.title()}"
-                f"\n\t\tlli     t6, 0x{config.get("singleplayer", {}).get("alt_name_width"):04X}                        // t6 = width of \"{character_folder.title()}\""
+                f"lli     t6, Character.id.{character_folder.upper()} // t6 = {character_folder.upper()}\n\t\t"
+                f"beql    t0, t6, _alt_width                // use alt width if {character_name}\n\t\t"
+                f"lli     t6, 0x{config.get("singleplayer", {}).get("alt_name_width"):04X}                        // t6 = width of \"{character_name}\""
             )
 
         # Check for 1P icon and use if found
@@ -634,7 +634,7 @@ class CharacterProcessor:
             scale = sp_config.get("scale", "6F80").zfill(8)
 
             self.singleplayer_remix_match_defs.extend([
-                f"// {character_folder.title()} match settings",
+                f"// {character_name} match settings",
                 f"{character_folder.lower()}_match_setting:",
                 f"dw  0x{flag} // flag",
                 f"db  Character.id.{character_folder.upper()} // Character ID",
@@ -961,7 +961,7 @@ class CharacterProcessor:
                 w, h,
                 ImageMode.I8
             )
-            bio_texture += int("0x80000000", 16)
+            bio_texture += 0x80000000
             bio_texture = f"0x{bio_texture:08X}"
 
         if os.path.exists(f"{output_path}/datascreen/name.png"):
@@ -975,7 +975,7 @@ class CharacterProcessor:
                 w, h,
                 ImageMode.I8
             )
-            name_texture += int("0x80000000", 16)
+            name_texture += 0x80000000
             name_texture = f"0x{name_texture:08X}"
 
         if os.path.exists(f"{output_path}/datascreen/works.png"):
@@ -989,7 +989,7 @@ class CharacterProcessor:
                 w, h,
                 ImageMode.I8
             )
-            works_texture += int("0x80000000", 16)
+            works_texture += 0x80000000
             works_texture = f"0x{works_texture:08X}"
 
         if os.path.exists(f"{output_path}/datascreen/special_u.png"):
@@ -1003,7 +1003,7 @@ class CharacterProcessor:
                 w, h,
                 ImageMode.I8
             )
-            usp_texture += int("0x80000000", 16)
+            usp_texture += 0x80000000
             usp_texture = f"0x{usp_texture:08X}"
 
         if os.path.exists(f"{output_path}/datascreen/special_n.png"):
@@ -1017,7 +1017,7 @@ class CharacterProcessor:
                 w, h,
                 ImageMode.I8
             )
-            nsp_texture += int("0x80000000", 16)
+            nsp_texture += 0x80000000
             nsp_texture = f"0x{nsp_texture:08X}"
 
         if os.path.exists(f"{output_path}/datascreen/special_d.png"):
@@ -1031,7 +1031,7 @@ class CharacterProcessor:
                 w, h,
                 ImageMode.I8
             )
-            dsp_texture += int("0x80000000", 16)
+            dsp_texture += 0x80000000
             dsp_texture = f"0x{dsp_texture:08X}"
 
         add_to_data_string = (
