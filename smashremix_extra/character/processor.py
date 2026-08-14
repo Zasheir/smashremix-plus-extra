@@ -8,7 +8,7 @@ from pathlib import Path
 
 from smashremix_extra.constants import (
     SMASHREMIX_PATH as smashremix_path,
-    PRIMARY_MOVESETS, SHIELD_POSES, TWELVECB_DEFEAT, COMMAND_SIZES, ExtraFile,
+    PRIMARY_MOVESETS, SHIELD_POSES, TWELVECB_DEFEAT, SP_DUO_POSES, SP_TEAM_POSES, COMMAND_SIZES, ExtraFile,
 )
 from smashremix_extra.image_appender import append_image, get_image_data, ImageMode
 from smashremix_extra.file_appender import append_file, get_pointer, update_pointer
@@ -53,6 +53,8 @@ class CharacterProcessor:
         self.character_series_textures = {}
         self.character_portrait_defs = []
         self.character_1p_icon_defs = []
+        self.character_1p_duo_parameter_defs = []
+        self.character_1p_team_parameter_defs = []
         self.character_12cb_defs = []
         self.character_tag_team_preloads = []
         self.character_data_screen_defs = []
@@ -621,22 +623,22 @@ class CharacterProcessor:
 
         singleplayer_icon = f"progress_icon.{character_folder.upper()}"
 
+        sp_config = config.get("singleplayer_remix", {})
         # Remix 1P Character Battle versus parameters
         if config.get("definitions", {}).get("variant_type", "SPECIAL") == "NA":
-            sp_config = config.get("singleplayer_remix", {})
 
-            flag = sp_config.get("flag", "00000000")
+            flags = sp_config.get("flags", 0)
 
             stage1 = sp_config.get("stage1", "DREAM_LAND")
-            stage2 = sp_config.get("stage2", stage1)
-            stage3 = sp_config.get("stage3", stage1)
+            stage2 = sp_config.get("stage2", "WINTER_DL")
+            stage3 = sp_config.get("stage3", "FINAL_DESTINATION_DL")
 
             scale = sp_config.get("scale", "6F80").zfill(8)
 
             self.singleplayer_remix_match_defs.extend([
                 f"// {character_name} match settings",
                 f"{character_folder.lower()}_match_setting:",
-                f"dw  0x{flag} // flag",
+                f"dw  0x{flags} // flag",
                 f"db  Character.id.{character_folder.upper()} // Character ID",
                 f"db  Stages.id.{stage1} // Stage Option 1",
                 f"db  Stages.id.{stage2} // Stage Option 2",
@@ -646,6 +648,26 @@ class CharacterProcessor:
                 f"dw  0x{scale} // Model Scale",
                 f"dw  progress_icon.{character_folder.upper()} // Progress Icon\n",
             ])
+
+        # Remix 1P Duo menu parameters
+        duo_config = sp_config.get("duo", {})
+
+        anim = duo_config.get("anim", SP_DUO_POSES.get(config['definitions']['base_character']))
+        moveset = duo_config.get("moveset", "duo_moveset")
+        flags = duo_config.get("flags", 0)
+
+        self.character_1p_duo_parameter_defs.append(
+            f"add_duo_parameters({anim}, {moveset}, {flags}) // {character_folder.upper()}")
+
+        # Remix 1P Team menu parameters
+        team_config = sp_config.get("team", {})
+
+        anim = team_config.get("anim", SP_TEAM_POSES.get(config['definitions']['base_character']))
+        moveset = team_config.get("moveset", "team_moveset")
+        flags = team_config.get("flags", 0)
+
+        self.character_1p_team_parameter_defs.append(
+            f"add_team_parameters({anim}, {moveset}, {flags}) // {character_folder.upper()}")
 
         # Get series to use for character
         series_css = config.get("definitions", {}).get(
