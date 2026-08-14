@@ -891,9 +891,8 @@ class CharacterAppender:
         lineinfile.add_line_to_file(
             filepath="src/SinglePlayer.asm",
             line="\t\t" +
-            "\n\t\t".join(self.char_proc.singleplayer_name_width_defs),
-            inserter=lineinfile.BeforeLast(
-                r'.*// use normal width otherwise.*')
+            "\n\t\t".join(self.char_proc.singleplayer_name_width_defs["normal"]),
+            inserter=lineinfile.BeforeLast(r'.*// use normal width otherwise.*')
         )
 
         # SinglePlayerModes.asm
@@ -901,6 +900,20 @@ class CharacterAppender:
             filepath="src/SinglePlayerModes.asm",
             line="\t"+"\n\t".join(self.char_proc.singleplayer_remix_match_defs),
             inserter=lineinfile.BeforeLast(r".*// Add entry here if a new variant.type.NA character is added UPDATE.*")
+        )
+
+        lineinfile.add_line_to_file(
+            filepath="src/SinglePlayerModes.asm",
+            line="\t\t" +
+            "\n\t\t".join(self.char_proc.singleplayer_name_width_defs["team"]),
+            inserter=lineinfile.BeforeLast(r'.*b       _adjust_footer_team.*')
+        )
+
+        lineinfile.add_line_to_file(
+            filepath="src/SinglePlayerModes.asm",
+            line="\t\t" +
+            "\n\t\t".join(self.char_proc.singleplayer_name_width_defs["giant"]),
+            inserter=lineinfile.BeforeLast(r'.*b       _done_giant.*')
         )
 
         add_to_scope("src/SinglePlayerModes.asm", "progress_icon", self.char_proc.character_1p_icon_defs)

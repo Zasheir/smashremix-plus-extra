@@ -45,7 +45,7 @@ class CharacterProcessor:
         self.add_to_css_strings = []
         self.victory_theme_strings = []
         self.singleplayer_additions = []
-        self.singleplayer_name_width_defs = []
+        self.singleplayer_name_width_defs = {"normal": [], "team": [], "giant": []}
         self.singleplayer_remix_match_defs = []
         self.character_names = []
         self.character_skins = []
@@ -559,11 +559,13 @@ class CharacterProcessor:
             announcer_fgm = f"0x{
                 character_sound_add_list.get(sound_name)}"
 
+
         # Calculate 1P name delay if announcer FGM is found
+        sp_config = config.get("singleplayer", {})
         name_delay_sp = "name_delay.DRAGONKING"
 
-        if config.get("singleplayer", {}).get("name_delay"):
-            name_delay_sp = f"0x{config.get("singleplayer", {}).get("name_delay"):08X}"
+        if sp_config.get("name_delay"):
+            name_delay_sp = f"0x{sp_config.get("name_delay"):08X}"
         elif config.get("announcer_fgm"):
             announcer = config.get("sounds").get(
                 config.get("announcer_fgm"))
@@ -595,11 +597,25 @@ class CharacterProcessor:
             f'add_to_single_player(Character.id.{character_folder.upper()}, {name_texture_sp}, {name_delay_sp})')
 
         # Use alternate width for character's 1P name texture if defined
-        if config.get("singleplayer", {}).get("alt_name_width"):
-            self.singleplayer_name_width_defs.append(
-                f"lli     t6, Character.id.{character_folder.upper()} // t6 = {character_folder.upper()}\n\t\t"
+        if sp_config.get("alt_name_width"):
+            self.singleplayer_name_width_defs["normal"].append(
+                f"lli     t6, Character.id.{character_folder.upper()}\n\t\t"
                 f"beql    t0, t6, _alt_width                // use alt width if {character_name}\n\t\t"
-                f"lli     t6, 0x{config.get("singleplayer", {}).get("alt_name_width"):04X}                        // t6 = width of \"{character_name}\""
+                f"lli     t6, 0x{sp_config.get("alt_name_width"):04X}                        // t6 = width of \"{character_name}\""
+            )
+
+        if sp_config.get("alt_name_width_team"):
+            self.singleplayer_name_width_defs["team"].append(
+                f"lli     t6, {name_texture_sp} + 0x10\n\t\t"
+                f"beql    t8, t6, _set_alt_width_team // if {character_name}, use alternate width\n\t\t"
+                f"lli     t6, 0x{sp_config.get("alt_name_width_team"):04X}                  // t6 = width of \"{character_name}\""
+            )
+
+        if sp_config.get("alt_name_width_giant"):
+            self.singleplayer_name_width_defs["giant"].append(
+                f"lli     t6, {name_texture_sp} + 0x10\n\t\t"
+                f"beql    t8, t6, _set_alt_width_giant // if {character_name}, use alternate width\n\t\t"
+                f"lli     t6, 0x{sp_config.get("alt_name_width_giant"):04X}                  // t6 = width of \"{character_name}\""
             )
 
         # Check for 1P icon and use if found
@@ -623,7 +639,6 @@ class CharacterProcessor:
 
         singleplayer_icon = f"progress_icon.{character_folder.upper()}"
 
-        sp_config = config.get("singleplayer_remix", {})
         # Remix 1P Character Battle versus parameters
         if config.get("definitions", {}).get("variant_type", "SPECIAL") == "NA":
 
