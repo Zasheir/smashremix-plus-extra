@@ -1199,7 +1199,7 @@ class CharacterAppender:
         lineinfile.add_line_to_file(
             filepath="src/Hazards.asm",
             line="\t"+"\n\t".join(hazards_import_strings)+"\n\n",
-            inserter=lineinfile.AfterFirst(r'^scope Hazards.*')
+            inserter=lineinfile.BeforeFirst(r'^} // __HAZARDS__.*')
         )
 
         # add Character.asm include to Hazards.asm
