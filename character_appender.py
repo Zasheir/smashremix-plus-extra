@@ -800,6 +800,48 @@ class CharacterAppender:
             inserter=lineinfile.AfterLast(
                 r".*beq\s*v0, at, _dkcargo_jump_2.*")
         )
+        # cargo_item_fix_1
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_cargo_defs_3),
+            inserter=lineinfile.AfterLast(
+                r".*beq\s*v0, at, _item_jump_1.*")
+        )
+        # cargo_item_fix_2
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_cargo_defs_4),
+            inserter=lineinfile.AfterLast(
+                r".*beq\s*v0, at, _item_jump_2.*")
+        )
+        # cargo_item_fix_3
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_cargo_defs_5),
+            inserter=lineinfile.AfterLast(
+                r".*beq\s*v0, at, _item_jump_3.*")
+        )
+        # cargo_item_fix_4
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_cargo_defs_6),
+            inserter=lineinfile.AfterLast(
+                r".*beq\s*v0, at, _item_jump_4.*")
+        )
+        # cargo_item_fix_5
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_cargo_defs_7),
+            inserter=lineinfile.AfterLast(
+                r".*beq\s*v0, at, _item_jump_5.*")
+        )
+        # cargo_item_fix_6
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_cargo_defs_8),
+            inserter=lineinfile.AfterLast(
+                r".*beq\s*v0, at, _item_jump_6.*")
+        )
 
         # Inject patches related to Kirby clones
         kirby_shared.Inject()

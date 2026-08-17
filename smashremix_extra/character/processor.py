@@ -76,6 +76,12 @@ class CharacterProcessor:
         self.yoshi_downspecialstruct_defs = []
         self.dk_cargo_defs_1 = []
         self.dk_cargo_defs_2 = []
+        self.dk_cargo_defs_3 = []
+        self.dk_cargo_defs_4 = []
+        self.dk_cargo_defs_5 = []
+        self.dk_cargo_defs_6 = []
+        self.dk_cargo_defs_7 = []
+        self.dk_cargo_defs_8 = []
         self.sound_add_list = []
         self.sword_trail_add_list = []
         self.items_added = 0
@@ -1213,12 +1219,36 @@ class CharacterProcessor:
 
         if config.get("dk_cargo"):
             self.dk_cargo_defs_1.append(
-                f"\t\taddiu at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
                 f"\n\t\tbeq v0, at, _dkcargo_jump_1"
             )
             self.dk_cargo_defs_2.append(
-                f"\t\taddiu at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
                 f"\n\t\tbeq v0, at, _dkcargo_jump_2"
+            )
+            self.dk_cargo_defs_3.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq     v0, at, _item_jump_1"
+            )
+            self.dk_cargo_defs_4.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq     v0, at, _item_jump_2"
+            )
+            self.dk_cargo_defs_5.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq     v0, at, _item_jump_3"
+            )
+            self.dk_cargo_defs_6.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq     v0, at, _item_jump_4"
+            )
+            self.dk_cargo_defs_7.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq     v0, at, _item_jump_5"
+            )
+            self.dk_cargo_defs_8.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq     v0, at, _item_jump_6"
             )
 
         if config.get("kirby_jumps"):
