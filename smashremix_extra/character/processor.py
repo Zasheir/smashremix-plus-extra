@@ -31,6 +31,7 @@ class CharacterProcessor:
         last_remix_sfx_id: int,
         sword_trail_count: int,
         characters_exist: list,
+        stage_ids: set = None,
     ):
         self.name_texture_default = name_texture_default
         self.sp_icon_default = sp_icon_default
@@ -38,6 +39,7 @@ class CharacterProcessor:
         self.LAST_REMIX_SFX_ID = last_remix_sfx_id
         self.SWORD_TRAIL_COUNT = sword_trail_count
         self.characters_exist = characters_exist
+        self.stage_ids = stage_ids
 
         self.bonus_chars = []
         self.character_defs = []
@@ -45,7 +47,9 @@ class CharacterProcessor:
         self.add_to_css_strings = []
         self.victory_theme_strings = []
         self.singleplayer_additions = []
-        self.singleplayer_name_width_defs = {"normal": [], "team": [], "giant": []}
+        self.singleplayer_name_width_defs = {
+            "normal": [], "team": [], "giant": []
+        }
         self.singleplayer_remix_match_defs = []
         self.character_names = []
         self.character_skins = []
@@ -88,6 +92,18 @@ class CharacterProcessor:
         self.midi_priority_overrides = []
         self.midi_bend_range_overrides = []
         self.midi_master_volume_overrides = []
+
+    def _validate_stage_id(self, character_name: str, key: str, stage_id: str, default: str) -> str:
+        """Fall back to `default` (logging a warning) if `stage_id` isn't a
+        known Stages.id.X name, so a typo'd/removed singleplayer stage
+        reference in a character's config.yaml doesn't fail the whole build."""
+        if self.stage_ids is not None and stage_id not in self.stage_ids:
+            logger.warning(
+                f"{character_name}: singleplayer.{key} references unknown stage '{stage_id}'. "
+                f"Falling back to '{default}'."
+            )
+            return default
+        return stage_id
 
     def process(self, character_folder: str) -> None:
         """Process one character folder and accumulate patch data into self."""
@@ -209,17 +225,20 @@ class CharacterProcessor:
 
                         data_part = get_pointer(data, list_pos, "data")
                         if data_part != 0:
-                            update_pointer(data, list_pos, data_part + offset_to_add, "data")
+                            update_pointer(
+                                data, list_pos, data_part + offset_to_add, "data")
 
                         if next_list_item == 0x3FFFC:
                             if i < len(files_data)-1:
                                 # Point to start of next list instead of FFFF
                                 next_list_offset = int(
                                     file[i+1][1], 16) + sum(files_sizes[:i+1])
-                                update_pointer(data, list_pos, next_list_offset, "next")
+                                update_pointer(
+                                    data, list_pos, next_list_offset, "next")
                             break
 
-                        update_pointer(data, list_pos, next_list_item + offset_to_add, "next")
+                        update_pointer(
+                            data, list_pos, next_list_item + offset_to_add, "next")
                         current = next_list_item
 
                     if list1_start != 0x3FFFC:
@@ -242,10 +261,12 @@ class CharacterProcessor:
                                 # Point to start of next list instead of FFFF
                                 next_list_offset = int(
                                     file[i+1][2], 16) + sum(files_sizes[:i+1])
-                                update_pointer(data, list_pos, next_list_offset, "next")
+                                update_pointer(
+                                    data, list_pos, next_list_offset, "next")
                             break
 
-                        update_pointer(data, list_pos, next_list_item + offset_to_add, "next")
+                        update_pointer(
+                            data, list_pos, next_list_item + offset_to_add, "next")
                         current = next_list_item
 
                     if list2_start != 0x3FFFC:
@@ -463,19 +484,19 @@ class CharacterProcessor:
             # jab3, inhale copy
             f"OS.TRUE, "
             # inhale copy
-            f"OS.{config.get("definitions",{}).get("kirby_hat", "FALSE")}, "
+            f"OS.{config.get("definitions", {}).get("kirby_hat", "FALSE")}, "
             # btt_stage_id
-            f"Stages.id.BTT_{config.get("definitions",{}).get("break_the_targets", "STG1")}, "
+            f"Stages.id.BTT_{config.get("definitions", {}).get("break_the_targets", "STG1")}, "
             # btp_stage_id
-            f"Stages.id.BTP_{config.get("definitions",{}).get("board_the_platforms", "POLY")}, "
+            f"Stages.id.BTP_{config.get("definitions", {}).get("board_the_platforms", "POLY")}, "
             # remix_btt_stage_id
-            f"Stages.id.BTT_{config.get("definitions",{}).get("break_the_targets", "STG1")}, "
+            f"Stages.id.BTT_{config.get("definitions", {}).get("break_the_targets", "STG1")}, "
             # remix_btp_stage_id
-            f"Stages.id.BTP_{config.get("definitions",{}).get("board_the_platforms", "POLY")}, "
+            f"Stages.id.BTP_{config.get("definitions", {}).get("board_the_platforms", "POLY")}, "
             # sound_type, variant_type
             f"sound_type.U, "
             # variant_type
-            f"variant_type.{config.get("definitions",{}).get("variant_type", "SPECIAL")})"
+            f"variant_type.{config.get("definitions", {}).get("variant_type", "SPECIAL")})"
         )
 
         # Character name
@@ -565,7 +586,6 @@ class CharacterProcessor:
             announcer_fgm = f"0x{
                 character_sound_add_list.get(sound_name)}"
 
-
         # Calculate 1P name delay if announcer FGM is found
         sp_config = config.get("singleplayer", {})
         name_delay_sp = "name_delay.DRAGONKING"
@@ -604,8 +624,10 @@ class CharacterProcessor:
 
         # Use alternate width for character's 1P name texture if defined
         alt_name_width = sp_config.get("alt_name_width", None)
-        alt_name_width_team = sp_config.get("alt_name_width_team", alt_name_width)
-        alt_name_width_giant = sp_config.get("alt_name_width_giant", alt_name_width)
+        alt_name_width_team = sp_config.get(
+            "alt_name_width_team", alt_name_width)
+        alt_name_width_giant = sp_config.get(
+            "alt_name_width_giant", alt_name_width)
 
         if alt_name_width:
             self.singleplayer_name_width_defs["normal"].append(
@@ -654,9 +676,12 @@ class CharacterProcessor:
 
             flags = sp_config.get("flags", 0)
 
-            stage1 = sp_config.get("stage1", "DREAM_LAND")
-            stage2 = sp_config.get("stage2", "WINTER_DL")
-            stage3 = sp_config.get("stage3", "FINAL_DESTINATION_DL")
+            stage1 = self._validate_stage_id(
+                character_name, "stage1", sp_config.get("stage1", "DREAM_LAND"), "DREAM_LAND")
+            stage2 = self._validate_stage_id(
+                character_name, "stage2", sp_config.get("stage2", "DREAM_LAND"), "DREAM_LAND")
+            stage3 = self._validate_stage_id(
+                character_name, "stage3", sp_config.get("stage3", "DREAM_LAND"), "DREAM_LAND")
 
             scale = sp_config.get("scale", "6F80").zfill(8)
 
@@ -677,7 +702,10 @@ class CharacterProcessor:
         # Remix 1P Duo menu parameters
         duo_config = sp_config.get("duo", {})
 
-        anim = duo_config.get("anim", SP_DUO_POSES.get(config['definitions']['base_character']))
+        anim = duo_config.get(
+            "anim",
+            SP_DUO_POSES.get(config['definitions']['base_character'])
+        )
         moveset = duo_config.get("moveset", "duo_moveset")
         flags = duo_config.get("flags", 0)
 
@@ -687,7 +715,10 @@ class CharacterProcessor:
         # Remix 1P Team menu parameters
         team_config = sp_config.get("team", {})
 
-        anim = team_config.get("anim", SP_TEAM_POSES.get(config['definitions']['base_character']))
+        anim = team_config.get(
+            "anim",
+            SP_TEAM_POSES.get(config['definitions']['base_character'])
+        )
         moveset = team_config.get("moveset", "team_moveset")
         flags = team_config.get("flags", 0)
 
@@ -1127,7 +1158,10 @@ class CharacterProcessor:
             )
 
         # 12 Character Battle defeat parameters
-        anim = config.get("12cb", {}).get("anim", TWELVECB_DEFEAT.get(config['definitions']['base_character']))
+        anim = config.get("12cb", {}).get(
+            "anim",
+            TWELVECB_DEFEAT.get(config['definitions']['base_character'])
+        )
         moveset = config.get("12cb", {}).get("moveset", "defeated_moveset")
         flags = config.get("12cb", {}).get("flags", 0)
         self.character_12cb_defs.append(

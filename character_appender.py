@@ -123,6 +123,7 @@ class CharacterAppender:
             last_remix_sfx_id=last_remix_sfx_id,
             sword_trail_count=sword_trail_count,
             characters_exist=self.char_folders,
+            stage_ids=self._collect_stage_ids(),
         )
         self.stage_proc = StageProcessor()
 
@@ -130,6 +131,43 @@ class CharacterAppender:
         if os.path.exists("build"):
             shutil.rmtree("build")
         os.makedirs("build", exist_ok=True)
+
+    def _collect_stage_ids(self) -> set:
+        """Build the set of every valid Stages.id.X name: vanilla/remix
+        stages (parsed from src/Stages.asm's `scope id { ... }` block)
+        plus every extra stage folder we're about to add (using the same
+        STAGE_<FOLDER> naming StageProcessor generates for them)."""
+        stage_ids = set()
+
+        stages_asm_path = "src/Stages.asm"
+        if os.path.exists(stages_asm_path):
+            with open(stages_asm_path, encoding="utf-8") as f:
+                content = f.read()
+
+            start = content.find("scope id {")
+            if start != -1:
+                depth = 0
+                end = start
+                for i, ch in enumerate(content[start:], start=start):
+                    if ch == "{":
+                        depth += 1
+                    elif ch == "}":
+                        depth -= 1
+                        if depth == 0:
+                            end = i
+                            break
+                block = content[start:end]
+                stage_ids.update(re.findall(r"constant\s+(\w+)\s*\(", block))
+        else:
+            logger.warning(
+                f"Could not find {stages_asm_path} to validate character singleplayer stage references against; "
+                "only extra stages will be treated as valid."
+            )
+
+        for sf in self.stage_folders:
+            stage_ids.add(f"STAGE_{sf.upper().replace('/', '_')}")
+
+        return stage_ids
 
     def prepare_files(self):
         """Process all character and stage folders, registering files with FileManager."""
