@@ -14,8 +14,8 @@ offsets:
 music:
   main: "SONICADVENTURE2_RADICAL_HIGHWAY"
   occasional: "LIVE_AND_LEARN"
-  rare: "SONICADVENTURE_SYMBOL_OF_THRILL"
-  rare2: -1
+  rare: "KNUCKLESCHAOTIX_EVENING_STAR"
+  rare2: "KNUCKLESCHAOTIX_MIDNIGHT_GREENHOUSE"
 
 spawn_locations:
   default:
