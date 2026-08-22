@@ -12,8 +12,8 @@ def run_windows_command(
     command: str,
     on_output: Optional[Callable[[str], None]] = None
 ) -> subprocess.CompletedProcess:
-    """Run a Windows executable, prepending 'wine' automatically on Linux."""
-    if platform.system() == "Linux":
+    """Run a Windows executable through Wine on Linux and macOS."""
+    if platform.system() in ("Linux", "Darwin"):
         command = f"wine {command}"
 
     print(f"Running command: {command}")
