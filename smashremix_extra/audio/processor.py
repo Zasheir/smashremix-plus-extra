@@ -35,17 +35,7 @@ class AudioProcessor:
                     num_menu_track = int(m.group(1)) - 4
                     break
 
-        # Load only the +EXTRA tracks directly assigned to Radical Highway.
-        # LIVE_AND_LEARN is already provided by base Smash Remix.
-        enabled_music = {
-            "sonicadventure2": {"radical_highway.yaml"},
-            "knuckleschaotix": {
-                "evening_star.yaml",
-                "midnight_greenhouse.yaml",
-            },
-        }
-
-        for _dir, enabled_tracks in enabled_music.items():
+        for _dir in os.listdir("extra_music"):
             try:
                 config = yaml.safe_load(open(
                     f"extra_music/{_dir}/config.yaml", 'r', encoding='utf-8'
@@ -54,7 +44,10 @@ class AudioProcessor:
                     f'add_game({_dir}, "{config.get("game_name")}")'
                 )
 
-                midi_files = sorted(enabled_tracks)
+                midi_files = [
+                    f for f in os.listdir(f"extra_music/{_dir}/")
+                    if f.endswith(".yaml") and f != "config.yaml"
+                ]
 
                 for midi_file in midi_files:
                     try:

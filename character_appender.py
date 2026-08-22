@@ -73,8 +73,9 @@ class CharacterAppender:
         if args.single_character:
             self.char_folders = [args.single_character]
 
-        # Include only Radical Highway; no other +EXTRA stages.
-        self.stage_folders = ["RadicalHighway"]
+        self.stage_folders = os.listdir("extra_stages")
+        self.stage_folders = [
+            sf for sf in self.stage_folders if not sf.startswith("_")]
 
         # Check for stage variants
         self.stage_variants = []
