@@ -67,16 +67,14 @@ class CharacterAppender:
         self.sp_icon_default = f"0x{sp_icon_offset:08X} + 0x10"
 
 
-        self.char_folders = [cf for cf in os.listdir("extra_characters") if os.path.isdir(
-            os.path.join("extra_characters", cf)) and not cf.startswith("_")]
-        self.char_folders.sort()
+        # EverDrive-targeted all-four build on the lean Radical Highway setup.
+        self.char_folders = ["Birdo", "Cloud", "MKnuckles", "YZelda"]
 
         if args.single_character:
             self.char_folders = [args.single_character]
 
-        self.stage_folders = os.listdir("extra_stages")
-        self.stage_folders = [
-            sf for sf in self.stage_folders if not sf.startswith("_")]
+        # Include only Radical Highway; no other +EXTRA stages.
+        self.stage_folders = ["RadicalHighway"]
 
         # Check for stage variants
         self.stage_variants = []
