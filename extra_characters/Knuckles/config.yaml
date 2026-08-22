@@ -34,30 +34,6 @@ results:
   anim: "File.KNUCKLES_ANIM_DOWNSTAND_U"
   moveset: "defeated_moveset_sonic"
 
-data_screen:
-  name_x: 20
-  name_y: 50
-
-  use_existing_special_actions: 0
-  use_existing_jab_actions: 1
-  jab_char: MARIO
-
-  # [Type, Action, Frames, Flags]
-  actions:
-    [
-      ["USP", "Knuckles.Action.Spring", 666],
-      ["NSP", "Knuckles.Action.GlideTurn", 666],
-      ["NSP", "Knuckles.Action.GlideBegin", 60],
-      ["NSP", "Knuckles.Action.GlideWait", 60],
-      ["NSP", "Knuckles.Action.GlideEnd", 666],
-      ["NSP", "Knuckles.Action.DiveAirBegin", 60],
-      ["NSP", "Knuckles.Action.DiveAirLoop", 60],
-      ["NSP", "Knuckles.Action.DiveLand", 666],
-      ["DSP", "Knuckles.Action.SpinDashChargeGround", 60],
-      ["DSP", "Knuckles.Action.SpinDashGround", 60],
-      ["DSP", "Knuckles.Action.SpinDashEndGround", 666],
-    ]
-
 files:
   [
     ["spring_hitbox", "3FFFC", "0000"],

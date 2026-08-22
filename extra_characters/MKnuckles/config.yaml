@@ -51,29 +51,6 @@ singleplayer:
   anim: "File.MKNUCKLES_ANIM_DOWNSTAND_U"
   moveset: "defeated_moveset_sonic"
 
-data_screen:
-  name_x: 20
-  name_y: 50
-
-  use_existing_special_actions: 0
-  use_existing_jab_actions: 1
-  jab_char: MARIO
-
-  # [Type, Action, Frames, Flags]
-  actions: [
-    ["USP", "MKnuckles.Action.Spring", "0x29A"],
-    ["NSP", "MKnuckles.Action.GlideTurn", "0x29A"],
-    ["NSP", "MKnuckles.Action.GlideBegin", "0x3C"],
-    ["NSP", "MKnuckles.Action.GlideWait", "0x3C"],
-    ["NSP", "MKnuckles.Action.GlideEnd", "0x29A"],
-    ["NSP", "MKnuckles.Action.DiveAirBegin", "0x3C"],
-    ["NSP", "MKnuckles.Action.DiveAirLoop", "0x3C"],
-    ["NSP", "MKnuckles.Action.DiveLand", "0x29A"],
-    ["DSP", "MKnuckles.Action.SpinDashChargeGround", "0x3C"],
-    ["DSP", "MKnuckles.Action.SpinDashGround", "0x3C"],
-    ["DSP", "MKnuckles.Action.SpinDashEndGround", "0x29A"]
-  ]
-
 files: [
   ["spring_hitbox", "3FFFC", "0000"],
   "0x15A",
