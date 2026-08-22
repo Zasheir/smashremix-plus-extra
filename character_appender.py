@@ -68,7 +68,7 @@ class CharacterAppender:
 
 
         # EverDrive-targeted all-four build on the lean Radical Highway setup.
-        self.char_folders = ["Birdo", "Cloud", "MKnuckles", "YZelda"]
+        self.char_folders = ["Birdo", "Cloud", "MKnuckles", "YZelda", "Ken", "MetaKnight", "MRGAW", "Ryu", "Snake", "Spiderman"]
 
         if args.single_character:
             self.char_folders = [args.single_character]
