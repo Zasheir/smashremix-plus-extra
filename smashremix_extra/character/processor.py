@@ -86,6 +86,11 @@ class CharacterProcessor:
         self.dk_cargo_defs_6 = []
         self.dk_cargo_defs_7 = []
         self.dk_cargo_defs_8 = []
+        self.dk_fully_charged_defs = []
+        self.dk_kirby_flash_defs = []
+        self.dk_kirby_power_defs = []
+        self.dk_giant_punch_defs = []
+        self.dk_cpu_fix_2_defs = []
         self.sound_add_list = []
         self.sword_trail_add_list = []
         self.items_added = 0
@@ -1285,6 +1290,32 @@ class CharacterProcessor:
                 f"\n\t\tbeq     v0, at, _item_jump_6"
             )
 
+            # Extends dkshared.asm's "is this fighter a DK clone" ID checks
+            # (only recognize Character.id.JDK) to also recognize this
+            # character: fully-charged Giant Punch effect, DK-powered Kirby
+            # copy ability flash/change, and Giant Punch/cargo action ID
+            # checks used while CPU-controlled.
+            self.dk_fully_charged_defs.append(
+                f"\tbeq     v0, at, j_0x800EAC64        // original line 1, modified to use jump"
+                f"\n\t\tlli     at, Character.id.{character_folder.upper()}        // at = {character_folder.upper()}"
+            )
+            self.dk_kirby_flash_defs.append(
+                f"\tbeq     v1, at, j_0x800E9A18        // original line 1, modified to use jump"
+                f"\n\t\tlli     at, Character.id.{character_folder.upper()}        // at = {character_folder.upper()}"
+            )
+            self.dk_kirby_power_defs.append(
+                f"\tbeq     v0, at, j_0x80161EF0        // original line 1, modified to use jump"
+                f"\n\t\tlli     at, Character.id.{character_folder.upper()}        // at = {character_folder.upper()}"
+            )
+            self.dk_giant_punch_defs.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq     v0, at, check_action_giant_punch_"
+            )
+            self.dk_cpu_fix_2_defs.append(
+                f"\taddiu   at, r0, Character.id.{character_folder.upper()} // {character_folder.upper()} ID"
+                f"\n\t\tbeq     v1, at, _cpu_2"
+            )
+
         if config.get("kirby_jumps"):
             kirby_shared.configs.append(KirbyJumpConfig(
                 character_id=character_folder.upper(),
@@ -1575,7 +1606,7 @@ class CharacterProcessor:
         if config.get("attributes", {}).get("forward_throw_animation") or config.get("attributes", {}).get("back_throw_animation"):
             table_offset_pointer = attr_offset + 0x338
             table_offset = int.from_bytes(
-                data[table_offset_pointer+2:table_offset_pointer+4], byteorder="big") * 4 + 4
+                data[table_offset_pointer+2:table_offset_pointer+4], byteorder="big") * 4
 
             fthrow = config.get("attributes", {}).get(
                 "forward_throw_animation")
@@ -1589,16 +1620,26 @@ class CharacterProcessor:
             if bthrow is not None:
                 bthrow = int(bthrow, 16)
 
-            for i in range(53):
-                curr_offset = table_offset + i*8
+            # thrown_status: array of FTThrownStatusArray (fttypes.h), one per
+            # victim id, 16 bytes each - forward status1/status2 at +0/+4,
+            # backward at +8/+12. status2 set to match status1.
+            #
+            # 26 of 27 real entries (54 FTThrownStatus / 2) - the 27th
+            # overlaps a node in the external-file linked list below.
+            for i in range(26):
+                entry_offset = table_offset + i*16
 
                 if fthrow is not None:
-                    data[curr_offset:curr_offset+4] = fthrow.to_bytes(
+                    data[entry_offset:entry_offset+4] = fthrow.to_bytes(
                         4, 'big')
+                    data[entry_offset+4:entry_offset +
+                         8] = fthrow.to_bytes(4, 'big')
 
                 if bthrow is not None:
-                    data[curr_offset+4:curr_offset +
-                         8] = bthrow.to_bytes(4, 'big')
+                    data[entry_offset+8:entry_offset +
+                         12] = bthrow.to_bytes(4, 'big')
+                    data[entry_offset+12:entry_offset +
+                         16] = bthrow.to_bytes(4, 'big')
 
         # Set texture-form entries (FTAttributes.textureparts_container), used by
         # the moveset "Set Texture Form" command to swap a model part between
@@ -1642,8 +1683,13 @@ class CharacterProcessor:
         offset = int(config['offsets']['main'][1], 16)
         pos = offset
         next_pos = None
+        DEBUG_iters = 0
 
         while True:
+            DEBUG_iters += 1
+            if DEBUG_iters > 5000:
+                raise RuntimeError(
+                    f"External file linked list did not terminate for {character_folder} (stuck at pos {pos})")
             # Read next address (first 2 bytes)
             next_bytes = data[pos:pos+2]
             next_pos = int.from_bytes(next_bytes, byteorder='big') * 4
