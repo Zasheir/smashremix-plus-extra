@@ -880,6 +880,41 @@ class CharacterAppender:
             inserter=lineinfile.AfterLast(
                 r".*beq\s*v0, at, _item_jump_6.*")
         )
+        # fully_charged_check_
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_fully_charged_defs),
+            inserter=lineinfile.BeforeFirst(
+                r".*beq\s*v0, at, j_0x800EAC64\s*// if JDK, take DK branch.*")
+        )
+        # kirby_power_check_flash_
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_kirby_flash_defs),
+            inserter=lineinfile.BeforeFirst(
+                r".*beq\s*v1, at, j_0x800E9A18\s*// if JDK, take DK branch.*")
+        )
+        # kirby_power_change_
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_kirby_power_defs),
+            inserter=lineinfile.BeforeFirst(
+                r".*beq\s*v0, at, j_0x80161EF0\s*// if JDK, take DK branch.*")
+        )
+        # giant_punch_fix_1
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_giant_punch_defs),
+            inserter=lineinfile.AfterLast(
+                r".*beq\s*v0, at, check_action_giant_punch_.*")
+        )
+        # cpu_fix_2
+        lineinfile.add_line_to_file(
+            filepath="src/dkshared.asm",
+            line="\t"+"\n\t".join(self.char_proc.dk_cpu_fix_2_defs),
+            inserter=lineinfile.AfterLast(
+                r".*beq\s*v1, at, _cpu_2.*")
+        )
 
         # Inject patches related to Kirby clones
         kirby_shared.Inject()
