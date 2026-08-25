@@ -61,3 +61,18 @@ You can download the source code of this mod and use the additional characters a
 We will focus on some bug fixes, polish, and pesky crashes, but the project is designed to encourage people to add their own content within the game.  
 - **"Where can I go to ask more questions / for extra help?"**  
 You can head over to the [Smash Remix Discord Server](https://discord.gg/ChpN332), we can help there.  
+
+## Third-Party Content and Attribution
+
+### Readded Cut Stages
+
+The `custom/debugged-summercart` build line includes stage and music content from:
+
+- **Work:** [Readded Cut Stages](https://gamebanana.com/mods/698675)
+- **Creator:** [Brob2nd](https://gamebanana.com/members/2021338)
+- **Source version:** 2.3
+- **License:** [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International](https://creativecommons.org/licenses/by-nc-nd/4.0/)
+
+The source package was integrated into Smash Remix +EXTRA's build structure. Project-specific configuration, ordering, and compatibility changes are recorded in this repository's Git history. Credit does not imply endorsement by the original creator.
+
+The licensed material may be shared only for noncommercial purposes and subject to the license's NoDerivatives restriction. This notice does not grant permission beyond the linked license terms; obtain separate permission from the creator before distributing adapted versions.
