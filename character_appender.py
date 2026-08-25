@@ -20,6 +20,27 @@ from smashremix_extra.audio.processor import AudioProcessor
 from smashremix_extra.injector import ROMInjector, MODIFIED_FILES
 
 
+def build_stage_menu_pages(stage_folders, stages_per_page):
+    """Return fixed-size menu pages with Random in every page's final slot.
+
+    Variant folders use a slash-delimited path and compile as alternate stage
+    forms, but they do not receive their own visible stage-select icon.
+    """
+    if stages_per_page < 2:
+        raise ValueError("stages_per_page must reserve at least one stage and Random")
+
+    visible_stages = [stage for stage in stage_folders if "/" not in stage]
+    visible_slots_per_page = stages_per_page - 1
+    pages = []
+
+    for start in range(0, len(visible_stages), visible_slots_per_page):
+        page = visible_stages[start:start + visible_slots_per_page]
+        page += ["RANDOM"] * (stages_per_page - len(page))
+        pages.append(page)
+
+    return pages
+
+
 class CharacterAppender:
     def __init__(self, args):
         if not os.path.exists(os.path.join(smashremix_path, "src/File.asm")):
@@ -1054,11 +1075,10 @@ class CharacterAppender:
 
             stages_per_page = num_rows * num_columns
 
-        # -1 for the Random stage on the last slot of each page
-        pages_needed = len(self.stage_folders) // (stages_per_page - 1) + 1
-
-        if len(self.stage_folders) % (stages_per_page - 1) == 0:
-            pages_needed -= 1
+        # Variants compile as stages but do not consume visible menu slots.
+        stage_menu_pages = build_stage_menu_pages(
+            self.stage_folders, stages_per_page)
+        pages_needed = len(stage_menu_pages)
 
         num_pages += pages_needed
 
@@ -1193,25 +1213,13 @@ class CharacterAppender:
         # Assign stages to the menu slots
         # Any extra slots will be filled with the Random stage
         stage_slots = []
-        for i, stg in enumerate(self.stage_folders):
-            if "/" in stg:
-                continue
-
-            if i % (stages_per_page - 1) == 0:
-                stage_slots.append(
-                    f"// Extra page {i // (stages_per_page - 1) + 1}")
-
-            if i % (stages_per_page - 1) == 0 and i != 0:
-                stage_slots.append("db id.RANDOM")
-
-            stage_slots.append(f"db id.STAGE_{stg.upper()}")
-
-        stages_on_last_page = (
-            len([s for s in self.stage_folders if "/" not in s]) % (stages_per_page - 1))
-
-        if stages_on_last_page != 0:
-            for _ in range((stages_per_page) - stages_on_last_page):
-                stage_slots.append("db id.RANDOM")
+        for page_number, page in enumerate(stage_menu_pages, start=1):
+            stage_slots.append(f"// Extra page {page_number}")
+            for stg in page:
+                if stg == "RANDOM":
+                    stage_slots.append("db id.RANDOM")
+                else:
+                    stage_slots.append(f"db id.STAGE_{stg.upper()}")
 
         lineinfile.add_line_to_file(
             filepath="src/Stages.asm",
