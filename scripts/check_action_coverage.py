@@ -89,7 +89,11 @@ def get_shared_animation_reuse_map(actions, min_shared=2):
             for file in files:
                 if not file.endswith(".asm"):
                     continue
-                if file == "sandbag.asm" or file.endswith("_extra.asm"):
+                # Sandbag has no real animations of its own - it points
+                # almost every action (Sleep, Stun, Dash, Run, ...) at the
+                # same idle pose, which would otherwise look like a strong
+                # cross-character signal that those actions are interchangeable.
+                if file.lower() == "sandbag.asm" or file.endswith("_extra.asm"):
                     continue
 
                 with open(os.path.join(root, file), encoding="utf-8") as f:
