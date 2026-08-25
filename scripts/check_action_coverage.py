@@ -22,6 +22,16 @@ unused_actions = [
 # unrelated action in the game together.
 SENTINEL_ANIMATIONS = {"-1", "0"}
 
+
+def strip_comment(line):
+    """Drop a trailing "// ..." comment. Character files commonly keep
+    commented-out example/placeholder Character.edit_action_parameters
+    calls (often referencing an animation constant that was never actually
+    created) as scaffolding for actions the author hasn't gotten to yet -
+    without this, every regex scan below would treat that placeholder text
+    as a real, active declaration."""
+    return line.split("//", 1)[0]
+
 optional_actions = [
     "LandingAirN",
     "LandingAirF",
@@ -98,7 +108,7 @@ def get_shared_animation_reuse_map(actions, min_shared=2):
 
                 with open(os.path.join(root, file), encoding="utf-8") as f:
                     for line in f:
-                        match = pattern.search(line)
+                        match = pattern.search(strip_comment(line))
                         if match:
                             raw_action, animation = map(
                                 str.strip, match.groups())
@@ -144,16 +154,20 @@ def parse_character_file(character_file, actions):
     handled_actions = set()
     action_to_anim = {}
     character_vars = []
+    # The animation argument counts as "handled" whether it's a real asset
+    # (File.X), or one of the "no override" sentinels (0 / -1) - a character
+    # can legitimately configure an action's moveset/hitbox data without
+    # giving it its own animation.
     pattern = re.compile(
-        r"\s*Character\.edit_action_parameters\(\s*([^,]+),\s*([A-Za-z0-9_.]+),\s*(?:File\.([A-Z0-9_]+)|0)"
+        r"\s*Character\.edit_action_parameters\(\s*([^,]+),\s*([A-Za-z0-9_.]+),\s*(File\.[A-Z0-9_]+|0|-1)\b"
     )
     value_to_name = {v: k for k, v in actions.items()}
 
     with open(character_file, 'r') as file:
         for line in file:
-            match = pattern.search(line)
+            match = pattern.search(strip_comment(line))
             if match:
-                raw_character, raw_action, anim_name = match.groups()
+                raw_character, raw_action, anim_full = match.groups()
                 character_var = raw_character.strip()
                 if character_var not in character_vars:
                     character_vars.append(character_var)
@@ -173,7 +187,6 @@ def parse_character_file(character_file, actions):
 
                 if action_key != "UNKNOWN":
                     handled_actions.add(action_key)
-                    anim_full = f"File.{anim_name}" if anim_name else "0"
                     action_to_anim[f"Action.{action_key}"] = anim_full
 
     return handled_actions, action_to_anim, character_vars
@@ -195,7 +208,7 @@ def get_all_used_actions_in_src(actions):
                     continue
                 with open(os.path.join(root, f), encoding="utf-8") as fh:
                     for line in fh:
-                        m = pattern.search(line)
+                        m = pattern.search(strip_comment(line))
                         if m:
                             raw = m.group(1)
                             if raw.startswith("Action."):
