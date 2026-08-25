@@ -1,0 +1,31 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Moray Towers"
+
+sss_zoom: 0.45
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["41CC", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: SPLATOON_MORAY_TOWERS
+  occasional: -1
+  rare: -1
+  rare2: -1
+
+series_position:
+  x: 0
+  y: 17
+  
+spawn_locations:
+  default:
+    p1: [-158,0]
+    p2: [-2130,475]
+    p3: [1716,1524]
+    p4: [1896,-262]
+  neutral:
+    p1: [-158,0]
+    p2: [-2130,475]
+    p3: [1716,1524]
+    p4: [1896,-262]

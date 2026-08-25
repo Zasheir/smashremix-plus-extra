@@ -1,0 +1,31 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Tazmily Village"
+
+series: EARTHBOUND
+
+sss_zoom: 0.4
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["6814", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+magnifying_glass_color: [0, 144, 248] # Either HTML color or [R, G, B]
+
+music:
+  main: "TAZMILY"
+  occasional: MOTHER3_DCMC
+  rare: MOTHER3_PIGGYGUYS
+  rare2: MOTHER3_DANGEROUS_GUYS
+
+spawn_locations:
+  default:
+    p1: [-1475,-166]
+    p2: [1368,-218]
+    p3: [-2969,-1307]
+    p4: [3088,-1299]
+  neutral:
+    p1: [-1475,-166]
+    p2: [1368,-218]
+    p3: [-2969,-1307]
+    p4: [3088,-1299]

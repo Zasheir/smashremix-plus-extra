@@ -1,0 +1,29 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Low Tide Stadium"
+
+series: POKEMON
+
+training_background: SECTOR_Z
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["663C", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "POKEMON_STADIUM"
+  occasional: "POKEMON_CHAMPION"
+  rare: "POKEFLOATS"
+  rare2: STADIUM2_LANCEBATTLE
+
+spawn_locations:
+  default:
+    p1: [-1222,0805]
+    p2: [1222,0805]
+    p3: [-1222,0035]
+    p4: [1222,0035]
+  neutral:
+    p1: [-1222,0805]
+    p2: [1222,0805]
+    p3: [-1222,0035]
+    p4: [1222,0035]

@@ -1,0 +1,29 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Skyloft"
+
+series: ZELDA
+
+sss_zoom: 0.49
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["03B8C", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "GODDESSBALLAD"
+  occasional: "GERUDO_VALLEY"
+  rare: "LINKS_AWAKENING_MEDLEY"
+  rare2: "BRAWL_OOT"
+
+spawn_locations:
+  default:
+    p1: [-1825,0884]
+    p2: [1825,0884]
+    p3: [0000,1520]
+    p4: [0000,0010]
+  neutral:
+    p1: [-1825,0884]
+    p2: [1825,0884]
+    p3: [-1825,0035]
+    p4: [1825,0035]

@@ -1,0 +1,31 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Wario's Castle"
+
+series: WARIO
+
+hazard_type: "MOVEMENT" # Options: NONE, HAZARDS, MOVEMENT, BOTH
+
+sss_zoom: 0.45
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["551C", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "KITCHEN_ISLAND"
+  occasional: "WL2_PERFECT"
+  rare: "STARRING_WARIO"
+  rare2: "STONECARVING_CITY"
+
+spawn_locations:
+  default:
+    p1: [-1200,1100]
+    p2: [1200,1100]
+    p3: [-600,1100]
+    p4: [600,1100]
+  neutral:
+    p1: [-1200,1100]
+    p2: [1200,1100]
+    p3: [-600,1100]
+    p4: [600,1100]

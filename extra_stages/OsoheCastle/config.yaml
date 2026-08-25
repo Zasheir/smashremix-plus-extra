@@ -1,0 +1,29 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Osohe Castle"
+
+series: EARTHBOUND
+
+sss_zoom: 0.2
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["06E4C", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "TAZMILY"
+  occasional: "EVEN_DRIER_GUYS"
+  rare: "SAMBA_DE_COMBO"
+  rare2: "MURASAKI"
+
+spawn_locations:
+  default:
+    p1: [-3443,1358]
+    p2: [3443,1358]
+    p3: [-1778,0028]
+    p4: [1778,0028]
+  neutral:
+    p1: [-3443,1358]
+    p2: [3443,1358]
+    p3: [-1778,0028]
+    p4: [1778,0028]

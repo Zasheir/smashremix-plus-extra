@@ -1,0 +1,33 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Krevice Kreepers"
+
+series: DONKEY_KONG
+
+hazard_type: "HAZARDS" # Options: NONE, HAZARDS, MOVEMENT, BOTH
+
+sss_zoom: 0.51
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["13284", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+magnifying_glass_color: [165, 197, 247] # Either HTML color or [R, G, B]
+
+music:
+  main: DK64_DK_RAP_MELEE
+  occasional: "STICKERBRUSH_SYMPHONY"
+  rare: "GANGPLANK"
+  rare2: "ORANGSPRINT"
+
+spawn_locations:
+  default:
+    p1: [-1000,0915]
+    p2: [1000,0915]
+    p3: [-1000,0125]
+    p4: [1000,0125]
+  neutral:
+    p1: [-1000,0915]
+    p2: [1000,0915]
+    p3: [-1000,0125]
+    p4: [1000,0125]

@@ -1,0 +1,33 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Mario Bros."
+
+series: MARIO_BROS
+
+sss_zoom: 0.27
+
+training_background: SECTOR_Z
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["5BF4", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+mushroom_kingdom_camera: true
+
+music:
+  main: "UNDERGROUND"
+  occasional: "DK_MEDLEY"
+  rare: DKJR_DK_JR_STAGE
+  rare2: ZELDA2_TEMPLE_8BIT
+
+spawn_locations:
+  default:
+    p1: [-2490,1130]
+    p2: [-1170,2350]
+    p3: [1170,2350]
+    p4: [2490,1130]
+  neutral:
+    p1: [-2490,1130]
+    p2: [2490,1130]
+    p3: [-1170,2350]
+    p4: [1170,2350]

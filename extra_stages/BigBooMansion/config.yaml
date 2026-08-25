@@ -1,0 +1,33 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Big Boo's Mansion"
+
+series: MARIO_BROS
+
+sss_zoom: 0.38
+
+training_background: SECTOR_Z
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["6A4C", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+magnifying_glass_color: [35, 30, 99] # Either HTML color or [R, G, B]
+
+music:
+  main: "BIG_BOO"
+  occasional: "HORROR_LAND"
+  rare: "GHOSTGULPING"
+  rare2: -1
+
+spawn_locations:
+  default:
+    p1: [-1090,0050]
+    p2: [1090,0050]
+    p3: [-1529,1253]
+    p4: [1529,1253]
+  neutral:
+    p1: [-1090,0050]
+    p2: [1090,0050]
+    p3: [-1529,1253]
+    p4: [1529,1253]

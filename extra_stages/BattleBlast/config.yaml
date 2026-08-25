@@ -1,0 +1,31 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Battle Blast"
+
+hazard_type: "NONE" # Options: NONE, HAZARDS, MOVEMENT, BOTH
+
+sss_zoom: 0.25
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["5A44", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+magnifying_glass_color: [82, 140, 206] # Either HTML color or [R, G, B]
+
+music:
+  main: "REDIAL"
+  occasional: "GREENGARDEN"
+  rare: "BLUE_RESORT"
+  rare2: BOMBERMANDS_MULTIPLAYER_BATTLE
+
+spawn_locations:
+  default:
+    p1: [-2437,3526]
+    p2: [3002,3513]
+    p3: [-2868,4727]
+    p4: [2410,4730]
+  neutral:
+    p1: [-2437,3526]
+    p2: [3002,3513]
+    p3: [-2868,4727]
+    p4: [2410,4730]

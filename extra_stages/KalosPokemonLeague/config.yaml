@@ -1,0 +1,29 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Kalos Pokemon League"
+
+series: POKEMON
+
+training_background: SECTOR_Z
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["2FCC", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: POKEMONRUBY_BATTLE_CHAMPION
+  occasional: POKEMONRUBY_ELITE_FOUR
+  rare: "SS_AQUA"
+  rare2: POKEMONDIAMOND_ROUTE209
+
+spawn_locations:
+  default:
+    p1: [-2371,0921]
+    p2: [2371,0921]
+    p3: [-1510,0025]
+    p4: [1510,0025]
+  neutral:
+    p1: [-2371,0921]
+    p2: [2371,0921]
+    p3: [-1510,0025]
+    p4: [1510,0025]

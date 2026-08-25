@@ -1,0 +1,31 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+name: "Corneria City"
+
+series: STARFOX
+
+hazard_type: "HAZARDS" # Options: NONE, HAZARDS, MOVEMENT, BOTH
+
+sss_zoom: 0.4
+
+offsets:
+  header: ["0098", "0014"]
+  stage: ["05A0C", "3FFFC"]
+  background: ["269D0", "3FFFC"]
+
+music:
+  main: "CORNERIA"
+  occasional: "STAR_WOLF"
+  rare: "SURPRISE_ATTACK"
+  rare2: STARFOX0_FORTUNA
+
+spawn_locations:
+  default:
+    p1: [-1685,1700]
+    p2: [1685,1700]
+    p3: [-0740,1100]
+    p4: [0740,1100]
+  neutral:
+    p1: [-1685,1700]
+    p2: [1685,1700]
+    p3: [-1685,0990]
+    p4: [1685,0990]
