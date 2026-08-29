@@ -17,6 +17,7 @@ from smashremix_extra import file_manager
 from smashremix_extra.character.processor import CharacterProcessor
 from smashremix_extra.stage.processor import StageProcessor
 from smashremix_extra.audio.processor import AudioProcessor
+from smashremix_extra.galleon_css import port_galleon_css_source
 from smashremix_extra.injector import ROMInjector, MODIFIED_FILES
 
 
@@ -272,8 +273,17 @@ class CharacterAppender:
         self._patch_src_paths(original_size)
         self._patch_audio_asm(original_size)
         self._patch_character_asm()
+        self._patch_galleon_css()
         self._patch_stage_asm()
         self._patch_toggle_asm()
+
+    def _patch_galleon_css(self):
+        character_select_path = Path("src/CharacterSelect.asm")
+        character_select_source = character_select_path.read_text(encoding="utf-8")
+        character_select_source = port_galleon_css_source(
+            character_select_source,
+        )
+        character_select_path.write_text(character_select_source, encoding="utf-8")
 
     def _patch_src_paths(self, original_size):
         # main.asm

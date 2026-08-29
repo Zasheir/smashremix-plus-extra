@@ -76,3 +76,14 @@ The `custom/debugged-summercart` build line includes stage and music content fro
 The source package was integrated into Smash Remix +EXTRA's build structure. Project-specific configuration, ordering, and compatibility changes are recorded in this repository's Git history. Credit does not imply endorsement by the original creator.
 
 The licensed material may be shared only for noncommercial purposes and subject to the license's NoDerivatives restriction. This notice does not grant permission beyond the linked license terms; obtain separate permission from the creator before distributing adapted versions.
+
+### Project Galleon Character Select Screen
+
+The `custom/galleon-css-summercart` build line adapts character-select layout and tuning from:
+
+- **Work:** [Smash Remix: Project Galleon](https://github.com/JJMHGhost/Smash-Remix-ProjectGalleon)
+- **Source version:** 1.3.7.1b, [commit `39d3574`](https://github.com/JJMHGhost/Smash-Remix-ProjectGalleon/commit/39d357417b995a47998e249ddde9b03f09db8aea)
+- **Repository owner:** [JJMHGhost](https://github.com/JJMHGhost)
+- **Source commit author:** Brob2nd
+- **Adapted code/data:** 12×4 CSS geometry, portrait slide-in velocity values, dynamic CSS heap sizing, and the base slot arrangement.
+- **License:** No explicit software or asset license was present in the source repository at the referenced commit.
