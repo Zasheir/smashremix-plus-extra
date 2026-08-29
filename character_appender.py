@@ -88,7 +88,7 @@ class CharacterAppender:
         self.sp_icon_default = f"0x{sp_icon_offset:08X} + 0x10"
 
 
-        # EverDrive-targeted all-four build on the lean Radical Highway setup.
+        # Summercart-targeted ten-character build
         self.char_folders = ["Birdo", "Cloud", "MKnuckles", "YZelda", "Ken", "MetaKnight", "MRGAW", "Ryu", "Snake", "Spiderman"]
 
         if args.single_character:
