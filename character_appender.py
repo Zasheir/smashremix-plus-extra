@@ -504,6 +504,12 @@ class CharacterAppender:
             regexp=r'.*constant HEAP_SIZE\(.*\)'
         )
 
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line=f'\t\tconstant ACTIVE_HEAP_COUNT(5)',
+            inserter=lineinfile.AfterLast(r'.*constant HEAP_SIZE\(.*\)')
+        )
+
         # Change ram threshold
         lineinfile.add_line_to_file(
             filepath="src/CharacterSelect.asm",
@@ -517,10 +523,70 @@ class CharacterAppender:
             regexp=r'\s*lui\s*t7, 0x8078'
         )
 
-        # Keep Smash Remix's eight dynamic CSS heap slots active. The eviction
-        # path can inspect slots reserved by both current and previous player
-        # selections; reducing initialization and lookup to four slots allows
-        # it to walk into the declared but uninitialized fifth heap.
+        for _ in range(2):
+            lineinfile.add_line_to_file(
+                filepath="src/CharacterSelect.asm",
+                line=(f'\t\tlli s2, dynamic_css.ACTIVE_HEAP_COUNT '
+                      '// s2 = loop index'),
+                regexp=r'\s*lli\s+s2, 0x0008\s+// s2 = loop index'
+            )
+
+        for _ in range(2):
+            lineinfile.add_line_to_file(
+                filepath="src/CharacterSelect.asm",
+                line=(f'\t\tlli t2, dynamic_css.ACTIVE_HEAP_COUNT - 1 '
+                      '// t2 = times to loop - 1'),
+                regexp=r'\s*lli\s+t2, 0x0007\s+// t2 = times to loop - 1'
+            )
+
+        # clear_first_obsolete_heap_slot_'s eviction search has no bound of its own - it walks past
+        # heap_slot_0 looking for a slot not currently claimed by a player, trusting that with 8
+        # slots and at most 4 players one is always spare. With only ACTIVE_HEAP_COUNT slots actually
+        # initialized above, if it didn't find a candidate in range it would fall through into
+        # heap_slot_4+, whose backing heap_struct was never given a real floor/ceiling (they're
+        # left zeroed), so malloc would then hand out memory from a null heap - this is what was
+        # causing the malloc errors/instability with 4 players on the CSS at once.
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line="\t\t"+"\n\t\t".join(['slti    at, v0, dynamic_css.ACTIVE_HEAP_COUNT // at = 1 if v0 is still a real slot',
+                                       'beqz    at, _out_of_slots // if v0 ran past the real slots, stop and fall back instead of reading garbage']),
+            inserter=lineinfile.AfterFirst(
+                r'addiu\s+v0,\s*v0,\s*0x0001\s+// v0 = next heap slot')
+        )
+
+        # If no obsolete slot is found, fall back to a second pass that only enforces the hard
+        # safety rule (never evict a slot that's char_id-matched to one of the 4 currently active
+        # players, t1-t4) and drops the softer "was used last frame" anti-flicker rule. With
+        # ACTIVE_HEAP_COUNT(5) real slots holding at most 4 distinct active character ids, at least
+        # one slot can never match t1-t4, so this pass is guaranteed to find a genuinely safe slot
+        # instead of corrupting a live one. _forced_zero is an unreachable safety net in case that
+        # guarantee is ever violated.
+        lineinfile.add_line_to_file(
+            filepath="src/CharacterSelect.asm",
+            line="\t\t"+"\n\t\t".join([
+                '_out_of_slots:',
+                'li      t0, dynamic_css.heap_slot_0',
+                'addiu   v0, r0, -0x0001',
+                '_loop_2:',
+                'addiu   v0, v0, 0x0001   // v0 = next heap slot',
+                'slti    at, v0, dynamic_css.ACTIVE_HEAP_COUNT // at = 1 if v0 is still a real slot',
+                'beqz    at, _forced_zero // unreachable in practice; force-reuse slot 0 rather than read past the array',
+                'lw      at, 0x0004(t0)   // at = slot\'s char_id',
+                'beql    at, t1, _loop_2  // if slot\'s char_id still in use, skip',
+                'addiu   t0, t0, 0x0010   // t0 = next heap slot address',
+                'beql    at, t2, _loop_2',
+                'addiu   t0, t0, 0x0010',
+                'beql    at, t3, _loop_2',
+                'addiu   t0, t0, 0x0010',
+                'beql    at, t4, _loop_2',
+                'addiu   t0, t0, 0x0010',
+                'b       _clear',
+                'nop',
+                '_forced_zero:',
+                'lli     v0, 0x0000 // v0 = 0'
+            ]),
+            inserter=lineinfile.BeforeFirst(r'\s*_clear:')
+        )
 
         # Character Data uses its own heap recycler
         lineinfile.add_line_to_file(
