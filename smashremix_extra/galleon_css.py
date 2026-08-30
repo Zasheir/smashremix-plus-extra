@@ -249,7 +249,7 @@ def port_galleon_css_source(
     if count != 1:
         raise ValueError("Could not replace CharacterSelect portrait velocity table")
 
-    source = _replace_definition(source, "HEAP_SIZE", "0x0001F000")
+    source = _replace_definition(source, "HEAP_SIZE", "0x0001D000")
     source = _patch_add_to_css_overrides(source)
 
     variant_marker = "    // Project Galleon CSS variant-original mappings\n"

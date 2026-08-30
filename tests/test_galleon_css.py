@@ -55,6 +55,11 @@ class GalleonCssPortTests(unittest.TestCase):
         self.assertNotIn("GALLEON_UZI", source)
         self.assertNotIn("PROJECTGALLEONCSS", source)
 
+    def test_galleon_keeps_the_standard_1d000_preview_heap_size(self):
+        source = self.transformed_source()
+        self.assertIn("constant HEAP_SIZE(0x0001D000)", source)
+        self.assertNotIn("constant HEAP_SIZE(0x0001F000)", source)
+
     def test_grid_characters_are_removed_from_bonus_bookend(self):
         port = self.load_port()
         bonus = [
