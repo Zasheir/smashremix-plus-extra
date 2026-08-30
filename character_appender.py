@@ -89,8 +89,9 @@ class CharacterAppender:
         self.sp_icon_default = f"0x{sp_icon_offset:08X} + 0x10"
 
 
-        # Summercart-targeted ten-character build
-        self.char_folders = ["Birdo", "Cloud", "MKnuckles", "YZelda", "Ken", "MetaKnight", "MRGAW", "Ryu", "Snake", "Spiderman"]
+        self.char_folders = [cf for cf in os.listdir("extra_characters") if os.path.isdir(
+            os.path.join("extra_characters", cf)) and not cf.startswith("_")]
+        self.char_folders.sort()
 
         if args.single_character:
             self.char_folders = [args.single_character]
