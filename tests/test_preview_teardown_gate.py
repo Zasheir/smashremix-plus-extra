@@ -13,6 +13,57 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         cls.original = UPSTREAM.read_text()
         cls.source = port_preview_teardown_gate_source(cls.original)
 
+    def test_css_initialization_seeds_provisional_mario_records_valid_last(self):
+        initialization = self.source.split("scope initialize_dynamic_css_:", 1)[1].split(
+            "scope sync_slot_used_by_port:", 1
+        )[0]
+        self.assertIn("_seed_provisional_preview_records:", initialization)
+        self.assertIn("li      t0, dynamic_css.preview_committed_records", initialization)
+        self.assertIn("lli     t1, 0x0004", initialization)
+        seed = initialization.split("_seed_provisional_preview_records:", 1)[1].split(
+            "_preview_records_seeded:", 1
+        )[0]
+        self.assertIn("sw      r0, 0x0004(t0)", seed)
+        self.assertIn("sw      r0, 0x0008(t0)", seed)
+        self.assertIn("sw      r0, 0x000C(t0)", seed)
+        self.assertIn("lli     t2, 0x0002", seed)
+        valid = seed.index("sw      t2, 0x0000(t0)")
+        self.assertLess(seed.index("sw      r0, 0x0004(t0)"), valid)
+        self.assertLess(seed.index("sw      r0, 0x0008(t0)"), valid)
+        self.assertLess(seed.index("sw      r0, 0x000C(t0)"), valid)
+        self.assertIn("addiu   t0, t0, 0x0010", seed)
+        self.assertIn("addiu   t1, t1, -0x0001", seed)
+        self.assertIn("bnez    t1, _seed_provisional_preview_records", seed)
+
+    def test_preload_sync_seeds_each_published_vs_preview_valid_last(self):
+        sync = self.source.split("scope sync_slot_used_by_port:", 1)[1].split(
+            "scope use_custom_heap_structs_:", 1
+        )[0]
+        self.assertIn("jal     seed_initial_preview_records_", sync)
+
+        seed = self.source.split("scope seed_initial_preview_records_:", 1)[1].split(
+            "scope use_custom_heap_structs_:", 1
+        )[0]
+        self.assertIn("li      t0, CSS_PLAYER_STRUCT", seed)
+        self.assertIn("li      t1, dynamic_css.preview_committed_records", seed)
+        self.assertIn("lli     t2, 0x0004", seed)
+        self.assertIn("lw      t3, 0x0000(t1)", seed)
+        self.assertIn("lli     t4, OS.TRUE", seed)
+        self.assertIn("beq     t3, t4, _next", seed)
+        self.assertNotIn("bnez    t3, _next", seed)
+        self.assertIn("lw      t3, 0x0008(t0)", seed)
+        self.assertIn("beqz    t3, _next", seed)
+        self.assertIn("lw      t4, 0x0048(t0)", seed)
+        self.assertIn("lw      t5, 0x004C(t0)", seed)
+        self.assertIn("li      t6, Sonic.classic_table", seed)
+        self.assertIn("lbu     t6, 0x0000(t6)", seed)
+        valid = seed.index("sw      t3, 0x0000(t1)")
+        self.assertLess(seed.index("sw      t4, 0x0004(t1)"), valid)
+        self.assertLess(seed.index("sw      t5, 0x0008(t1)"), valid)
+        self.assertLess(seed.index("sw      t6, 0x000C(t1)"), valid)
+        self.assertIn("addiu   t0, t0, 0x00BC", seed)
+        self.assertIn("addiu   t1, t1, 0x0010", seed)
+
     def test_success_edge_commits_exact_per_port_preview_valid_last(self):
         source = self.source
         self.assertIn("preview_committed_records:; fill 0x0040", source)
