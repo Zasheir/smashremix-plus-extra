@@ -18,6 +18,7 @@ from smashremix_extra.character.processor import CharacterProcessor
 from smashremix_extra.stage.processor import StageProcessor
 from smashremix_extra.audio.processor import AudioProcessor
 from smashremix_extra.galleon_css import port_galleon_css_source
+from smashremix_extra.preview_teardown_gate import port_preview_teardown_gate_source
 from smashremix_extra.injector import ROMInjector, MODIFIED_FILES
 
 
@@ -282,6 +283,9 @@ class CharacterAppender:
         character_select_path = Path("src/CharacterSelect.asm")
         character_select_source = character_select_path.read_text(encoding="utf-8")
         character_select_source = port_galleon_css_source(
+            character_select_source,
+        )
+        character_select_source = port_preview_teardown_gate_source(
             character_select_source,
         )
         character_select_path.write_text(character_select_source, encoding="utf-8")
