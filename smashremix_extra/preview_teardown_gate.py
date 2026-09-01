@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 
-MARKER = "// +EXTRA committed preview replay spike"
+MARKER = "// +EXTRA committed preview replay spike v2"
+MARKER_FAMILY = "// +EXTRA committed preview replay spike"
 
 
 def _replace_once(source: str, old: str, new: str) -> str:
@@ -14,8 +15,13 @@ def _replace_once(source: str, old: str, new: str) -> str:
 
 
 def port_preview_teardown_gate_source(source: str) -> str:
-    if MARKER in source:
-        return source
+    marker_lines = [
+        line.strip() for line in source.splitlines() if line.strip().startswith(MARKER_FAMILY)
+    ]
+    if marker_lines:
+        if marker_lines == [MARKER]:
+            return source
+        raise ValueError("invalid preview teardown marker; regenerate from pristine source")
 
     source = _replace_once(
         source,
@@ -23,6 +29,7 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        alt_heap_pointer:; dw 0x0\n\n"
         f"        {MARKER}\n"
         "        preview_committed_records:; fill 0x0040\n"
+        "        preview_deferred_records:; fill 0x0020\n"
         "        debug_preview_teardown_veto_count:; dw 0\n"
         "        debug_preview_teardown_fallback_count:; dw 0\n\n",
     )
@@ -43,7 +50,16 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        addiu   t1, t1, -0x0001\n"
         "        bnez    t1, _seed_provisional_preview_records\n"
         "        addiu   t0, t0, 0x0010\n"
-        "        _preview_records_seeded:\n\n"
+        "        _preview_records_seeded:\n"
+        "        li      t0, dynamic_css.preview_deferred_records\n"
+        "        lli     t1, 0x0004\n"
+        "        lli     t2, Character.id.NONE\n"
+        "        _clear_deferred_requests:\n"
+        "        sw      t2, 0x0000(t0)\n"
+        "        sw      r0, 0x0004(t0)\n"
+        "        addiu   t1, t1, -0x0001\n"
+        "        bnez    t1, _clear_deferred_requests\n"
+        "        addiu   t0, t0, 0x0008\n\n"
         "        // This routine will run after characters load and update slot_used_by_port\n",
     )
 
@@ -59,6 +75,8 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        addiu   sp, sp, -0x0010\n"
         "        sw      ra, 0x0004(sp)\n"
         "        jal     seed_initial_preview_records_\n"
+        "        nop\n"
+        "        jal     retry_deferred_preview_requests_\n"
         "        nop\n"
         "        li      t0, dynamic_css.slot_used_by_port\n"
         "        lw      t1, 0x0004(t0)              // curr_slot_used_by_port\n"
@@ -112,6 +130,78 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        lw      t7, 0x0018(sp)\n"
         "        jr      ra\n"
         "        addiu   sp, sp, 0x0020\n"
+        "    }\n\n"
+        "    scope retry_deferred_preview_requests_: {\n"
+        "        addiu   sp, sp, -0x0060\n"
+        "        sw      ra, 0x0004(sp)\n"
+        "        sw      a0, 0x0008(sp)\n"
+        "        sw      a1, 0x0040(sp)\n"
+        "        sw      a2, 0x0048(sp)\n"
+        "        sw      v0, 0x000C(sp)\n"
+        "        sw      v1, 0x0010(sp)\n"
+        "        sw      t2, 0x0014(sp)\n"
+        "        sw      t3, 0x0018(sp)\n"
+        "        sw      t4, 0x001C(sp)\n"
+        "        sw      t5, 0x0020(sp)\n"
+        "        sw      t6, 0x0024(sp)\n"
+        "        sw      t7, 0x0028(sp)\n"
+        "        sw      t8, 0x002C(sp)\n"
+        "        sw      t9, 0x0030(sp)\n"
+        "        li      t0, CSS_PLAYER_STRUCT\n"
+        "        li      t1, dynamic_css.preview_deferred_records\n"
+        "        lli     t2, 0x0004\n"
+        "        lli     t3, 0x0000\n"
+        "        _loop:\n"
+        "        lw      a0, 0x0000(t1)\n"
+        "        lw      a2, 0x0004(t1)\n"
+        "        lli     t5, Character.id.NONE\n"
+        "        beq     a0, t5, _next\n"
+        "        nop\n"
+        "        sw      t0, 0x0034(sp)\n"
+        "        sw      t1, 0x0038(sp)\n"
+        "        sw      t2, 0x003C(sp)\n"
+        "        sw      t3, 0x0044(sp)\n"
+        "        jal     preview_request_can_construct_\n"
+        "        nop\n"
+        "        lw      t0, 0x0034(sp)\n"
+        "        lw      t1, 0x0038(sp)\n"
+        "        lw      t2, 0x003C(sp)\n"
+        "        lw      t3, 0x0044(sp)\n"
+        "        beqz    v1, _next\n"
+        "        nop\n"
+        "        li      t5, Sonic.classic_table\n"
+        "        addu    t5, t5, t3\n"
+        "        sb      a2, 0x0000(t5)\n"
+        "        sw      a0, 0x0048(t0)\n"
+        "        lli     t5, Character.id.NONE\n"
+        "        sw      t5, 0x0000(t1)\n"
+        "        sw      r0, 0x0004(t1)\n"
+        "        b       _return\n"
+        "        nop\n"
+        "        _next:\n"
+        "        addiu   t3, t3, 0x0001\n"
+        "        addiu   t0, t0, 0x00BC\n"
+        "        addiu   t1, t1, 0x0008\n"
+        "        addiu   t2, t2, -0x0001\n"
+        "        bnez    t2, _loop\n"
+        "        nop\n"
+        "        _return:\n"
+        "        lw      ra, 0x0004(sp)\n"
+        "        lw      a0, 0x0008(sp)\n"
+        "        lw      a1, 0x0040(sp)\n"
+        "        lw      a2, 0x0048(sp)\n"
+        "        lw      v0, 0x000C(sp)\n"
+        "        lw      v1, 0x0010(sp)\n"
+        "        lw      t2, 0x0014(sp)\n"
+        "        lw      t3, 0x0018(sp)\n"
+        "        lw      t4, 0x001C(sp)\n"
+        "        lw      t5, 0x0020(sp)\n"
+        "        lw      t6, 0x0024(sp)\n"
+        "        lw      t7, 0x0028(sp)\n"
+        "        lw      t8, 0x002C(sp)\n"
+        "        lw      t9, 0x0030(sp)\n"
+        "        jr      ra\n"
+        "        addiu   sp, sp, 0x0060\n"
         "    }\n\n",
     )
 
@@ -150,7 +240,102 @@ _replay:
     nop
 }
 
-    // Replace the known failing request before variant and ftCreateDesc derivation.
+    // Read-only preflight: accept loaded/resident requests or any safely available heap.
+    // Return v1 = OS.TRUE to construct now, v1 = OS.FALSE to defer.
+scope preview_request_can_construct_: {
+    or      v1, r0, r0
+    sltiu   t9, a0, Character.NUM_CHARACTERS
+    beqz    t9, _return
+    nop
+    lli     t8, Character.id.PLACEHOLDER
+    beq     a0, t8, _return
+    nop
+    lli     t8, Character.id.NONE
+    beq     a0, t8, _return
+    nop
+    lli     v1, OS.TRUE
+
+    // A non-zero main-file pointer is already loaded, whether permanent or dynamic.
+    li      t0, 0x80116E10
+    sll     t1, a0, 0x0002
+    addu    t0, t0, t1
+    lw      t0, 0x0000(t0)
+    beqz    t0, _scan_slots
+    nop
+    lli     t9, Character.id.SONIC
+    bne     a0, t9, _ordinary_main_file
+    nop
+    beqz    a2, _ordinary_main_file
+    nop
+    lw      t0, 0x0040(t0)                 // Classic Sonic selected main-file pointer
+    b       _selected_main_file
+    nop
+_ordinary_main_file:
+    lw      t0, 0x0028(t0)
+_selected_main_file:
+    beqz    t0, _scan_slots
+    nop
+    lw      t0, 0x0000(t0)
+    bnez    t0, _return
+    nop
+
+_scan_slots:
+    // Accept a free slot or a slot already owning this exact/additional ID.
+    li      t0, dynamic_css.heap_slot_0
+    lli     t1, dynamic_css.ACTIVE_HEAP_COUNT
+_slot_loop:
+    lw      t2, 0x0004(t0)
+    lli     t3, Character.id.NONE
+    beq     t2, t3, _return
+    nop
+    beq     a0, t2, _return
+    nop
+    lbu     t4, 0x0008(t0)
+    beq     a0, t4, _return
+    nop
+    lbu     t4, 0x0009(t0)
+    beq     a0, t4, _return
+    nop
+    lbu     t4, 0x000A(t0)
+    beq     a0, t4, _return
+    nop
+    lbu     t4, 0x000B(t0)
+    beq     a0, t4, _return
+    nop
+    addiu   t0, t0, 0x0010
+    addiu   t1, t1, -0x0001
+    bnez    t1, _slot_loop
+    nop
+
+    // Every assigned slot is usable unless its index appears in previous/current protection.
+    lli     t4, 0x0000
+_candidate_loop:
+    li      t5, dynamic_css.slot_used_by_port
+    lli     t6, 0x0008
+_protection_loop:
+    lbu     t7, 0x0000(t5)
+    beq     t4, t7, _protected
+    nop
+    addiu   t5, t5, 0x0001
+    addiu   t6, t6, -0x0001
+    bnez    t6, _protection_loop
+    nop
+    b       _return                         // this candidate is unprotected
+    nop
+
+_protected:
+    addiu   t4, t4, 0x0001
+    slti    t8, t4, dynamic_css.ACTIVE_HEAP_COUNT
+    bnez    t8, _candidate_loop
+    nop
+    or      v1, r0, r0                     // all five heaps are protected
+
+_return:
+    jr      ra
+    nop
+}
+
+    // Gate before variant and ftCreateDesc derivation.
     OS.patch_start(0x134440, 0x801361C0)
     j       preview_teardown_gate_
     nop
@@ -158,14 +343,39 @@ _replay:
 
 scope preview_teardown_gate_: {
     lw      a0, 0x0048(s0)
-    lli     at, 0x0051
-    bne     a0, at, _continue
+    lw      a1, 0x0020(sp)
+    or      a2, r0, r0
+    sltiu   at, a1, 0x0004
+    beqz    at, _run_preflight
+    nop
+    li      t9, Sonic.classic_table
+    addu    t9, t9, a1
+    lbu     a2, 0x0000(t9)
+_run_preflight:
+    jal     preview_request_can_construct_
+    nop
+    bnez    v1, _continue
     nop
 
     lw      t3, 0x0020(sp)                  // t3 = port
     sltiu   at, t3, 0x0004
     beqz    at, _fallback_invalid_port
     nop
+    sltiu   at, a0, Character.NUM_CHARACTERS
+    beqz    at, _replay_without_defer
+    nop
+    lli     t8, Character.id.PLACEHOLDER
+    beq     a0, t8, _replay_without_defer
+    nop
+    lli     t8, Character.id.NONE
+    beq     a0, t8, _replay_without_defer
+    nop
+    li      t7, dynamic_css.preview_deferred_records
+    sll     t8, t3, 0x0003
+    addu    t7, t7, t8
+    sw      a0, 0x0000(t7)
+    sw      a2, 0x0004(t7)
+_replay_without_defer:
     sll     t2, t3, 0x0004
     li      at, dynamic_css.preview_committed_records
     addu    t2, t2, at
@@ -211,6 +421,17 @@ _count_veto:
     nop
 
 _continue:
+    lw      t3, 0x0020(sp)
+    sltiu   at, t3, 0x0004
+    beqz    at, _resolve
+    nop
+    li      t7, dynamic_css.preview_deferred_records
+    sll     t8, t3, 0x0003
+    addu    t7, t7, t8
+    lli     t8, Character.id.NONE
+    sw      t8, 0x0000(t7)                 // accepted request supersedes stale deferred work
+    sw      r0, 0x0004(t7)
+_resolve:
     jal     0x8013487C
     lw      a1, 0x0020(sp)
     j       0x801361CC
