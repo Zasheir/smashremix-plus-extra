@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-MARKER = "// +EXTRA committed preview replay spike v2"
+MARKER = "// +EXTRA committed preview replay spike v3"
 MARKER_FAMILY = "// +EXTRA committed preview replay spike"
 
 
@@ -28,8 +28,10 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        alt_heap_pointer:; dw 0x0\n\n",
         "        alt_heap_pointer:; dw 0x0\n\n"
         f"        {MARKER}\n"
+        "        constant PREVIEW_DEBOUNCE_FRAMES(18)\n"
         "        preview_committed_records:; fill 0x0040\n"
         "        preview_deferred_records:; fill 0x0020\n"
+        "        preview_debounce_frames:; fill 0x0010\n"
         "        debug_preview_teardown_veto_count:; dw 0\n"
         "        debug_preview_teardown_fallback_count:; dw 0\n\n",
     )
@@ -52,14 +54,18 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        addiu   t0, t0, 0x0010\n"
         "        _preview_records_seeded:\n"
         "        li      t0, dynamic_css.preview_deferred_records\n"
+        "        li      t3, dynamic_css.preview_debounce_frames\n"
         "        lli     t1, 0x0004\n"
         "        lli     t2, Character.id.NONE\n"
         "        _clear_deferred_requests:\n"
         "        sw      t2, 0x0000(t0)\n"
         "        sw      r0, 0x0004(t0)\n"
+        "        sw      r0, 0x0000(t3)\n"
+        "        addiu   t0, t0, 0x0008\n"
+        "        addiu   t3, t3, 0x0004\n"
         "        addiu   t1, t1, -0x0001\n"
         "        bnez    t1, _clear_deferred_requests\n"
-        "        addiu   t0, t0, 0x0008\n\n"
+        "        nop\n\n"
         "        // This routine will run after characters load and update slot_used_by_port\n",
     )
 
@@ -131,6 +137,24 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        jr      ra\n"
         "        addiu   sp, sp, 0x0020\n"
         "    }\n\n"
+        "    scope all_four_preview_panels_active_: {\n"
+        "        or      v1, r0, r0\n"
+        "        li      t0, CSS_PLAYER_STRUCT\n"
+        "        lli     t1, 0x0004\n"
+        "        lli     t3, 0x0002                  // Closed panel state\n"
+        "        _loop:\n"
+        "        lw      t2, 0x0084(t0)              // MAN=0, CPU=1, Closed=2\n"
+        "        beq     t2, t3, _return\n"
+        "        nop\n"
+        "        addiu   t0, t0, 0x00BC\n"
+        "        addiu   t1, t1, -0x0001\n"
+        "        bnez    t1, _loop\n"
+        "        nop\n"
+        "        lli     v1, OS.TRUE\n"
+        "        _return:\n"
+        "        jr      ra\n"
+        "        nop\n"
+        "    }\n\n"
         "    scope retry_deferred_preview_requests_: {\n"
         "        addiu   sp, sp, -0x0060\n"
         "        sw      ra, 0x0004(sp)\n"
@@ -147,6 +171,9 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        sw      t7, 0x0028(sp)\n"
         "        sw      t8, 0x002C(sp)\n"
         "        sw      t9, 0x0030(sp)\n"
+        "        jal     all_four_preview_panels_active_\n"
+        "        nop\n"
+        "        sw      v1, 0x004C(sp)              // four-player debounce remains active\n"
         "        li      t0, CSS_PLAYER_STRUCT\n"
         "        li      t1, dynamic_css.preview_deferred_records\n"
         "        lli     t2, 0x0004\n"
@@ -157,25 +184,47 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        lli     t5, Character.id.NONE\n"
         "        beq     a0, t5, _next\n"
         "        nop\n"
+        "        li      t4, dynamic_css.preview_debounce_frames\n"
+        "        sll     t5, t3, 0x0002\n"
+        "        addu    t4, t4, t5\n"
+        "        lw      t6, 0x0000(t4)\n"
+        "        lw      v1, 0x004C(sp)\n"
+        "        beqz    v1, _debounce_ready        // no longer four-player: remove artificial delay\n"
+        "        nop\n"
+        "        bltz    t6, _return                // one admitted release waits for the construction gate\n"
+        "        nop\n"
+        "        beqz    t6, _debounce_ready\n"
+        "        nop\n"
+        "        addiu   t6, t6, -0x0001\n"
+        "        sw      t6, 0x0000(t4)\n"
+        "        beqz    t6, _debounce_ready\n"
+        "        nop\n"
+        "        b       _next\n"
+        "        nop\n"
+        "        _debounce_ready:\n"
+        "        sw      r0, 0x0000(t4)\n"
         "        sw      t0, 0x0034(sp)\n"
         "        sw      t1, 0x0038(sp)\n"
         "        sw      t2, 0x003C(sp)\n"
         "        sw      t3, 0x0044(sp)\n"
+        "        sw      t4, 0x0050(sp)\n"
         "        jal     preview_request_can_construct_\n"
         "        nop\n"
         "        lw      t0, 0x0034(sp)\n"
         "        lw      t1, 0x0038(sp)\n"
         "        lw      t2, 0x003C(sp)\n"
         "        lw      t3, 0x0044(sp)\n"
+        "        lw      t4, 0x0050(sp)\n"
         "        beqz    v1, _next\n"
         "        nop\n"
         "        li      t5, Sonic.classic_table\n"
         "        addu    t5, t5, t3\n"
         "        sb      a2, 0x0000(t5)\n"
         "        sw      a0, 0x0048(t0)\n"
-        "        lli     t5, Character.id.NONE\n"
-        "        sw      t5, 0x0000(t1)\n"
-        "        sw      r0, 0x0004(t1)\n"
+        "        addiu   t5, r0, -0x0001            // one-shot release for forced loader call\n"
+        "        sw      t5, 0x0000(t4)\n"
+        "        jal     0x80136128                  // run the existing per-port CSS loader now\n"
+        "        or      a0, r0, t3                  // a0 = port (safe single-instruction delay slot)\n"
         "        b       _return\n"
         "        nop\n"
         "        _next:\n"
@@ -351,6 +400,75 @@ scope preview_teardown_gate_: {
     li      t9, Sonic.classic_table
     addu    t9, t9, a1
     lbu     a2, 0x0000(t9)
+
+    // In four-player VS, debounce every valid preview request before construction.
+    sltiu   at, a0, Character.NUM_CHARACTERS
+    beqz    at, _cancel_pending_request
+    nop
+    lli     t8, Character.id.PLACEHOLDER
+    beq     a0, t8, _cancel_pending_request
+    nop
+    lli     t8, Character.id.NONE
+    beq     a0, t8, _cancel_pending_request
+    nop
+    jal     all_four_preview_panels_active_
+    nop
+    beqz    v1, _run_preflight
+    nop
+
+    lw      t3, 0x0020(sp)                  // t3 = port
+    li      t7, dynamic_css.preview_deferred_records
+    sll     t8, t3, 0x0003
+    addu    t7, t7, t8
+    li      t6, dynamic_css.preview_debounce_frames
+    sll     t8, t3, 0x0002
+    addu    t6, t6, t8
+    lw      t5, 0x0000(t6)
+    bltz    t5, _debounce_release
+    nop
+    lw      t4, 0x0000(t7)
+    bne     t4, a0, _debounce_request_changed
+    nop
+    lw      t4, 0x0004(t7)
+    bne     t4, a2, _debounce_request_changed
+    nop
+    b       _replay_without_defer           // same pending request does not restart timer
+    nop
+_debounce_release:
+    lw      t4, 0x0000(t7)
+    bne     t4, a0, _debounce_request_changed
+    nop
+    lw      t4, 0x0004(t7)
+    bne     t4, a2, _debounce_request_changed
+    nop
+    lli     t4, Character.id.NONE
+    sw      t4, 0x0000(t7)
+    sw      r0, 0x0004(t7)
+    sw      r0, 0x0000(t6)
+    b       _run_preflight                  // exact aged request gets one construction attempt
+    nop
+_debounce_request_changed:
+    sw      a0, 0x0000(t7)
+    sw      a2, 0x0004(t7)
+    lli     t4, dynamic_css.PREVIEW_DEBOUNCE_FRAMES
+    sw      t4, 0x0000(t6)
+    b       _replay_without_defer
+    nop
+
+_cancel_pending_request:
+    li      t7, dynamic_css.preview_deferred_records
+    sll     t8, a1, 0x0003
+    addu    t7, t7, t8
+    lli     t4, Character.id.NONE
+    sw      t4, 0x0000(t7)
+    sw      r0, 0x0004(t7)
+    li      t6, dynamic_css.preview_debounce_frames
+    sll     t8, a1, 0x0002
+    addu    t6, t6, t8
+    sw      r0, 0x0000(t6)
+    b       _run_preflight
+    nop
+
 _run_preflight:
     jal     preview_request_can_construct_
     nop
@@ -375,6 +493,10 @@ _run_preflight:
     addu    t7, t7, t8
     sw      a0, 0x0000(t7)
     sw      a2, 0x0004(t7)
+    li      t6, dynamic_css.preview_debounce_frames
+    sll     t8, t3, 0x0002
+    addu    t6, t6, t8
+    sw      r0, 0x0000(t6)
 _replay_without_defer:
     sll     t2, t3, 0x0004
     li      at, dynamic_css.preview_committed_records
@@ -431,6 +553,10 @@ _continue:
     lli     t8, Character.id.NONE
     sw      t8, 0x0000(t7)                 // accepted request supersedes stale deferred work
     sw      r0, 0x0004(t7)
+    li      t6, dynamic_css.preview_debounce_frames
+    sll     t8, t3, 0x0002
+    addu    t6, t6, t8
+    sw      r0, 0x0000(t6)
 _resolve:
     jal     0x8013487C
     lw      a1, 0x0020(sp)
