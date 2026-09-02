@@ -90,7 +90,7 @@ class CharacterAppender:
 
 
         # Summercart-targeted ten-character build
-        self.char_folders = ["Birdo", "Cloud", "MKnuckles", "YZelda", "Ken", "MetaKnight", "MRGAW", "Ryu", "Snake", "Spiderman"]
+        self.char_folders = ["Birdo", "Cloud", "MKnuckles", "YZelda", "Ken", "MetaKnight", "Terry", "Kazuya", "Ryu", "Snake", "Spiderman"]
 
         if args.single_character:
             self.char_folders = [args.single_character]
