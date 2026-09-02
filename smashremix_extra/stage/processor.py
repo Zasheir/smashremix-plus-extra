@@ -62,6 +62,17 @@ class StageProcessor:
                         "(+%d B in stage.bin)", stage_folder, info['groups'],
                         info['lines'], info['vertices'], info['bytes_added'])
 
+        # config['rebirth']: [x, y] of the rebirth (revival) platform - the
+        # kind-0x20 map object in stage.bin. In-place; header.bin untouched.
+        if config.get("rebirth"):
+            from smashremix_extra.stage import collision as _collision
+            rx, ry = config["rebirth"]
+            _collision.set_rebirth(
+                f"{output_path}/stage.bin",
+                int(config['offsets']['stage'][0], 16), rx, ry, label=stage_folder)
+            logger.info("%s: moved rebirth platform to (%s, %s)",
+                        stage_folder, rx, ry)
+
         # blast_zones / camera_bounds / light_angle / fog -> MPGroundData in
         # header.bin (in-place scalar writes; see smashremix_extra/stage/ground.py).
         from smashremix_extra.stage import ground as _ground

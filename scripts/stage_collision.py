@@ -34,6 +34,7 @@ groups -> so **GE "collision group N" == engine yakumono index N** (1-indexed).
     stage_collision.py STAGE.bin --emit-yaml                     # -> config.yaml collision: list
     stage_collision.py STAGE.bin --build SPEC.yaml [--header H]  # rewrite STAGE from a spec
                                                                 #   (max 6 groups)
+    stage_collision.py STAGE.bin --rebirth X,Y                   # move the rebirth platform
 
 The rewrite (also run by the appender for a stage config.yaml `collision:` key)
 lives in smashremix_extra/stage/collision.py: it rebuilds the 5 arrays, APPENDS
@@ -138,6 +139,9 @@ def main():
     ap.add_argument("--draw", metavar="OUT.png",
                     help="draw a top-down layout diagram (collision by group, "
                          "blast zones, camera bounds, map objects)")
+    ap.add_argument("--rebirth", metavar="X,Y",
+                    help="move the rebirth (revival) platform - the kind-0x20 "
+                         "map object - to X,Y")
     a = ap.parse_args()
 
     d = Path(a.stage).read_bytes()
@@ -150,6 +154,13 @@ def main():
         hdr = a.header or str(Path(a.stage).with_name("header.bin"))
         draw.render_files(a.stage, hdr, a.draw, chain_head=head, groupdata_off=a.gd)
         print(f"wrote {a.draw}")
+        return
+
+    if a.rebirth:
+        from smashremix_extra.stage import collision
+        x, y = (int(v) for v in a.rebirth.split(","))
+        collision.set_rebirth(a.stage, head, x, y)
+        print(f"{a.stage}: rebirth platform -> ({x}, {y})")
         return
 
     if a.build:

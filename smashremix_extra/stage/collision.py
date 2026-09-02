@@ -390,3 +390,32 @@ def apply(stage_path, spec, chain_head, *,
     open(stage_path, "wb").write(d)
     return {"groups": want, "lines": nlines, "vertices": nverts,
             "bytes_added": len(d) - orig_len}
+
+
+def _w_s16(d, o, v):
+    struct.pack_into(">h", d, o, max(-32768, min(32767, int(v))))
+
+
+_MAPOBJ_REBIRTH = 0x20   # "rebirth platform" map object kind
+
+
+def set_rebirth(stage_path, chain_head, x, y, *, label=""):
+    """Move the rebirth (revival) platform in stage.bin, in place. It is the
+    map object of kind 0x20 in the geometry's mapobjs array (MPMapObjData =
+    {u16 kind, s16 x, s16 y}); the engine finds it by kind, so there is one.
+    header.bin is not touched."""
+    label = f"{label}: " if label else ""
+    d = bytearray(open(stage_path, "rb").read())
+    geom = _find_geometry(d, _walk_chain(d, chain_head))
+    if geom is None:
+        raise ValueError(f"{label}could not locate MPGeometryData in stage.bin")
+    mo_cnt = _u16(d, geom + 0x14)
+    p_mo = (_u32(d, geom + 0x18) & 0xFFFF) * 4
+    for i in range(mo_cnt):
+        if _u16(d, p_mo + i * 6) == _MAPOBJ_REBIRTH:
+            _w_s16(d, p_mo + i * 6 + 2, x)
+            _w_s16(d, p_mo + i * 6 + 4, y)
+            open(stage_path, "wb").write(d)
+            return (int(x), int(y))
+    raise ValueError(f"{label}stage has no rebirth-platform map object (kind 0x20) "
+                     f"to move - add one in GoldEditor first")

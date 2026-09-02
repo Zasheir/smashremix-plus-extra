@@ -26,7 +26,7 @@ _CAMERA = (210, 190, 70)
 _TEXT = (210, 213, 218)
 _MAPOBJ = (255, 255, 255)
 _START_KINDS = {0x00: "P1", 0x01: "P2", 0x02: "P3", 0x03: "P4",
-                0x20: "spawn", 0x04: "item"}
+                0x20: "respawn", 0x04: "item"}
 
 
 def _font(sz=12):

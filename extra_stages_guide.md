@@ -41,6 +41,10 @@ camera_bounds: { top: 3900, bottom: -1500, left: -4200, right: 4200 }
 light_angle:   [80, 25]                              # [pitch deg, yaw deg]
 fog:           { color: "#E1C8FF", alpha: 0 }        # color: #RRGGBB or [r,g,b]
 
+# --- rebirth (revival) platform - the kind-0x20 map object in stage.bin ---
+rebirth:       [0, 2800]                             # [x, y]; the stage must
+                                                    # already have one (add in GE)
+
 # --- map collision - see the "collision:" section below ---
 
 # HAZARDS.ASM
@@ -138,6 +142,7 @@ the engine's stage-object loader); using a 7th is a build error.
     python3 scripts/stage_collision.py STAGE.bin              # decode + dump
     python3 scripts/stage_collision.py STAGE.bin --emit-yaml  # -> collision: list
     python3 scripts/stage_collision.py STAGE.bin --draw layout.png --header header.bin
+    python3 scripts/stage_collision.py STAGE.bin --rebirth 0,2800  # move revival platform
 
 `--draw` renders a top-down diagram: collision lines coloured by group (each
 labelled `L<line id> g<group>`), every point labelled with its `x, y`, a ring
