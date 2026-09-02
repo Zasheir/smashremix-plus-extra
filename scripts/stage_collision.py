@@ -30,7 +30,14 @@ The engine's yakumono DObj array is indexed by DObjDesc-entry order of the
 COLLISION geometry layer (`gr_desc[1]`), entry 0 = base, entries 1.. = the
 groups -> so **GE "collision group N" == engine yakumono index N** (1-indexed).
 
-    stage_collision.py STAGE.bin [--geom 0xNNN] [--table 0xNNN]
+    stage_collision.py STAGE.bin [--geom 0xNNN] [--table 0xNNN]  # decode + dump
+    stage_collision.py STAGE.bin --emit-yaml                     # -> config.yaml collision: list
+    stage_collision.py STAGE.bin --build SPEC.yaml [--header H]  # rewrite STAGE from a spec
+                                                                #   (max 6 groups)
+
+The rewrite (also run by the appender for a stage config.yaml `collision:` key)
+lives in smashremix_extra/stage/collision.py: it rebuilds the 5 arrays, APPENDS
+them, and repoints the self-relocating pointers - header.bin is untouched.
 """
 import argparse
 import struct
@@ -38,7 +45,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import ge_bin as ge  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # -> appender/
+from smashremix_extra import ge_bin as ge  # noqa: E402
 
 LINE_TYPE = ["floor", "ceil", "rwall", "lwall"]
 MAPOBJ_KIND = {
@@ -85,6 +93,31 @@ def find_geometry(d, nodes):
     return None
 
 
+def _emit_yaml(d, verts, vid, links, p_lni, yk_count):
+    """Print the decoded geometry as a config.yaml `collision:` list."""
+    types = ["floor", "ceil", "rwall", "lwall"]
+    print("collision:")
+    for g in range(yk_count):
+        o = p_lni + g * 18
+        gid = u16(d, o)
+        for lt in range(4):
+            first = u16(d, o + 2 + lt * 4)
+            cnt = u16(d, o + 4 + lt * 4)
+            for ln in range(first, first + cnt):
+                f, c = links[ln]
+                flat = [v for k in range(f, f + c) for v in verts[vid[k]][:2]]
+                fl = verts[vid[f]][2]
+                names = []
+                if fl & 0x4000:
+                    names.append("drop_through")
+                if fl & 0x8000:
+                    names.append("ledge")
+                if fl & 0xFF:
+                    names.append(str(fl & 0xFF))
+                tail = f", flags: [{', '.join(names)}]" if names else ""
+                print(f"  - {{group: {gid}, {types[lt]}: {flat}{tail}}}")
+
+
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -93,12 +126,44 @@ def main():
                     help="fixup chain head (default: auto)")
     ap.add_argument("--geom", type=lambda x: int(x, 0), default=None,
                     help="MPGeometryData offset (default: auto-detect)")
+    ap.add_argument("--emit-yaml", action="store_true",
+                    help="print the decoded geometry as a config.yaml `collision:` block")
+    ap.add_argument("--build", metavar="SPEC.yaml",
+                    help="apply a `collision:` spec (a full config.yaml, or just "
+                         "the collision block) and rewrite STAGE in place")
+    ap.add_argument("--header", metavar="header.bin",
+                    help="with --draw: read blast zones / camera bounds / light")
+    ap.add_argument("--gd", type=lambda x: int(x, 0), default=0x14,
+                    help="MPGroundData offset in --header (default 0x14)")
+    ap.add_argument("--draw", metavar="OUT.png",
+                    help="draw a top-down layout diagram (collision by group, "
+                         "blast zones, camera bounds, map objects)")
     a = ap.parse_args()
 
     d = Path(a.stage).read_bytes()
     head = a.table if a.table is not None else ge.find_chain_head(d)
     if head is None:
         sys.exit("could not find the fixup chain - pass --table")
+
+    if a.draw:
+        from smashremix_extra.stage import draw
+        hdr = a.header or str(Path(a.stage).with_name("header.bin"))
+        draw.render_files(a.stage, hdr, a.draw, chain_head=head, groupdata_off=a.gd)
+        print(f"wrote {a.draw}")
+        return
+
+    if a.build:
+        import yaml
+        from smashremix_extra.stage import collision
+        spec = yaml.safe_load(Path(a.build).read_text())
+        if isinstance(spec, dict) and "collision" in spec:
+            spec = spec["collision"]
+        info = collision.apply(a.stage, spec, head,
+                               header_path=a.header,
+                               groupdata_off=a.gd if a.header else None)
+        print(f"{a.stage}: {info}")
+        return
+
     nodes = ge.walk_chain(d, head)
 
     geom = a.geom if a.geom is not None else find_geometry(d, nodes)
@@ -135,6 +200,10 @@ def main():
     lnk_end = next(t for t in tgts if t > p_lnk)
     links = [(u16(d, p_lnk + i * 4), u16(d, p_lnk + i * 4 + 2))
              for i in range((lnk_end - p_lnk) // 4)]
+
+    if a.emit_yaml:
+        _emit_yaml(d, verts, vid, links, p_lni, yk_count)
+        return
 
     def vflags(f):
         parts = []
@@ -186,47 +255,17 @@ def main():
         print(f"  [{i:2}] kind 0x{k:02X} {MAPOBJ_KIND.get(k, '?'):<18} "
               f"({s16(d, o + 2):6},{s16(d, o + 4):6})")
 
-    # --- sanity: the engine links lines only where they share the SAME vertex
-    #     index. Two vertices at the same (x,y) but different index don't
-    #     connect, and a line endpoint that no other line's endpoint shares gets
-    #     edge_*_line_id = -1 -> mpCollisionCheckExistLineID(-1) freezes the game
-    #     ("collision id = -1") the moment a fighter walks off that edge.
+    # --- FYI: the engine links lines only where they share the SAME vertex
+    #     index. Disconnected groups / lone endpoints are fine on a stage; this
+    #     is just a note of where vertices coincide by position but not index.
     dupes = {}
     for i, (x, y, _) in enumerate(verts):
         dupes.setdefault((x, y), []).append(i)
     dupes = {p: ix for p, ix in dupes.items() if len(ix) > 1}
-
-    endpoints = {}  # vpos index -> [(line, which)]
-    line_ends = []
-    for li, (first, cnt) in enumerate(links):
-        a = vid[first] if first < len(vid) else None
-        b = vid[first + cnt - 1] if first + cnt - 1 < len(vid) else None
-        line_ends.append((a, b))
-        for v, w in ((a, "start"), (b, "end")):
-            endpoints.setdefault(v, []).append((li, w))
-
-    unlinked = []
-    for li, (a, b) in enumerate(line_ends):
-        for v, w in ((a, "start"), (b, "end")):
-            if v is not None and len(endpoints.get(v, [])) < 2:
-                x, y = verts[v][0], verts[v][1]
-                also = [j for j in dupes.get((x, y), []) if j != v]
-                unlinked.append((li, w, v, (x, y), also))
-
-    if dupes or unlinked:
-        print("\n!!  COLLISION LINKING PROBLEMS  (fix in GoldEditor - weld verts)")
-        if dupes:
-            print("  duplicate vertices (same position, separate index -> won't connect):")
-            for (x, y), ix in sorted(dupes.items()):
-                print(f"     ({x},{y}): indices {ix}")
-        if unlinked:
-            print("  line endpoints not shared by any other line "
-                  "(-> edge_line_id = -1 -> freeze if a fighter walks off here):")
-            for li, w, v, (x, y), also in unlinked:
-                tag = f"  (same spot as vertex {also})" if also else ""
-                print(f"     line {li:2} {w:5} @ ({x},{y}) idx {v}{tag}")
-    else:
-        print("\nlinking OK: every reachable line endpoint is shared.")
+    if dupes:
+        print("\ncoincident vertices (same position, separate index):")
+        for (x, y), ix in sorted(dupes.items()):
+            print(f"     ({x},{y}): indices {ix}")
 
 
 if __name__ == "__main__":
