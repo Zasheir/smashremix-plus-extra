@@ -11,6 +11,10 @@ definitions:
 
 num_costumes: 4
 
+# The full Galleon build exhausts file 0x0A05 with a separate flash block.
+# Reuse Pichu's normal portrait during the brief CSS selection flash instead.
+reuse_portrait_for_flash: true
+
 
 # Files 6, 7, 8, 9
 # [Filename (without .bin), InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
