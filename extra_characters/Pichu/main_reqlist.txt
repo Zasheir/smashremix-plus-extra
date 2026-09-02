@@ -1,0 +1,49 @@
+00F2 Pikachu Move Set
+015B Pikachu Unknown Effects
+00F4 Pikachu Lightning Indexer
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+${CHARACTER}
+0157 Pikachu Shield Pose
+0157 Pikachu Shield Pose
+0157 Pikachu Shield Pose
+0157 Pikachu Shield Pose
+0157 Pikachu Shield Pose
+0157 Pikachu Shield Pose
+0157 Pikachu Shield Pose
+0157 Pikachu Shield Pose
+0157 Pikachu Shield Pose
+END OF REQ LIST

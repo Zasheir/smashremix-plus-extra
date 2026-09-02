@@ -64,6 +64,19 @@ You can head over to the [Smash Remix Discord Server](https://discord.gg/ChpN332
 
 ## Third-Party Content and Attribution
 
+### Pichu
+
+The `custom/debugged-summercart` build line includes stage and music content from:
+
+- **Work:** [Pichu](https://gamebanana.com/mods/698057)
+- **Creator:** [Warioplier](https://gamebanana.com/members/2508865)
+- **Source version:** 1.001
+- **License:** [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International](https://creativecommons.org/licenses/by-nc-nd/4.0/)
+
+The source package was integrated into Smash Remix +EXTRA's build structure. Project-specific configuration, ordering, and compatibility changes are recorded in this repository's Git history. Credit does not imply endorsement by the original creator.
+
+The licensed material may be shared only for noncommercial purposes and subject to the license's NoDerivatives restriction. This notice does not grant permission beyond the linked license terms; obtain separate permission from the creator before distributing adapted versions.
+
 ### Readded Cut Stages
 
 The `custom/debugged-summercart` build line includes stage and music content from:

@@ -1,0 +1,160 @@
+jigglypuffkirbyshared-spawneffect:
+  path: 'src/jigglypuffkirbyshared.asm'
+  line: [
+    "addiu   at, r0, Character.id.PICHU      // PICHU ID",
+    "beq     v0, at, _pokeballflash          // modified original line 1 part 1"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: AfterFirst
+  where: 'beq     v0, at, _pokeballflash          // modified original line 1 part 1'
+
+pikashared-recovery:
+  path: 'src/pikashared.asm'
+  line: [
+    "Character.table_patch_start(recovery_logic, Character.id.PICHU, 0x4)",
+    "dw recovery_logic; OS.patch_end()"
+  ]
+  prefix: "\t"
+  suffix: "\n\t"
+  type: AfterFirst
+  where: 'dw recovery_logic; OS.patch_end()'
+
+pikashared-cpu-post-process:
+  path: 'src/pikashared.asm'
+  line: [
+    "Character.table_patch_start(cpu_post_process, Character.id.PICHU, 0x4)",
+    "dw cpu_post_process; OS.patch_end()"
+  ]
+  prefix: "\t"
+  suffix: "\n\t"
+  type: AfterFirst
+  where: 'dw cpu_post_process; OS.patch_end()'
+
+pikashared-rapid_jab_1:
+  path: 'src/pikashared.asm'
+  line: [
+    "beq     v0, at, _rapid_jump             // modified original line 1",
+    "addiu   at, r0, Character.id.PICHU      // EPIKA ID"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: BeforeFirst
+  where: 'beq     v0, at, _rapid_jump             // modified original line 1'
+
+pikashared-rapid_jab_2:
+  path: 'src/pikashared.asm'
+  line: [
+    "beq     v1, at, _rapid_jump_2             // modified original line 1",
+    "addiu   at, r0, Character.id.PICHU      // EPIKA ID"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: BeforeFirst
+  where: 'beq     v1, at, _rapid_jump_2             // modified original line 1'
+
+pikashared-fsmash_1:
+  path: 'src/pikashared.asm'
+  line: [
+    "beq     v0, at, _fsmash_jump             // modified original line 1",
+    "addiu   at, r0, Character.id.PICHU      // EPIKA ID"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: BeforeFirst
+  where: 'beq     v0, at, _fsmash_jump          // modified original line 1'
+
+pikashared-fsmash_2:
+  path: 'src/pikashared.asm'
+  line: [
+    "beq     v0, at, _fsmash_jump_2             // modified original line 1",
+    "addiu   at, r0, Character.id.PICHU      // EPIKA ID"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: BeforeFirst
+  where: 'beq     v0, at, _fsmash_jump_2          // modified original line 1'
+
+pikashared-fsmash_3:
+  path: 'src/pikashared.asm'
+  line: [
+    "beq     v0, at, _fsmash_jump_3             // modified original line 1",
+    "addiu   at, r0, Character.id.PICHU      // EPIKA ID"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: BeforeFirst
+  where: 'beq     v0, at, _fsmash_jump_3          // modified original line 1'
+
+pikashared-get-thunder-anim-struct:
+  path: 'src/pikashared.asm'
+  line: [
+    "beq     t1, t2, _end                // end if character id = PICHU",
+    "ori     t2, r0, Character.id.PICHU  // t2 = id.PICHU",
+    "li      a0, thunder_anim_struct_pichu     // a0 = thunder_struct"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: AfterFirst
+  where: 'li      a0, thunder_anim_struct_jpika     // a0 = thunder_struct_jpika'
+
+pikashared-get-thunder-special-struct1:
+  path: 'src/pikashared.asm'
+  line: [
+    "beq     t1, t2, _end                // end if character id = PICHU",
+    "ori     t2, r0, Character.id.PICHU  // t2 = id.PICHU",
+    "li      a1, thunder_special_struct_1_pichu     // a1 = thunder_special_struct_1_pichu"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: AfterFirst
+  where: 'li      a1, thunder_special_struct_1_jpika     // a0 = thunder_struct_jpika'
+
+pikashared-get-thunder-special-struct2:
+  path: 'src/pikashared.asm'
+  line: [
+    "beq     t1, t2, _end                // end if character id = PICHU",
+    "ori     t2, r0, Character.id.PICHU  // t2 = id.PICHU",
+    "li      a1, thunder_special_struct_2_pichu     // a1 = thunder_special_struct_2_pichu"
+  ]
+  prefix: "\t\t"
+  suffix: "\n\t\t"
+  type: AfterFirst
+  where: 'li      a1, thunder_special_struct_2_jpika     // a0 = thunder_struct_jpika'
+
+pikashared-thestructs:
+  path: 'src/pikashared.asm'
+  line: [
+    "// PICHU",
+    "",
+    "OS.align(16)            //this little block was written by pringles_ssb ty pringles_ssb",
+    "thunder_anim_struct_pichu:",
+    "dw  0x020F0000",
+    "dw  Character.PICHU_file_4_ptr",
+    "dw  0x1C000000 ",
+    "dw  0x00000000",
+    "dw  0x80101A08",
+    "dw  0x80101AA8",
+    "dw  0x00009D20",
+    "dw  0x00009DD8",
+    "dw  0x00000000",
+    "",
+    "OS.align(16)",
+    "thunder_special_struct_1_pichu:",
+    "dw 0x02000000",
+    "dw 0x0000000B",
+    "dw Character.PICHU_file_1_ptr",
+    "OS.copy_segment(0x103B6C, 0x40)",
+    "",
+    "OS.align(16)",
+    "thunder_special_struct_2_pichu:",
+    "dw 0x02000000",
+    "dw 0x0000000C",
+    "dw Character.PICHU_file_1_ptr",
+    "OS.copy_segment(0x103BA0, 0x40)",
+    ""
+  ]
+  prefix: "\t"
+  suffix: "\n\t"
+  type: BeforeFirst
+  where: '// Pikachu shares hardcodings with Jigglypuff and some of his hardcodings are in jigglypuffkirbyshared.asm'
