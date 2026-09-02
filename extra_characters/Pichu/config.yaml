@@ -1,0 +1,75 @@
+# [InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+offsets:
+  main: ["0330", "0000"]
+  character: ["0004", "3FFFC"]
+
+definitions:
+  base_character: PIKACHU
+  series_logo_css: POKEMON
+  series_logo_model: POKEMON
+  select_pose: 2
+
+num_costumes: 4
+
+
+# Files 6, 7, 8, 9
+# [Filename (without .bin), InternalFileTableOffsetBytes, InternalFileResourceOffsetBytes]
+files: [
+  "0x0F4",
+  "0x15B",
+  "0x156",
+  "0x0",
+]
+
+12cb:
+  moveset: "defeated_moveset_pikachu"
+
+
+charge_smash_frames:
+  up: 2
+  forward: 90
+  down: 5
+
+results:
+  name: "Pichu"
+  name_scale: 1
+  name_x: 30
+  wins_x: 170
+
+
+sounds:
+  "0609": announcer
+  "060A": atck1
+  "060B": atck2
+  "060C": atck3
+  "060D": crowd
+  "060E": damage
+  "060F": death
+  "0610": neutralb
+  "0611": sleep
+  "0612": starko
+  "0613": stun
+  "0614": taunt
+  "0615": thunder
+  "0616": upb
+  "0617": teeter
+  
+
+announcer_fgm: "0609"
+
+sounds_special:
+  "060D":
+    fgm_type: CHANT
+    length: 280
+  "0611":
+    fgm_type: SLEEP
+    length: "0x120"
+
+attributes:
+  death_fgm: "060F"
+  star_ko_fgm: "0612"
+  damaged_fgm: "060E"
+  attack_sfx_1: "060A"
+  attack_sfx_2: "060B"
+  attack_sfx_3: "060C"
+  heavy_lift_fgm: "0617"
