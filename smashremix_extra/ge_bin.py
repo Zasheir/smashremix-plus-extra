@@ -405,3 +405,73 @@ def translate(offset, breakpoints):
         else:
             break
     return offset + delta
+
+
+# ------------------------------------------- named offsets (build constants) ---
+def _node_target(nodes, field):
+    for n in nodes:
+        if n.field == field:
+            return n.target
+    return None
+
+
+def _trace_mobjsub(nodes, p_mobjsubs):
+    """p_mobjsubs -> {NULL, &arr}; arr -> {&MObjSub, NULL};
+    MObjSub{u16 pad, u8 fmt, u8 siz, void **sprites, ...}; sprites -> {&img x N}.
+    -> (mobjsub, sprites, [sprite data offsets])."""
+    arr = _node_target(nodes, p_mobjsubs + 4) or _node_target(nodes, p_mobjsubs)
+    if arr is None:
+        return None
+    mobjsub = _node_target(nodes, arr)
+    if mobjsub is None:
+        return None
+    sprites = _node_target(nodes, mobjsub + 4)
+    imgs, k = [], sprites
+    while sprites is not None and k is not None:
+        t = _node_target(nodes, k)
+        if t is None:
+            break
+        imgs.append(t)
+        k += 4
+    return (mobjsub, sprites, imgs)
+
+
+def describe_offsets(model_bytes, footer_bytes=None):
+    """Named byte offsets inside a GoldEditor model .bin, for build-generated
+    constants that a re-export regenerates cleanly.  -> {name: offset}:
+
+        head                 fixup-chain head
+        obj0, obj1, ...       each DObjDesc list (first entry, past the preamble)
+        tex0, tex1, ...       each image the display lists reference (file order)
+        tlut0, tlut1, ...     each palette
+        footer_dobjdesc      where <name>_hitbox.bin's footer points (in this file)
+        footer_mobjsubs      "
+        mobjsub, sprites     the MObjSub and its 3-entry sprite pointer table
+    """
+    d = bytes(model_bytes)
+    head = find_chain_head(d)
+    if head is None:
+        return {}
+    nodes = walk_chain(d, head)
+    out = {"head": head}
+    for i, obj in enumerate(find_objects(d)):
+        out[f"obj{i}"] = obj.start + 0x10
+    ti = li = 0
+    for t in find_textures(d, head=head, nodes=nodes):
+        if t["is_tlut"]:
+            out[f"tlut{li}"] = t["off"]
+            li += 1
+        else:
+            out[f"tex{ti}"] = t["off"]
+            ti += 1
+    if footer_bytes:
+        fr = footer_roots(footer_bytes)
+        out["footer_dobjdesc"] = fr.dobjdesc
+        if fr.pmobjsubs is not None:
+            out["footer_mobjsubs"] = fr.pmobjsubs
+            ms = _trace_mobjsub(nodes, fr.pmobjsubs)
+            if ms:
+                out["mobjsub"], out["sprites"], imgs = ms
+                for i, im in enumerate(imgs):
+                    out[f"sprite{i}"] = im
+    return out

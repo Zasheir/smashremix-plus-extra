@@ -25,8 +25,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ge_bin import (  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from smashremix_extra.ge_bin import (  # noqa: E402
     SIZ_BPP, FMT_NAME, u16, u32, walk_chain, find_chain_head, find_textures)
 
 
