@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-MARKER = "// +EXTRA committed preview replay spike v4"
+MARKER = "// +EXTRA committed preview replay spike v5"
 MARKER_FAMILY = "// +EXTRA committed preview replay spike"
 
 
@@ -295,19 +295,28 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        jr      ra\n"
         "        addiu   sp, sp, 0x0040\n"
         "    }\n\n"
-        "    scope all_four_preview_panels_active_: {\n"
+        "    scope two_or_more_preview_panels_active_: {\n"
         "        or      v1, r0, r0\n"
         "        li      t0, CSS_PLAYER_STRUCT\n"
         "        lli     t1, 0x0004\n"
         "        lli     t3, 0x0002                  // Closed panel state\n"
+        "        or      t4, r0, r0                  // active panel count\n"
         "        _loop:\n"
         "        lw      t2, 0x0084(t0)              // MAN=0, CPU=1, Closed=2\n"
-        "        beq     t2, t3, _return\n"
+        "        beq     t2, t3, _next\n"
         "        nop\n"
+        "        addiu   t4, t4, 0x0001\n"
+        "        sltiu   at, t4, 0x0002\n"
+        "        beqz    at, _active                 // two active panels are enough\n"
+        "        nop\n"
+        "        _next:\n"
         "        addiu   t0, t0, 0x00BC\n"
         "        addiu   t1, t1, -0x0001\n"
         "        bnez    t1, _loop\n"
         "        nop\n"
+        "        b       _return\n"
+        "        nop\n"
+        "        _active:\n"
         "        lli     v1, OS.TRUE\n"
         "        _return:\n"
         "        jr      ra\n"
@@ -329,9 +338,9 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        sw      t7, 0x0028(sp)\n"
         "        sw      t8, 0x002C(sp)\n"
         "        sw      t9, 0x0030(sp)\n"
-        "        jal     all_four_preview_panels_active_\n"
+        "        jal     two_or_more_preview_panels_active_\n"
         "        nop\n"
-        "        sw      v1, 0x004C(sp)              // four-player debounce remains active\n"
+        "        sw      v1, 0x004C(sp)              // two-or-more-player debounce remains active\n"
         "        li      t0, CSS_PLAYER_STRUCT\n"
         "        li      t1, dynamic_css.preview_deferred_records\n"
         "        lli     t2, 0x0004\n"
@@ -349,7 +358,7 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        addu    t7, t7, t5\n"
         "        lw      t6, 0x0000(t4)\n"
         "        lw      v1, 0x004C(sp)\n"
-        "        beqz    v1, _debounce_ready        // no longer four-player: remove artificial delay\n"
+        "        beqz    v1, _debounce_ready        // fewer than two players: remove artificial delay\n"
         "        nop\n"
         "        beqz    t6, _debounce_ready\n"
         "        nop\n"
@@ -760,7 +769,7 @@ _release_mismatch:
     nop
 _normal_request:
 
-    // In four-player VS, debounce every valid preview request before construction.
+    // With two or more active panels, debounce every valid preview request before construction.
     sltiu   at, a0, Character.NUM_CHARACTERS
     beqz    at, _cancel_pending_request
     nop
@@ -770,7 +779,7 @@ _normal_request:
     lli     t8, Character.id.NONE
     beq     a0, t8, _cancel_pending_request
     nop
-    jal     all_four_preview_panels_active_
+    jal     two_or_more_preview_panels_active_
     nop
     beqz    v1, _run_preflight
     nop
@@ -835,9 +844,9 @@ _cancel_pending_request:
     lli     t5, dynamic_css.PREVIEW_STATE_VISIBLE
     bne     t4, t5, _cancel_remain_blank
     nop
-    jal     all_four_preview_panels_active_
+    jal     two_or_more_preview_panels_active_
     nop
-    beqz    v1, _run_preflight             // preserve normal 1P/2P/3P handling
+    beqz    v1, _run_preflight             // preserve normal single-player handling
     nop
     jal     blank_visible_preview_
     nop

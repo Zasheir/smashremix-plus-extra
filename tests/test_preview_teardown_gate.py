@@ -48,7 +48,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
                 self.assertIn(f"li      t5, dynamic_css.{counter}", initialization)
                 self.assertIn("sw      r0, 0x0000(t5)", initialization)
 
-    def test_first_four_player_change_destroys_once_and_returns_blank(self):
+    def test_first_multiplayer_change_destroys_once_and_returns_blank(self):
         gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split(
             "scope dynamically_load_character_:", 1
         )[0]
@@ -112,7 +112,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
 
         self.assertIn("scope reclaim_retired_preview_slots_:", self.source)
         reclaim = self.source.split("scope reclaim_retired_preview_slots_:", 1)[1].split(
-            "scope all_four_preview_panels_active_:", 1
+            "scope two_or_more_preview_panels_active_:", 1
         )[0]
         self.assertIn("sltiu   t9, a0, dynamic_css.ACTIVE_HEAP_COUNT", reclaim)
         self.assertIn("li      t4, dynamic_css.slot_used_by_port", reclaim)
@@ -166,7 +166,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split(
             "scope dynamically_load_character_:", 1
         )[0]
-        entry = gate.split("// In four-player VS", 1)[0]
+        entry = gate.split("// With two or more active panels", 1)[0]
         self.assertIn("li      t7, dynamic_css.preview_lifecycle_states", entry)
         self.assertIn("lli     t8, dynamic_css.PREVIEW_STATE_CONSTRUCTING", entry)
         self.assertIn("li      t7, dynamic_css.preview_release_records", entry)
@@ -306,7 +306,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
 
     def test_invalid_latest_hover_cancels_stale_deferred_request(self):
         gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split("_count_veto:", 1)[0]
-        validation = gate.split("jal     all_four_preview_panels_active_", 1)[0]
+        validation = gate.split("jal     two_or_more_preview_panels_active_", 1)[0]
         self.assertIn("beqz    at, _cancel_pending_request", validation)
         self.assertEqual(validation.count("beq     a0, t8, _cancel_pending_request"), 2)
 
@@ -322,13 +322,31 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertIn("li      t7, dynamic_css.preview_release_records", cancel)
         self.assertIn("li      t7, dynamic_css.preview_lifecycle_states", cancel)
         self.assertIn("bne     t4, t5, _cancel_remain_blank", cancel)
-        self.assertIn("jal     all_four_preview_panels_active_", cancel)
+        self.assertIn("jal     two_or_more_preview_panels_active_", cancel)
         self.assertIn("beqz    v1, _run_preflight", cancel)
         self.assertIn("jal     blank_visible_preview_", cancel)
         remain = cancel.split("_cancel_remain_blank:", 1)[1]
         self.assertIn("j       remain_blank_", remain)
 
-    def test_four_player_preview_debounce_storage_and_initialization(self):
+    def test_debounce_activates_when_at_least_two_panels_are_open(self):
+        self.assertIn("scope two_or_more_preview_panels_active_:", self.source)
+        helper = self.source.split("scope two_or_more_preview_panels_active_:", 1)[1].split(
+            "scope retry_deferred_preview_requests_:", 1
+        )[0]
+        self.assertIn("or      t4, r0, r0", helper)
+        self.assertIn("beq     t2, t3, _next", helper)
+        self.assertIn("addiu   t4, t4, 0x0001", helper)
+        self.assertIn("sltiu   at, t4, 0x0002", helper)
+        self.assertIn("beqz    at, _active", helper)
+        self.assertIn("lli     v1, OS.TRUE", helper)
+
+        gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split(
+            "scope dynamically_load_character_:", 1
+        )[0]
+        self.assertIn("// With two or more active panels", gate)
+        self.assertIn("jal     two_or_more_preview_panels_active_", gate)
+
+    def test_two_or_more_player_preview_debounce_storage_and_initialization(self):
         self.assertIn("constant PREVIEW_DEBOUNCE_FRAMES(18)", self.source)
         self.assertIn("preview_debounce_frames:; fill 0x0010", self.source)
 
@@ -343,25 +361,29 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertIn("addiu   t3, t3, 0x0004", clear)
         self.assertEqual(clear.count("sw      r0, 0x0000(t3)"), 1)
 
-        helper = self.source.split("scope all_four_preview_panels_active_:", 1)[1].split(
+        helper = self.source.split("scope two_or_more_preview_panels_active_:", 1)[1].split(
             "scope retry_deferred_preview_requests_:", 1
         )[0]
         self.assertIn("li      t0, CSS_PLAYER_STRUCT", helper)
         self.assertIn("lli     t1, 0x0004", helper)
         self.assertIn("lw      t2, 0x0084(t0)", helper)
         self.assertIn("lli     t3, 0x0002", helper)
-        self.assertIn("beq     t2, t3, _return", helper)
+        self.assertIn("or      t4, r0, r0", helper)
+        self.assertIn("beq     t2, t3, _next", helper)
+        self.assertIn("addiu   t4, t4, 0x0001", helper)
+        self.assertIn("sltiu   at, t4, 0x0002", helper)
+        self.assertIn("beqz    at, _active", helper)
         self.assertIn("addiu   t0, t0, 0x00BC", helper)
         self.assertIn("addiu   t1, t1, -0x0001", helper)
         self.assertIn("lli     v1, OS.TRUE", helper)
         self.assertNotIn("sw      ", helper)
         self.assertNotIn("sb      ", helper)
 
-    def test_four_player_hover_is_last_request_wins_without_same_request_restart(self):
+    def test_multiplayer_hover_is_last_request_wins_without_same_request_restart(self):
         gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split(
             "_replay_without_defer:", 1
         )[0]
-        self.assertIn("jal     all_four_preview_panels_active_", gate)
+        self.assertIn("jal     two_or_more_preview_panels_active_", gate)
         self.assertIn("beqz    v1, _run_preflight", gate)
         self.assertIn("li      t6, dynamic_css.preview_debounce_frames", gate)
         self.assertIn("sll     t8, t3, 0x0002", gate)
@@ -384,7 +406,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         retry = self.source.split("scope retry_deferred_preview_requests_:", 1)[1].split(
             "scope use_custom_heap_structs_:", 1
         )[0]
-        self.assertIn("jal     all_four_preview_panels_active_", retry)
+        self.assertIn("jal     two_or_more_preview_panels_active_", retry)
         self.assertIn("li      t4, dynamic_css.preview_debounce_frames", retry)
         self.assertIn("lw      t6, 0x0000(t4)", retry)
         self.assertIn("beqz    v1, _debounce_ready", retry)
@@ -515,7 +537,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertEqual(self.source, port_preview_teardown_gate_source(self.source))
 
     def test_obsolete_marker_fails_closed_instead_of_silently_skipping_upgrade(self):
-        self.assertIn("v4", MARKER)
+        self.assertIn("v5", MARKER)
         old = "// +EXTRA committed preview replay spike"
         invalid_sources = {
             "old": self.source.replace(MARKER, old),
