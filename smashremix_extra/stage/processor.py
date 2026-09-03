@@ -7,6 +7,7 @@ from smashremix_extra.constants import SMASHREMIX_PATH as smashremix_path
 from smashremix_extra.image_appender import append_image, get_image_data, ImageMode
 from smashremix_extra.gen_stage_icon import create_stage_icon
 from smashremix_extra.file_manager import FileManager
+from smashremix_extra.logger import logger
 from smashremix_extra import hex_util
 
 
@@ -45,6 +46,58 @@ class StageProcessor:
             output_path,
             dirs_exist_ok=True
         )
+
+        # config['collision']: rewrite stage.bin's map-collision geometry from a
+        # declarative spec (see smashremix_extra/stage/collision.py). Runs on the
+        # build copy before it is registered; header.bin is not affected.
+        if config.get("collision"):
+            from smashremix_extra.stage import collision as _collision
+            info = _collision.apply(
+                f"{output_path}/stage.bin", config["collision"],
+                int(config['offsets']['stage'][0], 16),
+                header_path=f"{output_path}/header.bin",
+                groupdata_off=int(config['offsets']['header'][1], 16),
+                label=stage_folder)
+            logger.info("%s: rewrote collision - %d groups, %d lines, %d vertices "
+                        "(+%d B in stage.bin)", stage_folder, info['groups'],
+                        info['lines'], info['vertices'], info['bytes_added'])
+
+        # config['rebirth']: [x, y] of the rebirth (revival) platform - the
+        # kind-0x20 map object in stage.bin. In-place; header.bin untouched.
+        if config.get("rebirth"):
+            from smashremix_extra.stage import collision as _collision
+            rx, ry = config["rebirth"]
+            _collision.set_rebirth(
+                f"{output_path}/stage.bin",
+                int(config['offsets']['stage'][0], 16), rx, ry, label=stage_folder)
+            logger.info("%s: moved rebirth platform to (%s, %s)",
+                        stage_folder, rx, ry)
+
+        # blast_zones / camera_bounds / light_angle / fog -> MPGroundData in
+        # header.bin (in-place scalar writes; see smashremix_extra/stage/ground.py).
+        from smashremix_extra.stage import ground as _ground
+        _gd_changed = _ground.apply(
+            f"{output_path}/header.bin",
+            int(config['offsets']['header'][1], 16), config, label=stage_folder)
+        if _gd_changed:
+            logger.info("%s: patched MPGroundData - %s",
+                        stage_folder, ", ".join(_gd_changed))
+
+        # Top-down layout render (collision groups + blast zone + camera bounds
+        # + map objects) of the final stage.bin/header.bin, dropped next to them
+        # in the build dir for a quick visual sanity check.
+        try:
+            from smashremix_extra.stage import draw as _draw
+            _pngs = _draw.render_group_set(
+                f"{output_path}/stage.bin", f"{output_path}/header.bin",
+                f"{output_path}/collision_layout.png",
+                chain_head=int(config['offsets']['stage'][0], 16),
+                groupdata_off=int(config['offsets']['header'][1], 16))
+            logger.info("%s: wrote %d collision renders (%s + per-group)",
+                        stage_folder, len(_pngs), "collision_layout.png")
+        except Exception as _e:                       # never fail a build over a preview
+            logger.warning("%s: collision_layout.png render skipped (%s)",
+                           stage_folder, _e)
 
         # header_reqlist.txt may reference imported files via ${NAME} tokens that
         # have no matching node in header.bin's resource linked list yet; count
@@ -277,6 +330,37 @@ class StageProcessor:
 
         return data
 
+    @staticmethod
+    def _model_offsets(output_path, name, footer_name):
+        """{const_name: offset} of interesting spots inside a GE model .bin
+        (empty for non-GE files). `footer_name` = the _hitbox.bin whose footer
+        points into this model, if any."""
+        path = f"{output_path}/{name}.bin"
+        try:
+            data = open(path, "rb").read()
+        except OSError:
+            return {}
+        footer = None
+        if footer_name:
+            try:
+                footer = open(f"{output_path}/{footer_name}.bin", "rb").read()
+            except OSError:
+                logger.warning("%s: footer %s.bin not found for FILES.%s offsets",
+                               name, footer_name, name.upper())
+        try:
+            from smashremix_extra import ge_bin
+            raw = ge_bin.describe_offsets(data, footer)
+        except Exception as e:                      # noqa: BLE001
+            logger.warning("%s: could not describe offsets (%s)", name, e)
+            return {}
+        # dedupe by offset, keep the first (most specific) name
+        seen, out = set(), {}
+        for k, v in raw.items():
+            if v not in seen:
+                seen.add(v)
+                out[k] = v
+        return out
+
     def _process_stage_imports(self, stage_folder, config, output_path, original_path):
         """Register a stage's external bin files (config['files']) and sound
         effects (config['sounds']), mirroring the character pipeline.
@@ -312,11 +396,15 @@ class StageProcessor:
             if isinstance(entry, str):
                 # Raw hex id passthrough (e.g. reuse of an existing file).
                 continue
-            # [name, tableOffset, resourceOffset]; resourceOffset defaults to
-            # "3FFFC" (empty resource list) for self-contained model bins.
+            # [name, tableOffset, resourceOffset, {opts}]; resourceOffset
+            # defaults to "3FFFC" (empty resource list) for self-contained model
+            # bins. opts: {footer: <name>} names the <name>_hitbox.bin whose
+            # ITAttributes footer targets this model (so the MObjSub / sprite
+            # offsets can be resolved for the FILES.<NAME>.* constants).
             name = entry[0]
             tbl_off = entry[1] if len(entry) > 1 else "3FFFC"
             res_off = entry[2] if len(entry) > 2 else "3FFFC"
+            opts = entry[3] if len(entry) > 3 and isinstance(entry[3], dict) else {}
 
             reqlist_path = f"{original_path}/{name}_reqlist.txt"
             has_reqlist = os.path.exists(reqlist_path)
@@ -333,17 +421,24 @@ class StageProcessor:
 
             imported_file_ids[name] = import_file.id
             up = name.upper()
-            # <NAME>_ptr is a fixed word; setup fills it once with
-            # resolve_stage_file(FILES.<NAME>, FILES.<NAME>_ptr). The file loads
-            # with the stage via header_reqlist; an item_info_array file-pointer
-            # field (0x04) is then just FILES.<NAME>_ptr (the file is DMA'd to a
-            # per-load heap address so it can't be a compile-time constant).
-            file_constants.append("\n".join([
-                f"    constant {up}(0x{import_file.id:X})",
-                f"    OS.align(16)",
-                f"    {up}_ptr:",
-                f"    dw 0",
-            ]))
+
+            # FILES.<NAME>.id   - file id
+            # FILES.<NAME>.ptr  - word; setup fills it with the file's RAM addr
+            #                     via resolve_stage_file(FILES.<NAME>.id, .ptr)
+            # FILES.<NAME>.<x>  - byte offsets inside the .bin (GE self-reloc
+            #                     model only): head / obj0.. / tex0.. / tlut0.. /
+            #                     mobjsub / sprites / sprite0.. - regenerated on
+            #                     every GE re-export so ASM never hard-codes them.
+            lines = [f"    scope {up} {{",
+                     f"        constant id(0x{import_file.id:X})",
+                     f"        OS.align(16)",
+                     f"        ptr:",
+                     f"        dw 0"]
+            for oname, ooff in self._model_offsets(
+                    output_path, name, opts.get("footer")).items():
+                lines.append(f"        constant {oname}(0x{ooff:X})")
+            lines.append("    }")
+            file_constants.append("\n".join(lines))
 
         sounds = config.get("sounds", {}) or {}
         for name, settings in sounds.items():
