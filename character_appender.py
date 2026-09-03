@@ -116,6 +116,15 @@ class CharacterAppender:
         if args.single_character:
             self.stage_folders = []
 
+        if args.single_stage:
+            # Build with only this stage (plus its variants) and no characters.
+            variants = [
+                v for v in self.stage_folders
+                if v.startswith(f"{args.single_stage}/")
+            ]
+            self.stage_folders = [args.single_stage] + variants
+            self.char_folders = []
+
         print(f"Extra characters: {len(self.char_folders)}")
         print(f"Extra stages: {len(self.stage_folders)}")
 
@@ -197,6 +206,9 @@ class CharacterAppender:
         for character_folder in self.char_folders:
             self._process_character(character_folder)
 
+        # Continue the FGM/SFX id sequence for stage sound imports.
+        self.stage_proc.LAST_SFX_ID = self.char_proc.LAST_SFX_ID
+
         for stage_folder in self.stage_folders:
             self._process_stage(stage_folder)
 
@@ -207,7 +219,7 @@ class CharacterAppender:
         self.stage_proc.process(stage_folder)
 
     def inject_files_in_rom(self):
-        if not self.char_folders:
+        if not self.char_folders and not self.stage_folders:
             return
 
         injector = ROMInjector(
@@ -737,10 +749,12 @@ class CharacterAppender:
 
         self.audio_proc.patch_bgm_asm()
 
-        # FGM.asm
+        # FGM.asm - character sounds first, then stage sounds (matches the order
+        # LAST_SFX_ID was advanced, so the generated FGM ids stay correct).
         lineinfile.add_line_to_file(
             filepath="src/FGM.asm",
-            line="\t"+"\n\t".join(self.char_proc.sound_add_list),
+            line="\t"+"\n\t".join(
+                self.char_proc.sound_add_list + self.stage_proc.sound_add_list),
             inserter=lineinfile.AfterLast(
                 r"^\s*(add_sound|add_fgm|add_sound_advanced)\(.*")
         )
@@ -1131,9 +1145,19 @@ class CharacterAppender:
 
         lineinfile.add_line_to_file(
             filepath="src/Item.asm",
-            line=f'\tconstant NUM_ITEMS({num_items}+{self.char_proc.items_added})',
+            line=f'\tconstant NUM_ITEMS({num_items}+{self.char_proc.items_added}+{len(self.stage_proc.item_add_list)})',
             regexp=r'.*constant NUM_ITEMS\(.*\)'
         )
+
+        # Stage-registered custom items: splice the add_item(...) calls in after
+        # the last one in src/Item.asm (inside scope Item, where the macro and
+        # its origin constants are defined).
+        if self.stage_proc.item_add_list:
+            lineinfile.add_line_to_file(
+                filepath="src/Item.asm",
+                line="\t" + "\n\t".join(self.stage_proc.item_add_list),
+                inserter=lineinfile.AfterLast(r'^\s*add_item\([A-Za-z]')
+            )
 
         # Stages.asm
         # Get NUM_PAGES value
@@ -1344,6 +1368,43 @@ class CharacterAppender:
             filepath="src/Hazards.asm",
             line="include \"Character.asm\"\n\n",
             inserter=lineinfile.BeforeFirst(r'^scope Hazards.*')
+        )
+
+        # generic helper for stage `files:` imports: fill a word with the RAM
+        # address of a reqlist-loaded file. Used via resolve_stage_file(id, ptr).
+        lineinfile.add_line_to_file(
+            filepath="src/Hazards.asm",
+            line=(
+                "\n"
+                "    // @ Description\n"
+                "    // Fills the word at a1 with the RAM address of stage-reqlist file a0.\n"
+                "    // a0 - file id     a1 - address of the destination word\n"
+                "    scope resolve_stage_file_: {\n"
+                "        OS.routine_begin(0x20)\n"
+                "        sw      a1, 0x0018(sp)\n"
+                "        jal     0x800CD698              // lbRelocFindForceStatusBufferFile(a0)\n"
+                "        sw      a0, 0x001C(sp)\n"
+                "        bnez    v0, _store\n"
+                "        lw      a1, 0x0018(sp)\n"
+                "        lw      a0, 0x001C(sp)\n"
+                "        jal     Render.load_file_      // loads + writes the address into *a1\n"
+                "        nop\n"
+                "        lw      v0, 0x0000(a1)\n"
+                "        _store:\n"
+                "        sw      v0, 0x0000(a1)\n"
+                "        OS.routine_end(0x20)\n"
+                "    }\n"
+                "\n"
+                "    // @ Description\n"
+                "    // resolve_stage_file(FILE_<NAME>, FILE_<NAME>_ptr) - call once in setup.\n"
+                "    macro resolve_stage_file(id, ptr) {\n"
+                "        lli     a0, {id}\n"
+                "        li      a1, {ptr}\n"
+                "        jal     Hazards.resolve_stage_file_\n"
+                "        nop\n"
+                "    }\n"
+            ),
+            inserter=lineinfile.AfterFirst(r'^scope Hazards\s*\{')
         )
 
         # Add icon offsets
@@ -1583,6 +1644,11 @@ if __name__ == "__main__":
         "--single_character",
         nargs="?",
         help="Build with only a single character added, nothing else. Intended for faster character development."
+    )
+    parser.add_argument(
+        "--single_stage",
+        nargs="?",
+        help="Build with only a single stage (and its variants) added, no characters. Intended for faster stage development."
     )
     args = parser.parse_args()
     main(args)

@@ -3,6 +3,8 @@ import importlib.util
 import unittest
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_CSS = ROOT / "smashremix" / "src" / "CharacterSelect.asm"
@@ -66,12 +68,29 @@ class GalleonCssPortTests(unittest.TestCase):
             "DSAMUS", "LUCAS", "PEPPY", "SLIPPY", "ROY", "DRL", "LANKY",
             "DRAGONKING", "EBI", "PIANO", "BIRDO", "CLOUD", "MKNUCKLES",
             "YZELDA", "KEN", "METAKNIGHT", "MRGAW", "RYU", "SNAKE",
-            "SPIDERMAN",
+            "SPIDERMAN", "PICHU",
         ]
         self.assertEqual(
-            ["MRGAW", "SPIDERMAN"],
+            ["MRGAW", "SPIDERMAN", "PICHU"],
             port.filter_bonus_characters(bonus),
         )
+
+    def test_pichu_reuses_its_normal_portrait_for_css_flash(self):
+        config = yaml.safe_load(
+            (ROOT / "extra_characters" / "Pichu" / "config.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertTrue(config.get("reuse_portrait_for_flash"))
+
+        source = self.transformed_source()
+        self.assertIn(
+            "// Project Galleon CSS portraits without separate flash textures",
+            source,
+        )
+        self.assertIn("li      at, portrait_offsets.PICHU", source)
+        self.assertIn("scope resolve_white_flash_footer_: {", source)
+        self.assertIn("jal     resolve_white_flash_footer_", source)
 
     def test_character_slot_overrides_resolve_to_canonical_portraits(self):
         port = self.load_port()

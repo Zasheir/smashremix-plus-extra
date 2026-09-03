@@ -149,6 +149,73 @@ def _patch_add_to_css_overrides(source: str) -> str:
     return pattern.sub(replace, source)
 
 
+def _patch_reused_flash_portraits(source: str) -> str:
+    marker = "    // Project Galleon CSS portraits without separate flash textures\n"
+    if marker in source:
+        return source
+
+    helper_anchor = """    // @ Description
+    // This helper macro will overwrite some of the white flash routine for each screen.
+"""
+    helper = """    // Project Galleon CSS portraits without separate flash textures
+    scope resolve_white_flash_footer_: {
+        addu    a1, a1, t2                  // a1 = normal portrait image footer
+        lli     t3, 0x0860                  // t3 = normal flash portrait stride
+        bnez    t0, _check_portrait         // regular portraits may reuse normal art
+        nop
+        b       _return                     // bookends use a larger stride
+        lli     t3, 0x0C60
+
+        _check_portrait:
+        li      at, portrait_offsets.PICHU
+        bne     t2, at, _return             // other portraits use their flash block
+        nop
+        or      t3, r0, r0                  // Pichu reuses its normal portrait
+
+        _return:
+        jr      ra
+        addu    a1, a1, t3                  // a1 = flash portrait image footer
+    }
+
+"""
+    if source.count(helper_anchor) != 1:
+        raise ValueError("Could not insert CharacterSelect flash portrait helper")
+    source = source.replace(helper_anchor, helper + helper_anchor, 1)
+
+    original = """        OS.read_word(portrait_offset_table_pointer, t2) // t2 = portrait_offset_table
+        sll     t3, s0, 0x0002              // t3 = offset in portrait offset table
+        addu    t2, t2, t3                  // t2 = address of portrait offset
+        lw      t2, 0x0000(t2)              // t2 = portrait offset
+        OS.read_word(Render.file_pointer_1, a1) // a1 = base address of character portraits file
+        OS.read_word(Render.file_pointer_2, t1) // t1 = base address of character images file
+        sltiu   t0, s0, BOOKEND_BONUS_PORTRAIT // t0 = 0 if bookend
+        beqzl   t0, pc() + 8                // if a bookend, use css images file
+        or      a1, t1, r0                  // a1 = base address of character images file
+        addu    a1, a1, t2                  // a1 = portrait image footer address
+        beqzl   t0, pc() + 8                // if a bookend, it's farther away than 0x860 (it's 0xC60)
+        addiu   a1, a1, 0x0C60 - 0x0860     // a1 = flash portrait image footer address
+        jal     0x800CCFDC
+        addiu   a1, a1, 0x0860              // a1 = flash portrait image footer address
+"""
+    replacement = """        OS.read_word(portrait_offset_table_pointer, t2) // t2 = portrait_offset_table
+        sll     t3, s0, 0x0002              // t3 = offset in portrait offset table
+        addu    t2, t2, t3                  // t2 = address of portrait offset
+        lw      t2, 0x0000(t2)              // t2 = portrait offset
+        OS.read_word(Render.file_pointer_1, a1) // a1 = base address of character portraits file
+        OS.read_word(Render.file_pointer_2, t1) // t1 = base address of character images file
+        sltiu   t0, s0, BOOKEND_BONUS_PORTRAIT // t0 = 0 if bookend
+        beqzl   t0, pc() + 8                // if a bookend, use css images file
+        or      a1, t1, r0                  // a1 = base address of character images file
+        jal     resolve_white_flash_footer_
+        nop
+        jal     0x800CCFDC
+        nop
+"""
+    if source.count(original) != 1:
+        raise ValueError("Could not patch CharacterSelect flash portrait lookup")
+    return source.replace(original, replacement, 1)
+
+
 def port_galleon_css_source(
     source: str,
 ) -> str:
@@ -222,6 +289,8 @@ def port_galleon_css_source(
     source, count = portrait_table_pattern.subn(portrait_table, source, count=1)
     if count != 1:
         raise ValueError("Could not replace CharacterSelect portrait offset table")
+
+    source = _patch_reused_flash_portraits(source)
 
     velocity_pattern = re.compile(
         r"    portrait_velocity:\n.*?\n\n"

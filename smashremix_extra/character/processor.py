@@ -766,7 +766,12 @@ class CharacterProcessor:
             portrait_texture = f"portrait_offsets.{config.get("dpad_original", "").upper()}"
         # Otherwise, check for portrait image and use if found
         elif os.path.isfile(f"{output_path}/portrait.png"):
-            if os.path.getsize("scripts/0A05.bin") + (0x860 * 2) < 0x3FFFC:
+            reuse_portrait_for_flash = config.get(
+                "reuse_portrait_for_flash", False
+            )
+            portrait_block_count = 1 if reuse_portrait_for_flash else 2
+            if (os.path.getsize("scripts/0A05.bin")
+                    + (0x860 * portrait_block_count) < 0x3FFFC):
                 pixels, w, h = get_image_data(
                     f"{output_path}/portrait.png"
                 )
@@ -782,8 +787,11 @@ class CharacterProcessor:
                     f"constant {character_folder.upper()}(0x{portrait_texture:08X} + 0x10)")
                 portrait_texture = f"portrait_offsets.{character_folder.upper()}"
 
-                # Check for flash portrait
-                if os.path.isfile(f"{output_path}/portrait_flash.png"):
+                # Check for flash portrait unless this character intentionally
+                # reuses its normal portrait during the CSS selection flash.
+                if reuse_portrait_for_flash:
+                    pass
+                elif os.path.isfile(f"{output_path}/portrait_flash.png"):
                     pixels, w, h = get_image_data(
                         f"{output_path}/portrait_flash.png"
                     )
