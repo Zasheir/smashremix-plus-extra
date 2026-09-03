@@ -19,8 +19,8 @@ import struct
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ge_bin import walk_chain, find_chain_head  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from smashremix_extra.ge_bin import walk_chain, find_chain_head  # noqa: E402
 
 GBI = {
     0x00: "SPNOOP", 0x01: "VTX", 0x03: "MOVEMEM", 0x04: "VTX_F3DEX",
