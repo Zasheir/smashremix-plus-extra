@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-MARKER = "// +EXTRA committed preview replay spike v3"
+MARKER = "// +EXTRA committed preview replay spike v4"
 MARKER_FAMILY = "// +EXTRA committed preview replay spike"
 
 
@@ -29,9 +29,25 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        alt_heap_pointer:; dw 0x0\n\n"
         f"        {MARKER}\n"
         "        constant PREVIEW_DEBOUNCE_FRAMES(18)\n"
+        "        constant PREVIEW_STATE_VISIBLE(0)\n"
+        "        constant PREVIEW_STATE_BLANK_WAIT(1)\n"
+        "        constant PREVIEW_STATE_BLANK_READY(2)\n"
+        "        constant PREVIEW_STATE_CONSTRUCTING(3)\n"
         "        preview_committed_records:; fill 0x0040\n"
         "        preview_deferred_records:; fill 0x0020\n"
+        "        preview_release_records:; fill 0x0020\n"
         "        preview_debounce_frames:; fill 0x0010\n"
+        "        preview_lifecycle_states:; fill 0x0010\n"
+        "        preview_retiring_slots:; fill 0x0010\n"
+        "        preview_retiring_character_ids:; fill 0x0010\n"
+        "        debug_preview_blank_entered_count:; fill 0x0010\n"
+        "        debug_preview_teardown_attempted_count:; fill 0x0010\n"
+        "        debug_preview_teardown_completed_count:; fill 0x0010\n"
+        "        debug_preview_duplicate_teardown_suppressed_count:; fill 0x0010\n"
+        "        debug_preview_ready_busy_retry_count:; fill 0x0010\n"
+        "        debug_preview_construction_admitted_count:; fill 0x0010\n"
+        "        debug_preview_retirement_busy_count:; fill 0x0010\n"
+        "        debug_preview_reclamation_completed_count:; fill 0x0010\n"
         "        debug_preview_teardown_veto_count:; dw 0\n"
         "        debug_preview_teardown_fallback_count:; dw 0\n\n",
     )
@@ -55,14 +71,68 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        _preview_records_seeded:\n"
         "        li      t0, dynamic_css.preview_deferred_records\n"
         "        li      t3, dynamic_css.preview_debounce_frames\n"
+        "        li      t4, dynamic_css.preview_lifecycle_states\n"
+        "        li      t5, dynamic_css.debug_preview_blank_entered_count\n"
+        "        sw      r0, 0x0000(t5)\n"
+        "        sw      r0, 0x0004(t5)\n"
+        "        sw      r0, 0x0008(t5)\n"
+        "        sw      r0, 0x000C(t5)\n"
+        "        li      t5, dynamic_css.debug_preview_teardown_attempted_count\n"
+        "        sw      r0, 0x0000(t5)\n"
+        "        sw      r0, 0x0004(t5)\n"
+        "        sw      r0, 0x0008(t5)\n"
+        "        sw      r0, 0x000C(t5)\n"
+        "        li      t5, dynamic_css.debug_preview_teardown_completed_count\n"
+        "        sw      r0, 0x0000(t5)\n"
+        "        sw      r0, 0x0004(t5)\n"
+        "        sw      r0, 0x0008(t5)\n"
+        "        sw      r0, 0x000C(t5)\n"
+        "        li      t5, dynamic_css.debug_preview_duplicate_teardown_suppressed_count\n"
+        "        sw      r0, 0x0000(t5)\n"
+        "        sw      r0, 0x0004(t5)\n"
+        "        sw      r0, 0x0008(t5)\n"
+        "        sw      r0, 0x000C(t5)\n"
+        "        li      t5, dynamic_css.debug_preview_ready_busy_retry_count\n"
+        "        sw      r0, 0x0000(t5)\n"
+        "        sw      r0, 0x0004(t5)\n"
+        "        sw      r0, 0x0008(t5)\n"
+        "        sw      r0, 0x000C(t5)\n"
+        "        li      t5, dynamic_css.debug_preview_construction_admitted_count\n"
+        "        sw      r0, 0x0000(t5)\n"
+        "        sw      r0, 0x0004(t5)\n"
+        "        sw      r0, 0x0008(t5)\n"
+        "        sw      r0, 0x000C(t5)\n"
+        "        li      t5, dynamic_css.debug_preview_retirement_busy_count\n"
+        "        sw      r0, 0x0000(t5)\n"
+        "        sw      r0, 0x0004(t5)\n"
+        "        sw      r0, 0x0008(t5)\n"
+        "        sw      r0, 0x000C(t5)\n"
+        "        li      t5, dynamic_css.debug_preview_reclamation_completed_count\n"
+        "        sw      r0, 0x0000(t5)\n"
+        "        sw      r0, 0x0004(t5)\n"
+        "        sw      r0, 0x0008(t5)\n"
+        "        sw      r0, 0x000C(t5)\n"
+        "        li      t6, dynamic_css.preview_retiring_slots\n"
+        "        li      t7, dynamic_css.preview_retiring_character_ids\n"
+        "        li      t9, dynamic_css.preview_release_records\n"
         "        lli     t1, 0x0004\n"
         "        lli     t2, Character.id.NONE\n"
+        "        lli     t8, dynamic_css.PREVIEW_STATE_BLANK_READY\n"
         "        _clear_deferred_requests:\n"
         "        sw      t2, 0x0000(t0)\n"
         "        sw      r0, 0x0004(t0)\n"
         "        sw      r0, 0x0000(t3)\n"
+        "        sw      t8, 0x0000(t4)\n"
+        "        sw      t2, 0x0000(t6)\n"
+        "        sw      t2, 0x0000(t7)\n"
+        "        sw      t2, 0x0000(t9)\n"
+        "        sw      r0, 0x0004(t9)\n"
         "        addiu   t0, t0, 0x0008\n"
         "        addiu   t3, t3, 0x0004\n"
+        "        addiu   t4, t4, 0x0004\n"
+        "        addiu   t6, t6, 0x0004\n"
+        "        addiu   t7, t7, 0x0004\n"
+        "        addiu   t9, t9, 0x0008\n"
         "        addiu   t1, t1, -0x0001\n"
         "        bnez    t1, _clear_deferred_requests\n"
         "        nop\n\n"
@@ -82,11 +152,13 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        sw      ra, 0x0004(sp)\n"
         "        jal     seed_initial_preview_records_\n"
         "        nop\n"
-        "        jal     retry_deferred_preview_requests_\n"
-        "        nop\n"
         "        li      t0, dynamic_css.slot_used_by_port\n"
         "        lw      t1, 0x0004(t0)              // curr_slot_used_by_port\n"
         "        sw      t1, 0x0000(t0)              // update slot_used_by_port\n"
+        "        jal     reclaim_retired_preview_slots_\n"
+        "        nop\n"
+        "        jal     retry_deferred_preview_requests_\n"
+        "        nop\n"
         "        lw      ra, 0x0004(sp)\n"
         "        jr      ra\n"
         "        addiu   sp, sp, 0x0010\n"
@@ -121,6 +193,10 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        sw      t6, 0x000C(t1)\n"
         "        lli     t3, OS.TRUE\n"
         "        sw      t3, 0x0000(t1)              // publish valid last\n"
+        "        li      t6, dynamic_css.preview_lifecycle_states\n"
+        "        sll     t4, t7, 0x0002\n"
+        "        addu    t6, t6, t4\n"
+        "        sw      r0, 0x0000(t6)              // publish VISIBLE with a real fighter object\n"
         "        _next:\n"
         "        addiu   t7, t7, 0x0001\n"
         "        addiu   t0, t0, 0x00BC\n"
@@ -136,6 +212,88 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        lw      t7, 0x0018(sp)\n"
         "        jr      ra\n"
         "        addiu   sp, sp, 0x0020\n"
+        "    }\n\n"
+        "    scope reclaim_retired_preview_slots_: {\n"
+        "        addiu   sp, sp, -0x0040\n"
+        "        sw      ra, 0x0004(sp)\n"
+        "        sw      s0, 0x0008(sp)\n"
+        "        sw      s1, 0x000C(sp)\n"
+        "        sw      s2, 0x0010(sp)\n"
+        "        sw      s3, 0x0014(sp)\n"
+        "        sw      s4, 0x0018(sp)\n"
+        "        li      s0, dynamic_css.preview_retiring_slots\n"
+        "        li      s1, dynamic_css.preview_retiring_character_ids\n"
+        "        li      s2, dynamic_css.debug_preview_retirement_busy_count\n"
+        "        li      s3, dynamic_css.debug_preview_reclamation_completed_count\n"
+        "        lli     s4, 0x0004\n"
+        "        _loop:\n"
+        "        lw      a0, 0x0000(s0)              // retiring slot index\n"
+        "        lw      a1, 0x0000(s1)              // expected character owner\n"
+        "        sltiu   t9, a0, dynamic_css.ACTIVE_HEAP_COUNT\n"
+        "        beqz    t9, _next                   // NONE/permanent slot needs no reset\n"
+        "        nop\n"
+        "        li      t4, dynamic_css.slot_used_by_port\n"
+        "        lli     t5, 0x0008\n"
+        "        _protection_loop:\n"
+        "        lbu     t6, 0x0000(t4)\n"
+        "        beq     a0, t6, _protected\n"
+        "        nop\n"
+        "        addiu   t4, t4, 0x0001\n"
+        "        addiu   t5, t5, -0x0001\n"
+        "        bnez    t5, _protection_loop\n"
+        "        nop\n"
+        "        li      t7, dynamic_css.heap_slot_0\n"
+        "        sll     t9, a0, 0x0004\n"
+        "        addu    t7, t7, t9\n"
+        "        lw      t6, 0x0004(t7)\n"
+        "        beq     a1, t6, _owner_matches\n"
+        "        nop\n"
+        "        lbu     t6, 0x0008(t7)\n"
+        "        beq     a1, t6, _owner_matches\n"
+        "        nop\n"
+        "        lbu     t6, 0x0009(t7)\n"
+        "        beq     a1, t6, _owner_matches\n"
+        "        nop\n"
+        "        lbu     t6, 0x000A(t7)\n"
+        "        beq     a1, t6, _owner_matches\n"
+        "        nop\n"
+        "        lbu     t6, 0x000B(t7)\n"
+        "        beq     a1, t6, _owner_matches\n"
+        "        nop\n"
+        "        b       _abandon                   // slot changed owner; never reset stale metadata\n"
+        "        nop\n"
+        "        _owner_matches:\n"
+        "        jal     reset_heap_slot_\n"
+        "        nop\n"
+        "        lw      t6, 0x0000(s3)\n"
+        "        addiu   t6, t6, 0x0001\n"
+        "        sw      t6, 0x0000(s3)\n"
+        "        _abandon:\n"
+        "        lli     t6, Character.id.NONE\n"
+        "        sw      t6, 0x0000(s0)\n"
+        "        sw      t6, 0x0000(s1)\n"
+        "        b       _next\n"
+        "        nop\n"
+        "        _protected:\n"
+        "        lw      t6, 0x0000(s2)\n"
+        "        addiu   t6, t6, 0x0001\n"
+        "        sw      t6, 0x0000(s2)\n"
+        "        _next:\n"
+        "        addiu   s0, s0, 0x0004\n"
+        "        addiu   s1, s1, 0x0004\n"
+        "        addiu   s2, s2, 0x0004\n"
+        "        addiu   s3, s3, 0x0004\n"
+        "        addiu   s4, s4, -0x0001\n"
+        "        bnez    s4, _loop\n"
+        "        nop\n"
+        "        lw      ra, 0x0004(sp)\n"
+        "        lw      s0, 0x0008(sp)\n"
+        "        lw      s1, 0x000C(sp)\n"
+        "        lw      s2, 0x0010(sp)\n"
+        "        lw      s3, 0x0014(sp)\n"
+        "        lw      s4, 0x0018(sp)\n"
+        "        jr      ra\n"
+        "        addiu   sp, sp, 0x0040\n"
         "    }\n\n"
         "    scope all_four_preview_panels_active_: {\n"
         "        or      v1, r0, r0\n"
@@ -187,11 +345,11 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        li      t4, dynamic_css.preview_debounce_frames\n"
         "        sll     t5, t3, 0x0002\n"
         "        addu    t4, t4, t5\n"
+        "        li      t7, dynamic_css.preview_lifecycle_states\n"
+        "        addu    t7, t7, t5\n"
         "        lw      t6, 0x0000(t4)\n"
         "        lw      v1, 0x004C(sp)\n"
         "        beqz    v1, _debounce_ready        // no longer four-player: remove artificial delay\n"
-        "        nop\n"
-        "        bltz    t6, _return                // one admitted release waits for the construction gate\n"
         "        nop\n"
         "        beqz    t6, _debounce_ready\n"
         "        nop\n"
@@ -203,6 +361,8 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        nop\n"
         "        _debounce_ready:\n"
         "        sw      r0, 0x0000(t4)\n"
+        "        lli     t8, dynamic_css.PREVIEW_STATE_BLANK_READY\n"
+        "        sw      t8, 0x0000(t7)\n"
         "        sw      t0, 0x0034(sp)\n"
         "        sw      t1, 0x0038(sp)\n"
         "        sw      t2, 0x003C(sp)\n"
@@ -215,17 +375,43 @@ def port_preview_teardown_gate_source(source: str) -> str:
         "        lw      t2, 0x003C(sp)\n"
         "        lw      t3, 0x0044(sp)\n"
         "        lw      t4, 0x0050(sp)\n"
-        "        beqz    v1, _next\n"
+        "        beqz    v1, _ready_busy\n"
         "        nop\n"
+        "        li      t5, dynamic_css.preview_release_records\n"
+        "        sll     t8, t3, 0x0003\n"
+        "        addu    t5, t5, t8\n"
+        "        sw      a0, 0x0000(t5)\n"
+        "        sw      a2, 0x0004(t5)\n"
+        "        li      t7, dynamic_css.preview_lifecycle_states\n"
+        "        sll     t8, t3, 0x0002\n"
+        "        addu    t7, t7, t8\n"
+        "        lli     t8, dynamic_css.PREVIEW_STATE_CONSTRUCTING\n"
+        "        sw      t8, 0x0000(t7)\n"
+        "        li      t5, dynamic_css.debug_preview_construction_admitted_count\n"
+        "        sll     t8, t3, 0x0002\n"
+        "        addu    t5, t5, t8\n"
+        "        lw      t6, 0x0000(t5)\n"
+        "        addiu   t6, t6, 0x0001\n"
+        "        sw      t6, 0x0000(t5)\n"
         "        li      t5, Sonic.classic_table\n"
         "        addu    t5, t5, t3\n"
         "        sb      a2, 0x0000(t5)\n"
         "        sw      a0, 0x0048(t0)\n"
-        "        addiu   t5, r0, -0x0001            // one-shot release for forced loader call\n"
-        "        sw      t5, 0x0000(t4)\n"
         "        jal     0x80136128                  // run the existing per-port CSS loader now\n"
         "        or      a0, r0, t3                  // a0 = port (safe single-instruction delay slot)\n"
+        "        lw      t3, 0x0044(sp)\n"
+        "        jal     0x80136300                  // rebuild/show name and emblem after construction\n"
+        "        or      a0, r0, t3\n"
         "        b       _return\n"
+        "        nop\n"
+        "        _ready_busy:\n"
+        "        li      t5, dynamic_css.debug_preview_ready_busy_retry_count\n"
+        "        sll     t8, t3, 0x0002\n"
+        "        addu    t5, t5, t8\n"
+        "        lw      t6, 0x0000(t5)\n"
+        "        addiu   t6, t6, 0x0001\n"
+        "        sw      t6, 0x0000(t5)\n"
+        "        b       _next\n"
         "        nop\n"
         "        _next:\n"
         "        addiu   t3, t3, 0x0001\n"
@@ -281,6 +467,23 @@ scope preview_commit_: {
     sw      t6, 0x000C(t2)
     lli     t1, OS.TRUE
     sw      t1, 0x0000(t2)                  // publish valid last
+    li      t7, dynamic_css.preview_deferred_records
+    sll     t8, t3, 0x0003
+    addu    t7, t7, t8
+    lli     t9, Character.id.NONE
+    sw      t9, 0x0000(t7)
+    sw      r0, 0x0004(t7)
+    li      t7, dynamic_css.preview_release_records
+    addu    t7, t7, t8
+    sw      t9, 0x0000(t7)
+    sw      r0, 0x0004(t7)
+    sll     t8, t3, 0x0002
+    li      t7, dynamic_css.preview_debounce_frames
+    addu    t7, t7, t8
+    sw      r0, 0x0000(t7)
+    li      t7, dynamic_css.preview_lifecycle_states
+    addu    t7, t7, t8
+    sw      r0, 0x0000(t7)              // publish VISIBLE last
 
 _replay:
     lw      t3, 0x006C(sp)                  // original line 1
@@ -384,6 +587,119 @@ _return:
     nop
 }
 
+scope blank_visible_preview_: {
+    lw      t3, 0x0020(sp)                  // t3 = port in native loader frame
+    sltiu   at, t3, 0x0004
+    beqz    at, _invalid_port
+    nop
+    li      t0, dynamic_css.preview_lifecycle_states
+    sll     t8, t3, 0x0002
+    addu    t0, t0, t8
+    lw      t1, 0x0000(t0)
+    lli     t2, dynamic_css.PREVIEW_STATE_VISIBLE
+    bne     t1, t2, _already_blank
+    nop
+
+    // Retire the current model slot; the frame callback reclaims it only after protection clears.
+    li      t0, dynamic_css.curr_slot_used_by_port
+    addu    t0, t0, t3
+    lb      t1, 0x0000(t0)
+    li      t4, dynamic_css.preview_retiring_slots
+    sll     t8, t3, 0x0002
+    addu    t4, t4, t8
+    sw      t1, 0x0000(t4)
+    li      t5, dynamic_css.preview_committed_records
+    sll     t8, t3, 0x0004
+    addu    t5, t5, t8
+    lw      t6, 0x0004(t5)
+    li      t4, dynamic_css.preview_retiring_character_ids
+    sll     t8, t3, 0x0002
+    addu    t4, t4, t8
+    sw      t6, 0x0000(t4)
+    addiu   t2, r0, -0x0001
+    sb      t2, 0x0000(t0)
+
+    lw      a0, 0x0008(s0)
+    beqz    a0, _teardown_done
+    nop
+    li      t0, dynamic_css.debug_preview_teardown_attempted_count
+    sll     t8, t3, 0x0002
+    addu    t0, t0, t8
+    lw      t1, 0x0000(t0)
+    addiu   t1, t1, 0x0001
+    sw      t1, 0x0000(t0)
+    jal     0x800D78E8                  // ftManagerDestroyFighter
+    nop
+    sw      r0, 0x0008(s0)
+    lw      t3, 0x0020(sp)
+    li      t0, dynamic_css.debug_preview_teardown_completed_count
+    sll     t8, t3, 0x0002
+    addu    t0, t0, t8
+    lw      t1, 0x0000(t0)
+    addiu   t1, t1, 0x0001
+    sw      t1, 0x0000(t0)
+_teardown_done:
+    sw      r0, 0x0008(s0)
+    lw      t3, 0x0020(sp)
+    li      t0, dynamic_css.preview_committed_records
+    sll     t8, t3, 0x0004
+    addu    t0, t0, t8
+    sw      r0, 0x0000(t0)              // invalidate committed preview after teardown
+    lli     t2, Character.id.NONE
+    sw      t2, 0x0048(s0)
+    lw      t0, 0x0010(s0)
+    beqz    t0, _publish_blank
+    nop
+    lli     t2, 0x0001
+    sw      t2, 0x007C(t0)
+_publish_blank:
+    li      t0, dynamic_css.preview_lifecycle_states
+    sll     t8, t3, 0x0002
+    addu    t0, t0, t8
+    lli     t2, dynamic_css.PREVIEW_STATE_BLANK_WAIT
+    sw      t2, 0x0000(t0)
+    li      t0, dynamic_css.debug_preview_blank_entered_count
+    addu    t0, t0, t8
+    lw      t1, 0x0000(t0)
+    addiu   t1, t1, 0x0001
+    sw      t1, 0x0000(t0)
+    j       0x801361E0                  // native status-clear and loader epilogue
+    nop
+_already_blank:
+    li      t0, dynamic_css.debug_preview_duplicate_teardown_suppressed_count
+    sll     t8, t3, 0x0002
+    addu    t0, t0, t8
+    lw      t1, 0x0000(t0)
+    addiu   t1, t1, 0x0001
+    sw      t1, 0x0000(t0)
+    li      t0, dynamic_css.preview_lifecycle_states
+    addu    t0, t0, t8
+    lli     t2, dynamic_css.PREVIEW_STATE_BLANK_WAIT
+    sw      t2, 0x0000(t0)
+    j       remain_blank_
+    nop
+_invalid_port:
+    j       0x801361E0
+    nop
+}
+
+scope remain_blank_: {
+    lw      t3, 0x0020(sp)
+    sltiu   at, t3, 0x0004
+    beqz    at, _return
+    nop
+    lli     t2, Character.id.NONE
+    sw      t2, 0x0048(s0)
+    lw      t0, 0x0010(s0)
+    beqz    t0, _return
+    nop
+    lli     t2, 0x0001
+    sw      t2, 0x007C(t0)
+_return:
+    j       0x801361E0
+    nop
+}
+
     // Gate before variant and ftCreateDesc derivation.
     OS.patch_start(0x134440, 0x801361C0)
     j       preview_teardown_gate_
@@ -400,6 +716,49 @@ scope preview_teardown_gate_: {
     li      t9, Sonic.classic_table
     addu    t9, t9, a1
     lbu     a2, 0x0000(t9)
+
+    li      t7, dynamic_css.preview_lifecycle_states
+    sll     t8, a1, 0x0002
+    addu    t7, t7, t8
+    lw      t4, 0x0000(t7)
+    lli     t8, dynamic_css.PREVIEW_STATE_CONSTRUCTING
+    bne     t4, t8, _normal_request
+    nop
+    li      t7, dynamic_css.preview_release_records
+    sll     t8, a1, 0x0003
+    addu    t7, t7, t8
+    lw      t4, 0x0000(t7)
+    bne     t4, a0, _release_mismatch
+    nop
+    lw      t4, 0x0004(t7)
+    bne     t4, a2, _release_mismatch
+    nop
+_construction_release:
+    b       _run_preflight
+    nop
+_release_mismatch:
+    li      t7, dynamic_css.preview_deferred_records
+    sll     t8, a1, 0x0003
+    addu    t7, t7, t8
+    sw      a0, 0x0000(t7)
+    sw      a2, 0x0004(t7)
+    li      t7, dynamic_css.preview_release_records
+    addu    t7, t7, t8
+    lli     t4, Character.id.NONE
+    sw      t4, 0x0000(t7)
+    sw      r0, 0x0004(t7)
+    li      t7, dynamic_css.preview_debounce_frames
+    sll     t8, a1, 0x0002
+    addu    t7, t7, t8
+    lli     t4, dynamic_css.PREVIEW_DEBOUNCE_FRAMES
+    sw      t4, 0x0000(t7)
+    li      t7, dynamic_css.preview_lifecycle_states
+    addu    t7, t7, t8
+    lli     t4, dynamic_css.PREVIEW_STATE_BLANK_WAIT
+    sw      t4, 0x0000(t7)
+    j       remain_blank_
+    nop
+_normal_request:
 
     // In four-player VS, debounce every valid preview request before construction.
     sltiu   at, a0, Character.NUM_CHARACTERS
@@ -432,7 +791,7 @@ scope preview_teardown_gate_: {
     lw      t4, 0x0004(t7)
     bne     t4, a2, _debounce_request_changed
     nop
-    b       _replay_without_defer           // same pending request does not restart timer
+    j       remain_blank_                   // same pending request does not restart timer
     nop
 _debounce_release:
     lw      t4, 0x0000(t7)
@@ -452,7 +811,7 @@ _debounce_request_changed:
     sw      a2, 0x0004(t7)
     lli     t4, dynamic_css.PREVIEW_DEBOUNCE_FRAMES
     sw      t4, 0x0000(t6)
-    b       _replay_without_defer
+    jal     blank_visible_preview_
     nop
 
 _cancel_pending_request:
@@ -462,11 +821,28 @@ _cancel_pending_request:
     lli     t4, Character.id.NONE
     sw      t4, 0x0000(t7)
     sw      r0, 0x0004(t7)
+    li      t7, dynamic_css.preview_release_records
+    addu    t7, t7, t8
+    sw      t4, 0x0000(t7)
+    sw      r0, 0x0004(t7)
     li      t6, dynamic_css.preview_debounce_frames
     sll     t8, a1, 0x0002
     addu    t6, t6, t8
     sw      r0, 0x0000(t6)
-    b       _run_preflight
+    li      t7, dynamic_css.preview_lifecycle_states
+    addu    t7, t7, t8
+    lw      t4, 0x0000(t7)
+    lli     t5, dynamic_css.PREVIEW_STATE_VISIBLE
+    bne     t4, t5, _cancel_remain_blank
+    nop
+    jal     all_four_preview_panels_active_
+    nop
+    beqz    v1, _run_preflight             // preserve normal 1P/2P/3P handling
+    nop
+    jal     blank_visible_preview_
+    nop
+_cancel_remain_blank:
+    j       remain_blank_
     nop
 
 _run_preflight:

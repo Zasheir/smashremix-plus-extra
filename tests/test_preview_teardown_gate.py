@@ -13,6 +13,187 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         cls.original = UPSTREAM.read_text()
         cls.source = port_preview_teardown_gate_source(cls.original)
 
+    def test_blank_lifecycle_storage_and_telemetry_are_initialized_per_port(self):
+        self.assertIn("constant PREVIEW_STATE_VISIBLE(0)", self.source)
+        self.assertIn("constant PREVIEW_STATE_BLANK_WAIT(1)", self.source)
+        self.assertIn("constant PREVIEW_STATE_BLANK_READY(2)", self.source)
+        self.assertIn("constant PREVIEW_STATE_CONSTRUCTING(3)", self.source)
+        self.assertIn("preview_lifecycle_states:; fill 0x0010", self.source)
+
+        counters = (
+            "debug_preview_blank_entered_count",
+            "debug_preview_teardown_attempted_count",
+            "debug_preview_teardown_completed_count",
+            "debug_preview_duplicate_teardown_suppressed_count",
+            "debug_preview_ready_busy_retry_count",
+            "debug_preview_construction_admitted_count",
+        )
+        for counter in counters:
+            with self.subTest(counter=counter):
+                self.assertIn(f"{counter}:; fill 0x0010", self.source)
+
+        initialization = self.source.split("scope initialize_dynamic_css_:", 1)[1].split(
+            "scope sync_slot_used_by_port:", 1
+        )[0]
+        clear = initialization.split("_clear_deferred_requests:", 1)[1].split(
+            "// This routine will run after characters load", 1
+        )[0]
+        self.assertIn("li      t4, dynamic_css.preview_lifecycle_states", initialization)
+        self.assertIn("lli     t8, dynamic_css.PREVIEW_STATE_BLANK_READY", initialization)
+        self.assertIn("sw      t8, 0x0000(t4)", clear)
+        self.assertIn("addiu   t4, t4, 0x0004", clear)
+
+        for counter in counters:
+            with self.subTest(counter=counter):
+                self.assertIn(f"li      t5, dynamic_css.{counter}", initialization)
+                self.assertIn("sw      r0, 0x0000(t5)", initialization)
+
+    def test_first_four_player_change_destroys_once_and_returns_blank(self):
+        gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split(
+            "scope dynamically_load_character_:", 1
+        )[0]
+        changed = gate.split("_debounce_request_changed:", 1)[1].split(
+            "_cancel_pending_request:", 1
+        )[0]
+        self.assertIn("sw      a0, 0x0000(t7)", changed)
+        self.assertIn("sw      a2, 0x0004(t7)", changed)
+        self.assertIn("lli     t4, dynamic_css.PREVIEW_DEBOUNCE_FRAMES", changed)
+        self.assertIn("jal     blank_visible_preview_", changed)
+        self.assertNotIn("_replay_without_defer", changed)
+
+        blank = self.source.split("scope blank_visible_preview_:", 1)[1].split(
+            "scope reclaim_retired_preview_slots_:", 1
+        )[0]
+        valid = blank.index("sltiu   at, t3, 0x0004")
+        state_write = blank.index("dynamic_css.preview_lifecycle_states")
+        self.assertLess(valid, state_write)
+        self.assertIn("lli     t2, dynamic_css.PREVIEW_STATE_VISIBLE", blank)
+        self.assertIn("bne     t1, t2, _already_blank", blank)
+        self.assertIn("lw      a0, 0x0008(s0)", blank)
+        self.assertIn("jal     0x800D78E8", blank)
+        self.assertIn("sw      r0, 0x0008(s0)", blank)
+        self.assertLess(blank.index("jal     0x800D78E8"), blank.index("sw      r0, 0x0008(s0)"))
+        self.assertIn("li      t0, dynamic_css.curr_slot_used_by_port", blank)
+        self.assertIn("sb      t2, 0x0000(t0)", blank)
+        self.assertIn("li      t4, dynamic_css.preview_retiring_slots", blank)
+        self.assertIn("li      t4, dynamic_css.preview_retiring_character_ids", blank)
+        self.assertIn("lli     t2, Character.id.NONE", blank)
+        self.assertIn("sw      t2, 0x0048(s0)", blank)
+        self.assertIn("lw      t0, 0x0010(s0)", blank)
+        self.assertIn("lli     t2, 0x0001", blank)
+        self.assertIn("sw      t2, 0x007C(t0)", blank)
+        self.assertIn("sw      r0, 0x0000(t0)              // invalidate committed preview after teardown", blank)
+        self.assertIn("lli     t2, dynamic_css.PREVIEW_STATE_BLANK_WAIT", blank)
+        self.assertIn("j       0x801361E0", blank)
+
+    def test_changes_while_blank_reset_request_without_repeating_teardown(self):
+        self.assertIn("scope blank_visible_preview_:", self.source)
+        blank = self.source.split("scope blank_visible_preview_:", 1)[1].split(
+            "scope reclaim_retired_preview_slots_:", 1
+        )[0]
+        already_blank = blank.split("_already_blank:", 1)[1]
+        self.assertNotIn("0x800D78E8", already_blank)
+        self.assertIn("dynamic_css.debug_preview_duplicate_teardown_suppressed_count", already_blank)
+        self.assertIn("j       0x801361E0", already_blank)
+
+        gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split(
+            "_debounce_request_changed:", 1
+        )[0]
+        same = gate.split("bne     t4, a2, _debounce_request_changed", 1)[1]
+        self.assertNotIn("PREVIEW_DEBOUNCE_FRAMES", same)
+        self.assertIn("j       remain_blank_", same)
+        self.assertNotIn("_replay_without_defer", gate)
+
+    def test_retired_dynamic_slot_waits_for_protection_and_owner_validation(self):
+        self.assertIn("preview_retiring_slots:; fill 0x0010", self.source)
+        self.assertIn("preview_retiring_character_ids:; fill 0x0010", self.source)
+        self.assertIn("debug_preview_retirement_busy_count:; fill 0x0010", self.source)
+        self.assertIn("debug_preview_reclamation_completed_count:; fill 0x0010", self.source)
+
+        self.assertIn("scope reclaim_retired_preview_slots_:", self.source)
+        reclaim = self.source.split("scope reclaim_retired_preview_slots_:", 1)[1].split(
+            "scope all_four_preview_panels_active_:", 1
+        )[0]
+        self.assertIn("sltiu   t9, a0, dynamic_css.ACTIVE_HEAP_COUNT", reclaim)
+        self.assertIn("li      t4, dynamic_css.slot_used_by_port", reclaim)
+        self.assertIn("lli     t5, 0x0008", reclaim)
+        self.assertIn("beq     a0, t6, _protected", reclaim)
+        self.assertIn("lw      t6, 0x0004(t7)", reclaim)
+        self.assertIn("lbu     t6, 0x0008(t7)", reclaim)
+        self.assertIn("lbu     t6, 0x0009(t7)", reclaim)
+        self.assertIn("lbu     t6, 0x000A(t7)", reclaim)
+        self.assertIn("lbu     t6, 0x000B(t7)", reclaim)
+        owner_checks = reclaim.count("beq     a1, t6, _owner_matches")
+        self.assertEqual(owner_checks, 5)
+        reset_call = reclaim.index("jal     reset_heap_slot_")
+        self.assertLess(reclaim.index("beq     a0, t6, _protected"), reset_call)
+        self.assertLess(reclaim.rindex("beq     a1, t6, _owner_matches"), reset_call)
+        self.assertIn("dynamic_css.debug_preview_retirement_busy_count", reclaim)
+        self.assertIn("dynamic_css.debug_preview_reclamation_completed_count", reclaim)
+
+        sync = self.source.split("scope sync_slot_used_by_port:", 1)[1].split(
+            "scope seed_initial_preview_records_:", 1
+        )[0]
+        copy = sync.index("sw      t1, 0x0000(t0)")
+        reclaim_call = sync.index("jal     reclaim_retired_preview_slots_")
+        retry_call = sync.index("jal     retry_deferred_preview_requests_")
+        self.assertLess(copy, reclaim_call)
+        self.assertLess(reclaim_call, retry_call)
+
+    def test_release_state_ready_busy_and_serialized_admission(self):
+        self.assertIn("preview_release_records:; fill 0x0020", self.source)
+        retry = self.source.split("scope retry_deferred_preview_requests_:", 1)[1].split(
+            "scope use_custom_heap_structs_:", 1
+        )[0]
+        self.assertIn("li      t7, dynamic_css.preview_lifecycle_states", retry)
+        self.assertIn("lli     t8, dynamic_css.PREVIEW_STATE_BLANK_READY", retry)
+        ready_store = retry.index("sw      t8, 0x0000(t7)")
+        preflight = retry.index("jal     preview_request_can_construct_")
+        self.assertLess(ready_store, preflight)
+        self.assertIn("dynamic_css.debug_preview_ready_busy_retry_count", retry)
+        self.assertIn("li      t5, dynamic_css.preview_release_records", retry)
+        self.assertIn("sw      a0, 0x0000(t5)", retry)
+        self.assertIn("sw      a2, 0x0004(t5)", retry)
+        self.assertIn("lli     t8, dynamic_css.PREVIEW_STATE_CONSTRUCTING", retry)
+        self.assertIn("dynamic_css.debug_preview_construction_admitted_count", retry)
+        self.assertEqual(retry.count("jal     0x80136128"), 1)
+        accepted = retry.split("jal     0x80136128", 1)[1].split("_next:", 1)[0]
+        self.assertIn("or      a0, r0, t3", accepted)
+        self.assertIn("jal     0x80136300", accepted)
+        self.assertIn("b       _return", accepted)
+
+    def test_nested_construction_requires_exact_release_and_mismatch_restarts_wait(self):
+        gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split(
+            "scope dynamically_load_character_:", 1
+        )[0]
+        entry = gate.split("// In four-player VS", 1)[0]
+        self.assertIn("li      t7, dynamic_css.preview_lifecycle_states", entry)
+        self.assertIn("lli     t8, dynamic_css.PREVIEW_STATE_CONSTRUCTING", entry)
+        self.assertIn("li      t7, dynamic_css.preview_release_records", entry)
+        self.assertIn("bne     t4, a0, _release_mismatch", entry)
+        self.assertIn("bne     t4, a2, _release_mismatch", entry)
+        exact = gate.split("_construction_release:", 1)[1].split("_release_mismatch:", 1)[0]
+        self.assertIn("b       _run_preflight", exact)
+        self.assertNotIn("PREVIEW_DEBOUNCE_FRAMES", exact)
+        mismatch = gate.split("_release_mismatch:", 1)[1].split("_cancel_pending_request:", 1)[0]
+        self.assertIn("sw      a0, 0x0000(t7)", mismatch)
+        self.assertIn("sw      a2, 0x0004(t7)", mismatch)
+        self.assertIn("lli     t4, dynamic_css.PREVIEW_DEBOUNCE_FRAMES", mismatch)
+        self.assertIn("lli     t4, dynamic_css.PREVIEW_STATE_BLANK_WAIT", mismatch)
+        self.assertIn("j       remain_blank_", mismatch)
+
+    def test_successful_commit_clears_pending_release_and_publishes_visible_last(self):
+        commit = self.source.split("scope preview_commit_:", 1)[1].split("_replay:", 1)[0]
+        self.assertIn("li      t7, dynamic_css.preview_deferred_records", commit)
+        self.assertIn("li      t7, dynamic_css.preview_release_records", commit)
+        self.assertIn("li      t7, dynamic_css.preview_debounce_frames", commit)
+        self.assertIn("li      t7, dynamic_css.preview_lifecycle_states", commit)
+        visible = commit.rindex("sw      r0, 0x0000(t7)              // publish VISIBLE last")
+        committed_valid = commit.index("sw      t1, 0x0000(t2)                  // publish valid last")
+        self.assertLess(committed_valid, visible)
+        self.assertLess(commit.index("dynamic_css.preview_deferred_records"), visible)
+        self.assertLess(commit.index("dynamic_css.preview_release_records"), visible)
+
     def test_css_initialization_seeds_provisional_mario_records_valid_last(self):
         initialization = self.source.split("scope initialize_dynamic_css_:", 1)[1].split(
             "scope sync_slot_used_by_port:", 1
@@ -74,7 +255,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertNotIn("lli     at, 0x0051", gate)
 
         preflight = self.source.split("scope preview_request_can_construct_:", 1)[1].split(
-            "scope preview_teardown_gate_:", 1
+            "scope blank_visible_preview_:", 1
         )[0]
         self.assertIn("li      t0, 0x80116E10", preflight)
         self.assertIn("lw      t0, 0x0028(t0)", preflight)
@@ -92,7 +273,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
 
     def test_preflight_denies_out_of_range_character_ids(self):
         preflight = self.source.split("scope preview_request_can_construct_:", 1)[1].split(
-            "scope preview_teardown_gate_:", 1
+            "scope blank_visible_preview_:", 1
         )[0]
         range_check = preflight.split("li      t0, 0x80116E10", 1)[0]
         self.assertIn("or      v1, r0, r0", range_check)
@@ -103,7 +284,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
 
     def test_preflight_denies_reserved_sentinel_ids_before_table_access(self):
         preflight = self.source.split("scope preview_request_can_construct_:", 1)[1].split(
-            "scope preview_teardown_gate_:", 1
+            "scope blank_visible_preview_:", 1
         )[0]
         validation = preflight.split("li      t0, 0x80116E10", 1)[0]
         self.assertIn("lli     t8, Character.id.PLACEHOLDER", validation)
@@ -114,14 +295,14 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertLess(validation.index("lli     t8, Character.id.NONE"), accept)
 
         gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split("_count_veto:", 1)[0]
-        queue_store = gate.index("sw      a0, 0x0000(t7)")
+        normal = gate.split("_normal_request:", 1)[1]
+        queue_store = normal.index("sw      a0, 0x0000(t7)")
         self.assertIn("_replay_without_defer:", gate)
-        self.assertIn("sltiu   at, a0, Character.NUM_CHARACTERS", gate)
-        self.assertIn("lli     t8, Character.id.PLACEHOLDER", gate)
-        self.assertIn("lli     t8, Character.id.NONE", gate)
-        self.assertEqual(gate.count("beq     a0, t8, _replay_without_defer"), 2)
-        self.assertLess(gate.index("sltiu   at, a0, Character.NUM_CHARACTERS"), queue_store)
-        self.assertLess(gate.index("lli     t8, Character.id.NONE"), queue_store)
+        self.assertIn("sltiu   at, a0, Character.NUM_CHARACTERS", normal)
+        self.assertIn("lli     t8, Character.id.PLACEHOLDER", normal)
+        self.assertIn("lli     t8, Character.id.NONE", normal)
+        self.assertLess(normal.index("sltiu   at, a0, Character.NUM_CHARACTERS"), queue_store)
+        self.assertLess(normal.index("lli     t8, Character.id.NONE"), queue_store)
 
     def test_invalid_latest_hover_cancels_stale_deferred_request(self):
         gate = self.source.split("scope preview_teardown_gate_:", 1)[1].split("_count_veto:", 1)[0]
@@ -138,7 +319,14 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertIn("li      t6, dynamic_css.preview_debounce_frames", cancel)
         self.assertIn("sll     t8, a1, 0x0002", cancel)
         self.assertIn("sw      r0, 0x0000(t6)", cancel)
-        self.assertIn("b       _run_preflight", cancel)
+        self.assertIn("li      t7, dynamic_css.preview_release_records", cancel)
+        self.assertIn("li      t7, dynamic_css.preview_lifecycle_states", cancel)
+        self.assertIn("bne     t4, t5, _cancel_remain_blank", cancel)
+        self.assertIn("jal     all_four_preview_panels_active_", cancel)
+        self.assertIn("beqz    v1, _run_preflight", cancel)
+        self.assertIn("jal     blank_visible_preview_", cancel)
+        remain = cancel.split("_cancel_remain_blank:", 1)[1]
+        self.assertIn("j       remain_blank_", remain)
 
     def test_four_player_preview_debounce_storage_and_initialization(self):
         self.assertIn("constant PREVIEW_DEBOUNCE_FRAMES(18)", self.source)
@@ -190,7 +378,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertIn("sw      a2, 0x0004(t7)", changed)
         self.assertIn("lli     t4, dynamic_css.PREVIEW_DEBOUNCE_FRAMES", changed)
         self.assertIn("sw      t4, 0x0000(t6)", changed)
-        self.assertIn("b       _replay_without_defer", changed)
+        self.assertIn("jal     blank_visible_preview_", changed)
 
     def test_debounce_expiry_keeps_preflight_and_serialized_admission(self):
         retry = self.source.split("scope retry_deferred_preview_requests_:", 1)[1].split(
@@ -201,12 +389,8 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertIn("lw      t6, 0x0000(t4)", retry)
         self.assertIn("beqz    v1, _debounce_ready", retry)
         self.assertIn("beqz    t6, _debounce_ready", retry)
-        release_guard_text = "bltz    t6, _return"
-        self.assertIn(release_guard_text, retry)
-        release_guard = retry.index(release_guard_text)
         zero_check = retry.index("beqz    t6, _debounce_ready")
         decrement = retry.index("addiu   t6, t6, -0x0001")
-        self.assertLess(release_guard, zero_check)
         self.assertLess(zero_check, decrement)
         post_decrement = (
             "addiu   t6, t6, -0x0001\n"
@@ -218,14 +402,11 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertIn("_debounce_ready:", retry)
         self.assertLess(retry.index("_debounce_ready:"), retry.index("jal     preview_request_can_construct_"))
         accepted = retry.split("sw      a0, 0x0048(t0)", 1)[1].split("_next:", 1)[0]
-        self.assertIn("addiu   t5, r0, -0x0001", accepted)
-        self.assertIn("sw      t5, 0x0000(t4)", accepted)
+        self.assertIn("li      t5, dynamic_css.preview_release_records", retry)
+        self.assertIn("lli     t8, dynamic_css.PREVIEW_STATE_CONSTRUCTING", retry)
         loader_call = "jal     0x80136128"
         self.assertIn(loader_call, accepted)
         self.assertIn("or      a0, r0, t3", accepted)
-        self.assertLess(accepted.index("sw      t5, 0x0000(t4)"), accepted.index(loader_call))
-        self.assertNotIn("sw      t5, 0x0000(t1)", accepted)
-        self.assertNotIn("sw      r0, 0x0004(t1)", accepted)
         self.assertIn("b       _return", accepted)
 
         continuation = self.source.split("_continue:", 1)[1].split("_resolve:", 1)[0]
@@ -275,18 +456,15 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertIn("jal     preview_request_can_construct_", retry)
         self.assertIn("lw      a2, 0x0004(t1)", retry)
         self.assertIn("addiu   t3, t3, 0x0001", retry)
-        self.assertIn("beqz    v1, _next", retry)
+        self.assertIn("beqz    v1, _ready_busy", retry)
         self.assertIn("sw      a0, 0x0048(t0)", retry)
         self.assertIn("sb      a2, 0x0000(t5)", retry)
         accepted = retry.split("sw      a0, 0x0048(t0)", 1)[1].split("_next:", 1)[0]
-        self.assertIn("addiu   t5, r0, -0x0001", accepted)
-        self.assertIn("sw      t5, 0x0000(t4)", accepted)
+        self.assertIn("li      t5, dynamic_css.preview_release_records", retry)
+        self.assertIn("lli     t8, dynamic_css.PREVIEW_STATE_CONSTRUCTING", retry)
         loader_call = "jal     0x80136128"
         self.assertIn(loader_call, accepted)
         self.assertIn("or      a0, r0, t3", accepted)
-        self.assertLess(accepted.index("sw      t5, 0x0000(t4)"), accepted.index(loader_call))
-        self.assertNotIn("sw      t5, 0x0000(t1)", accepted)
-        self.assertNotIn("sw      r0, 0x0004(t1)", accepted)
         self.assertIn("b       _return", accepted)
         self.assertIn("nop", accepted)
         self.assertIn("addiu   t0, t0, 0x00BC", retry)
@@ -337,7 +515,7 @@ class PreviewTeardownGateGenerationTests(unittest.TestCase):
         self.assertEqual(self.source, port_preview_teardown_gate_source(self.source))
 
     def test_obsolete_marker_fails_closed_instead_of_silently_skipping_upgrade(self):
-        self.assertIn("v3", MARKER)
+        self.assertIn("v4", MARKER)
         old = "// +EXTRA committed preview replay spike"
         invalid_sources = {
             "old": self.source.replace(MARKER, old),
