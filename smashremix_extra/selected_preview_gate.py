@@ -12,17 +12,34 @@ _SYNC_PRISTINE = """    scope sync_slot_used_by_port: {
     }
 """
 _SYNC_CANONICAL = """    scope sync_slot_used_by_port: {
+        // o32 outgoing argument home area: sp+0x00..0x0C is callee-owned.
+        addiu   sp, sp, -0x0030
+        sw      ra, 0x002C(sp)
+        sw      t2, 0x0028(sp)
+        sw      t3, 0x0024(sp)
+        li      t2, css_preview_dispatch_state
+        lw      t3, 0x0000(t2)
+        bnez    t3, _nested_return        // nested dispatch has no clock or lifecycle authority
+        nop
+        lli     t3, CSS_PREVIEW_DISPATCHING
+        sw      t3, 0x0000(t2)
+        li      t2, css_preview_frame_serial
+        lw      t3, 0x0000(t2)
+        addiu   t3, t3, 0x0001
+        sw      t3, 0x0000(t2)
         li      t0, dynamic_css.slot_used_by_port
         lw      t1, 0x0004(t0)              // curr_slot_used_by_port
         sw      t1, 0x0000(t0)              // update slot_used_by_port
-        // o32 outgoing argument home area: sp+0x00..0x0C is callee-owned.
-        addiu   sp, sp, -0x0020
-        sw      ra, 0x001C(sp)
-        jal     p1_preview_frame_
+        jal     css_preview_frame_
         nop
-        lw      ra, 0x001C(sp)
+        li      t2, css_preview_dispatch_state
+        sw      r0, 0x0000(t2)
+        _nested_return:
+        lw      t3, 0x0024(sp)
+        lw      t2, 0x0028(sp)
+        lw      ra, 0x002C(sp)
         jr      ra
-        addiu   sp, sp, 0x0020
+        addiu   sp, sp, 0x0030
     }
 """
 
@@ -62,18 +79,42 @@ _STOCK_INDICATOR_CANONICAL = """        _draw_indicator:
 _BLOCK = f"""
 
     {MARKER}
-    constant P1_PREVIEW_DEBOUNCE_FRAMES(18)
-    constant P1_PREVIEW_SUPPRESSED(0)
-    constant P1_PREVIEW_WAITING(1)
-    constant P1_PREVIEW_CONSTRUCTING(2)
-    constant P1_PREVIEW_VISIBLE(3)
+    constant CSS_PREVIEW_DEBOUNCE_FRAMES(18)
+    constant CSS_PREVIEW_SUPPRESSED(0)
+    constant CSS_PREVIEW_WAITING(1)
+    constant CSS_PREVIEW_CONSTRUCTING(2)
+    constant CSS_PREVIEW_VISIBLE(3)
+    constant CSS_PREVIEW_REVOKE_PENDING(4)
+    constant CSS_PREVIEW_DISPATCHING(1)
+    constant CSS_PREVIEW_ACTION_NONE(0)
+    constant CSS_PREVIEW_ACTION_REVOKE(1)
     constant FORCE_SELECTED_PREVIEW_OWNER_INACTIVE(0xFFFFFFFF)
+    constant CSS_PREVIEW_OWNER_INACTIVE(0xFFFFFFFF)
     forced_selected_preview_owner:
     dw FORCE_SELECTED_PREVIEW_OWNER_INACTIVE
-    p1_preview_pending_character:; dw Character.id.NONE
-    p1_preview_pending_variant:; dw 0
-    p1_preview_frame_countdown:; dw 0
-    p1_preview_state:; dw P1_PREVIEW_SUPPRESSED
+    // One serialized preview record, shared by P1/P2/P3 while the fixed prefix is open.
+    css_preview_owner:; dw CSS_PREVIEW_OWNER_INACTIVE
+    css_preview_policy_owner:; dw CSS_PREVIEW_OWNER_INACTIVE
+    css_preview_policy_generation:; dw 0
+    css_preview_request_generation:; dw 0
+    css_preview_dispatch_state:; dw 0
+    css_preview_action:; dw CSS_PREVIEW_ACTION_NONE
+    css_preview_frame_serial:; dw 0
+    css_preview_reclaim_cursor:; dw 0
+    css_preview_slot_epochs:
+    dw 0, 0, 0, 0, 0
+    css_preview_retirement_character:
+    dw 0, 0, 0, 0, 0
+    css_preview_retirement_epoch:
+    dw 0, 0, 0, 0, 0
+    css_preview_retirement_frame:
+    dw 0, 0, 0, 0, 0
+    css_preview_retirement_valid:
+    dw 0, 0, 0, 0, 0
+    css_preview_pending_character:; dw Character.id.NONE
+    css_preview_pending_variant:; dw 0
+    css_preview_frame_countdown:; dw 0
+    css_preview_state:; dw CSS_PREVIEW_SUPPRESSED
     p1_preview_suppress_depth:; dw 0
 
     OS.patch_start(0x134458, 0x801361D8)
@@ -85,6 +126,90 @@ _BLOCK = f"""
     jal     selected_preview_on_select_
     sw      v1, 0x0018(sp)              // original delay slot
     OS.patch_end()
+
+    // Pure fixed-prefix eligibility: P1..P3 must stay open in order.
+    scope ordered_preview_owner_: {{
+        li      t0, CSS_PLAYER_STRUCT
+
+        lw      t1, 0x0084(t0)          // P1 MAN/CPU state
+        sltiu   t2, t1, 0x0002
+        beqz    t2, _inactive
+        nop
+        lw      t1, 0x0058(t0)          // P1 selected
+        beqz    t1, _owner_p1
+        nop
+
+        lw      t1, 0x0140(t0)          // P2 MAN/CPU state (0xBC stride)
+        sltiu   t2, t1, 0x0002
+        beqz    t2, _inactive
+        nop
+        lw      t1, 0x0114(t0)          // P2 selected
+        beqz    t1, _owner_p2
+        nop
+
+        lw      t1, 0x01FC(t0)          // P3 MAN/CPU state (two strides)
+        sltiu   t2, t1, 0x0002
+        beqz    t2, _inactive
+        nop
+        lw      t1, 0x01D0(t0)          // P3 selected
+        beqz    t1, _owner_p3
+        nop
+
+        _inactive:
+        li      v1, CSS_PREVIEW_OWNER_INACTIVE
+        jr      ra
+        nop
+        _owner_p1:
+        li      v1, 0
+        jr      ra
+        nop
+        _owner_p2:
+        li      v1, 1
+        jr      ra
+        nop
+        _owner_p3:
+        li      v1, 2
+        jr      ra
+        nop
+    }}
+
+    // Update the one global policy epoch; invalidation only clears metadata, never a fighter object.
+    scope refresh_preview_policy_: {{
+        // o32 outgoing argument home area: sp+0x00..0x0C is callee-owned.
+        addiu   sp, sp, -0x0020
+        sw      ra, 0x001C(sp)
+        jal     ordered_preview_owner_
+        nop
+        li      t0, css_preview_policy_owner
+        lw      t1, 0x0000(t0)
+        beq     v1, t1, _return
+        nop
+        sw      v1, 0x0000(t0)
+        li      t0, css_preview_policy_generation
+        lw      t1, 0x0000(t0)
+        addiu   t1, t1, 0x0001
+        sw      t1, 0x0000(t0)
+        li      t0, css_preview_pending_character
+        lw      t1, 0x000C(t0)
+        lli     t2, CSS_PREVIEW_VISIBLE
+        beq     t1, t2, _return           // frame owns visible policy-loss teardown
+        nop
+        li      t0, css_preview_owner
+        li      t2, CSS_PREVIEW_OWNER_INACTIVE
+        sw      t2, 0x0000(t0)
+        li      t0, css_preview_pending_character
+        lli     t2, Character.id.NONE
+        sw      t2, 0x0000(t0)
+        sw      r0, 0x0004(t0)
+        sw      r0, 0x0008(t0)
+        sw      r0, 0x000C(t0)
+        li      t0, css_preview_request_generation
+        sw      r0, 0x0000(t0)
+        _return:
+        lw      ra, 0x001C(sp)
+        jr      ra
+        addiu   sp, sp, 0x0020
+    }}
 
     scope selected_preview_on_select_: {{
         sltiu   t3, a0, 0x0004           // stock puck/player index is unsigned 0..3
@@ -115,12 +240,17 @@ _BLOCK = f"""
 
         bnez    t0, _keep_p1_scheduler
         nop
-        li      t2, p1_preview_pending_character
+        li      t2, css_preview_owner
+        li      t1, CSS_PREVIEW_OWNER_INACTIVE
+        sw      t1, 0x0000(t2)
+        li      t2, css_preview_pending_character
         lli     t1, Character.id.NONE
         sw      t1, 0x0000(t2)
         sw      r0, 0x0004(t2)
         sw      r0, 0x0008(t2)
         sw      r0, 0x000C(t2)
+        li      t2, css_preview_request_generation
+        sw      r0, 0x0000(t2)
         _keep_p1_scheduler:
 
         li      t2, forced_selected_preview_owner
@@ -129,6 +259,9 @@ _BLOCK = f"""
         or      a0, t0, r0
         sw      t0, 0x0000(t2)           // exact held player owns this forced stock update
         jal     0x80136128              // stock mnPlayersVSUpdateFighter
+        nop
+        lw      a0, 0x0028(sp)          // exact held player after native successful construction
+        jal     record_dynamic_slot_binding_
         nop
         li      t2, forced_selected_preview_owner
         lw      t1, 0x0024(sp)
@@ -142,6 +275,8 @@ _BLOCK = f"""
         nop
         sw      v0, 0x0020(sp)           // preserve native selection results across optional cleanup
         sw      v1, 0x001C(sp)
+        jal     refresh_preview_policy_   // selection can advance P1->P2 or P2->P3
+        nop
 
         lw      t0, 0x0028(sp)          // held player index
         li      t1, CSS_PLAYER_STRUCT
@@ -200,6 +335,22 @@ _BLOCK = f"""
         multu   a1, t1
         mflo    t1
         addu    t0, t0, t1
+        // The policy is refreshed for every native gate call, including P1.
+        // o32 outgoing argument home area: sp+0x00..0x0C is callee-owned.
+        addiu   sp, sp, -0x0040
+        sw      ra, 0x003C(sp)
+        sw      a0, 0x0038(sp)
+        sw      a1, 0x0034(sp)
+        sw      v0, 0x0030(sp)
+        sw      t0, 0x002C(sp)
+        jal     refresh_preview_policy_
+        nop
+        lw      t0, 0x002C(sp)
+        lw      v0, 0x0030(sp)
+        lw      a1, 0x0034(sp)
+        lw      a0, 0x0038(sp)
+        lw      ra, 0x003C(sp)
+        addiu   sp, sp, 0x0040
         lw      t2, 0x0058(t0)          // panel is_selected
         bnez    a1, _non_p1
         nop
@@ -210,12 +361,29 @@ _BLOCK = f"""
         nop
         li      t3, forced_selected_preview_owner
         lw      t3, 0x0000(t3)
-        beq     a1, t3, _allow           // only this player may bypass an unselected gate
+        beq     a1, t3, _allow           // forced stock selection may bypass this gate
         nop
-        beqz    a0, _return
+        sltiu   t5, v1, 0x0003           // P1/P2/P3 can own the one global record.
+        beqz    t5, _hide_p1_hover
         nop
-        lli     t2, 0x0001
-        sw      t2, 0x007C(a0)          // hide retained preview GObj
+        bne     a1, v1, _hide_p1_hover
+        nop
+        lw      t3, 0x0084(t0)
+        sltiu   t4, t3, 0x0002
+        beqz    t4, _hide_p1_hover
+        nop
+        lw      t3, 0x0048(t0)
+        sltiu   t4, t3, Character.NUM_CHARACTERS
+        beqz    t4, _hide_p1_hover
+        nop
+        lli     t4, Character.id.PLACEHOLDER
+        beq     t3, t4, _hide_p1_hover
+        nop
+        lli     t4, Character.id.NONE
+        beq     t3, t4, _hide_p1_hover
+        nop
+        b       _schedule
+        nop
 
         _return:
         jr      ra
@@ -246,18 +414,29 @@ _BLOCK = f"""
         lli     t4, Character.id.NONE
         beq     t3, t4, _cancel_p1
         nop
-        li      t2, p1_preview_pending_character
+        _schedule:
+        li      t2, css_preview_pending_character
+        li      t5, css_preview_owner
+        lw      t4, 0x0000(t5)
+        bne     a1, t4, _restart
+        nop
         lw      t4, 0x0000(t2)
         bne     t3, t4, _restart
         nop
         lw      t4, 0x0004(t2)
         bne     v0, t4, _restart         // hook-time resolved variant is part of the request
         nop
+        li      t5, css_preview_policy_generation
+        lw      t4, 0x0000(t5)
+        li      t5, css_preview_request_generation
+        lw      t5, 0x0000(t5)
+        bne     t4, t5, _restart          // every debounced request is bound to one policy epoch
+        nop
         lw      t4, 0x000C(t2)
-        lli     t5, P1_PREVIEW_CONSTRUCTING
+        lli     t5, CSS_PREVIEW_CONSTRUCTING
         beq     t4, t5, _allow            // nested exact loader construction releases only itself
         nop
-        lli     t5, P1_PREVIEW_VISIBLE
+        lli     t5, CSS_PREVIEW_VISIBLE
         beq     t4, t5, _allow
         nop
         // Exact WAITING requests are denied without advancing time; render owns the clock.
@@ -265,12 +444,18 @@ _BLOCK = f"""
         nop
 
         _restart:
+        li      t5, css_preview_owner
+        sw      a1, 0x0000(t5)
         sw      t3, 0x0000(t2)
         sw      v0, 0x0004(t2)
-        lli     t4, P1_PREVIEW_DEBOUNCE_FRAMES
+        lli     t4, CSS_PREVIEW_DEBOUNCE_FRAMES
         sw      t4, 0x0008(t2)
-        lli     t4, P1_PREVIEW_WAITING
+        lli     t4, CSS_PREVIEW_WAITING
         sw      t4, 0x000C(t2)
+        li      t5, css_preview_policy_generation
+        lw      t4, 0x0000(t5)
+        li      t5, css_preview_request_generation
+        sw      t4, 0x0000(t5)
         b       _hide_p1_hover
         nop
 
@@ -283,22 +468,32 @@ _BLOCK = f"""
         nop
 
         _cancel_and_allow:
-        li      t2, p1_preview_pending_character
+        li      t5, css_preview_owner
+        li      t4, CSS_PREVIEW_OWNER_INACTIVE
+        sw      t4, 0x0000(t5)
+        li      t2, css_preview_pending_character
         lli     t4, Character.id.NONE
         sw      t4, 0x0000(t2)
         sw      r0, 0x0004(t2)
         sw      r0, 0x0008(t2)
         sw      r0, 0x000C(t2)
+        li      t5, css_preview_request_generation
+        sw      r0, 0x0000(t5)
         b       _allow
         nop
 
         _cancel_p1:
-        li      t2, p1_preview_pending_character
+        li      t5, css_preview_owner
+        li      t4, CSS_PREVIEW_OWNER_INACTIVE
+        sw      t4, 0x0000(t5)
+        li      t2, css_preview_pending_character
         lli     t4, Character.id.NONE
         sw      t4, 0x0000(t2)
         sw      r0, 0x0004(t2)
         sw      r0, 0x0008(t2)
         sw      r0, 0x000C(t2)
+        li      t5, css_preview_request_generation
+        sw      r0, 0x0000(t5)
         beqz    a0, _return
         nop
         lli     t4, 0x0001
@@ -312,10 +507,10 @@ _BLOCK = f"""
     }}
 
     // Render callback: frame clock for stationary P1 hover debounce.
-    scope p1_preview_frame_: {{
+    scope css_preview_frame_: {{
         // o32 outgoing argument home area: sp+0x00..0x0C is callee-owned.
-        addiu   sp, sp, -0x0050
-        sw      ra, 0x004C(sp)
+        addiu   sp, sp, -0x0080
+        sw      ra, 0x007C(sp)
         sw      at, 0x0048(sp)
         sw      a0, 0x0044(sp)
         sw      a1, 0x0040(sp)
@@ -332,12 +527,132 @@ _BLOCK = f"""
         sw      t8, 0x0014(sp)
         sw      t9, 0x0010(sp)
 
-        li      t2, p1_preview_pending_character
+        jal     reclaim_retired_slot_
+        nop
+        bnez    v0, _return                // reset/stale abandonment owns this callback
+        nop
+
+        jal     refresh_preview_policy_   // prerequisite changes invalidate metadata before ticking
+        nop
+
+        li      t2, css_preview_pending_character
         lw      t3, 0x000C(t2)
-        lli     t4, P1_PREVIEW_WAITING
+        lli     t4, CSS_PREVIEW_VISIBLE
+        beq     t3, t4, _visible
+        nop
+        lli     t4, CSS_PREVIEW_WAITING
         bne     t3, t4, _return
         nop
+        b       _waiting
+        nop
+
+        _visible:
+        li      t4, css_preview_owner
+        lw      t5, 0x0000(t4)
+        sltiu   t6, t5, 0x0003
+        beqz    t6, _clear
+        nop
+        li      t6, css_preview_policy_owner
+        lw      t6, 0x0000(t6)
+        beq     t5, t6, _return           // owner remains eligible
+        nop
         li      t4, CSS_PLAYER_STRUCT
+        lli     t6, 0x00BC
+        multu   t5, t6
+        mflo    t6
+        addu    t4, t4, t6
+        lw      t6, 0x0058(t4)
+        bnez    t6, _return                // selected later fighters are never revoked
+        nop
+        lw      t6, 0x0088(t4)
+        bnez    t6, _return                // explicit selected state is also required
+        nop
+        lw      t6, 0x0008(t4)
+        beqz    t6, _clear                 // inconsistent visible-null has no allocator ownership
+        nop
+        // Capture all teardown inputs before the destructor mutates anything.
+        sw      t4, 0x0050(sp)             // panel
+        sw      t6, 0x0054(sp)             // fighter GObj
+        sw      t5, 0x0068(sp)             // exact owner; never reload mutable global after jal
+        lw      t7, 0x0048(t4)
+        sw      t7, 0x0058(sp)             // retained hover ID
+        li      t7, dynamic_css.curr_slot_used_by_port
+        addu    t7, t7, t5
+        lb      t7, 0x0000(t7)
+        sw      t7, 0x005C(sp)             // signed current dynamic slot
+        sltiu   t8, t7, dynamic_css.ACTIVE_HEAP_COUNT
+        beqz    t8, _capture_frame
+        nop
+        sll     t8, t7, 0x0002
+        li      t9, css_preview_slot_epochs
+        addu    t9, t9, t8
+        lw      t9, 0x0000(t9)
+        sw      t9, 0x0060(sp)
+        _capture_frame:
+        li      t9, css_preview_frame_serial
+        lw      t9, 0x0000(t9)
+        sw      t9, 0x0064(sp)
+        lli     t8, CSS_PREVIEW_REVOKE_PENDING
+        sw      t8, 0x000C(t2)
+        li      t8, css_preview_action
+        lli     t9, CSS_PREVIEW_ACTION_REVOKE
+        sw      t9, 0x0000(t8)
+        lw      a0, 0x0054(sp)
+        jal     0x800D78E8
+        nop
+        li      t2, css_preview_pending_character // external destructor may clobber caller-saved t2
+        lw      t4, 0x0050(sp)
+        lw      t5, 0x005C(sp)
+        sw      r0, 0x0008(t4)
+        lw      t6, 0x0068(sp)             // captured teardown owner
+        li      t4, dynamic_css.curr_slot_used_by_port
+        addu    t4, t4, t6
+        lli     t6, -1
+        sb      t6, 0x0000(t4)
+        sltiu   t6, t5, dynamic_css.ACTIVE_HEAP_COUNT
+        beqz    t6, _clear
+        nop
+        sll     t5, t5, 0x0002
+        li      t4, css_preview_retirement_character
+        addu    t4, t4, t5
+        lw      t6, 0x0058(sp)
+        sw      t6, 0x0000(t4)
+        li      t4, css_preview_retirement_epoch
+        addu    t4, t4, t5
+        lw      t6, 0x0060(sp)
+        sw      t6, 0x0000(t4)
+        li      t4, css_preview_retirement_frame
+        addu    t4, t4, t5
+        lw      t6, 0x0064(sp)
+        sw      t6, 0x0000(t4)
+        li      t4, css_preview_retirement_valid
+        addu    t4, t4, t5
+        lli     t6, 0x0001
+        sw      t6, 0x0000(t4)          // valid last
+        b       _clear
+        nop
+
+        _waiting:
+        li      t4, css_preview_owner
+        lw      t5, 0x0000(t4)
+        sltiu   t6, t5, 0x0003
+        beqz    t6, _clear
+        nop
+        li      t6, css_preview_policy_owner
+        lw      t6, 0x0000(t6)
+        bne     t5, t6, _clear            // request owner must remain the current policy owner
+        nop
+        li      t6, css_preview_policy_generation
+        lw      t6, 0x0000(t6)
+        li      t7, css_preview_request_generation
+        lw      t7, 0x0000(t7)
+        bne     t6, t7, _clear            // request epoch must remain the current policy epoch
+        nop
+        li      t4, CSS_PLAYER_STRUCT
+        lli     t6, 0x00BC
+        multu   t5, t6
+        mflo    t6
+        addu    t4, t4, t6
         lw      t5, 0x0058(t4)
         bnez    t5, _clear
         nop
@@ -360,17 +675,38 @@ _BLOCK = f"""
         sw      t5, 0x0008(t2)
         bnez    t5, _return
         nop
-        lli     t5, P1_PREVIEW_CONSTRUCTING
+        lli     t5, CSS_PREVIEW_CONSTRUCTING
         sw      t5, 0x000C(t2)
+        li      t6, css_preview_owner
+        lw      t6, 0x0000(t6)
         jal     0x80136128              // proven native per-port loader
-        or      a0, r0, r0               // P1, safe single-instruction delay slot
+        or      a0, t6, r0               // serialized record owner, safe single-instruction delay slot
 
-        li      t2, p1_preview_pending_character
+        li      t2, css_preview_pending_character
         lw      t3, 0x000C(t2)
-        lli     t4, P1_PREVIEW_CONSTRUCTING
+        lli     t4, CSS_PREVIEW_CONSTRUCTING
         bne     t3, t4, _return          // nested mismatch preserved newest request
         nop
+        li      t4, css_preview_owner
+        lw      t5, 0x0000(t4)
+        sltiu   t6, t5, 0x0003
+        beqz    t6, _clear
+        nop
+        li      t6, css_preview_policy_owner
+        lw      t6, 0x0000(t6)
+        bne     t5, t6, _clear            // request owner must remain the current policy owner
+        nop
+        li      t6, css_preview_policy_generation
+        lw      t6, 0x0000(t6)
+        li      t7, css_preview_request_generation
+        lw      t7, 0x0000(t7)
+        bne     t6, t7, _clear            // request epoch must remain the current policy epoch
+        nop
         li      t4, CSS_PLAYER_STRUCT
+        lli     t6, 0x00BC
+        multu   t5, t6
+        mflo    t6
+        addu    t4, t4, t6
         lw      t5, 0x0058(t4)
         bnez    t5, _clear
         nop
@@ -386,20 +722,32 @@ _BLOCK = f"""
         lw      t6, 0x0004(t2)
         bne     t5, t6, _clear
         nop
-        lw      t5, 0x0008(t4)
+        lw      t5, 0x0008(t4)          // native load must publish this owner's fighter object
         beqz    t5, _clear
         nop
-        lli     t5, P1_PREVIEW_VISIBLE
+        li      a0, css_preview_owner
+        lw      a0, 0x0000(a0)
+        jal     record_dynamic_slot_binding_
+        nop
+        _publish_visible:
+        lli     t5, CSS_PREVIEW_VISIBLE
         sw      t5, 0x000C(t2)
         b       _return
         nop
 
         _clear:
+        li      t4, css_preview_owner
+        li      t3, CSS_PREVIEW_OWNER_INACTIVE
+        sw      t3, 0x0000(t4)
         lli     t3, Character.id.NONE
         sw      t3, 0x0000(t2)
         sw      r0, 0x0004(t2)
         sw      r0, 0x0008(t2)
         sw      r0, 0x000C(t2)
+        li      t4, css_preview_request_generation
+        sw      r0, 0x0000(t4)
+        li      t4, css_preview_action
+        sw      r0, 0x0000(t4)
         _return:
         lw      t9, 0x0010(sp)
         lw      t8, 0x0014(sp)
@@ -416,9 +764,163 @@ _BLOCK = f"""
         lw      a1, 0x0040(sp)
         lw      a0, 0x0044(sp)
         lw      at, 0x0048(sp)
-        lw      ra, 0x004C(sp)
+        lw      ra, 0x007C(sp)
         jr      ra
-        addiu   sp, sp, 0x0050
+        addiu   sp, sp, 0x0080
+    }}
+
+    // The only epoch writer: successful native construction binds this panel to an active slot.
+    scope record_dynamic_slot_binding_: {{
+        sltiu   t0, a0, 0x0004
+        beqz    t0, _return
+        nop
+        li      t0, CSS_PLAYER_STRUCT
+        lli     t1, 0x00BC
+        multu   a0, t1
+        mflo    t1
+        addu    t0, t0, t1
+        lw      t1, 0x0008(t0)
+        beqz    t1, _return                // native path did not publish a fighter object
+        nop
+        li      t0, dynamic_css.curr_slot_used_by_port
+        addu    t0, t0, a0
+        lb      t1, 0x0000(t0)
+        sltiu   t0, t1, dynamic_css.ACTIVE_HEAP_COUNT
+        beqz    t0, _return                // signed -1/preloaded and corrupt slots have no epoch
+        nop
+        sll     t1, t1, 0x0002
+        li      t0, css_preview_slot_epochs
+        addu    t0, t0, t1
+        lw      t1, 0x0000(t0)
+        addiu   t1, t1, 0x0001
+        sw      t1, 0x0000(t0)
+        _return:
+        jr      ra
+        nop
+    }}
+
+    // Inspect exactly one retired dynamic slot per outer callback.  v0=1 consumes it.
+    scope reclaim_retired_slot_: {{
+        // o32 outgoing argument home area: sp+0x00..0x0C is callee-owned.
+        addiu   sp, sp, -0x0030
+        sw      ra, 0x002C(sp)
+        sw      a0, 0x0028(sp)
+        sw      t0, 0x0024(sp)
+        sw      t1, 0x0020(sp)
+        li      t0, css_preview_reclaim_cursor
+        lw      a0, 0x0000(t0)
+        sltiu   t1, a0, dynamic_css.ACTIVE_HEAP_COUNT
+        bnez    t1, _cursor_valid
+        nop
+        or      a0, r0, r0                 // corrupted cursor clamps before any slot-array access
+        _cursor_valid:
+        sw      a0, 0x001C(sp)
+        addiu   t1, a0, 0x0001
+        sltiu   t2, t1, dynamic_css.ACTIVE_HEAP_COUNT
+        bnez    t2, _store_cursor
+        nop
+        or      t1, r0, r0
+        _store_cursor:
+        sw      t1, 0x0000(t0)
+        sll     t1, a0, 0x0002
+        li      t0, css_preview_retirement_valid
+        addu    t0, t0, t1
+        lw      t2, 0x0000(t0)
+        beqz    t2, _normal
+        nop
+        sw      t0, 0x0018(sp)            // validity address/token; clear before reset
+        li      t0, css_preview_retirement_frame
+        addu    t0, t0, t1
+        lw      t2, 0x0000(t0)
+        li      t3, css_preview_frame_serial
+        lw      t3, 0x0000(t3)
+        subu    t4, t3, t2                  // modular age = current - retirement
+        beqz    t4, _normal                 // same frame remains pending
+        nop
+        lui     t5, 0x8000
+        sltu    t4, t4, t5
+        beqz    t4, _normal                 // future/half-range-or-older remains pending
+        nop
+        li      t0, dynamic_css.slot_used_by_port
+        lbu     t2, 0x0000(t0)
+        beq     t2, a0, _normal
+        nop
+        lbu     t2, 0x0001(t0)
+        beq     t2, a0, _normal
+        nop
+        lbu     t2, 0x0002(t0)
+        beq     t2, a0, _normal
+        nop
+        lbu     t2, 0x0003(t0)
+        beq     t2, a0, _normal
+        nop
+        li      t0, dynamic_css.curr_slot_used_by_port
+        lbu     t2, 0x0000(t0)
+        beq     t2, a0, _normal
+        nop
+        lbu     t2, 0x0001(t0)
+        beq     t2, a0, _normal
+        nop
+        lbu     t2, 0x0002(t0)
+        beq     t2, a0, _normal
+        nop
+        lbu     t2, 0x0003(t0)
+        beq     t2, a0, _normal
+        nop
+        sll     t1, a0, 0x0002
+        li      t0, css_preview_retirement_epoch
+        addu    t0, t0, t1
+        lw      t2, 0x0000(t0)
+        li      t0, css_preview_slot_epochs
+        addu    t0, t0, t1
+        lw      t3, 0x0000(t0)
+        bne     t2, t3, _abandon
+        nop
+        li      t0, css_preview_retirement_character
+        addu    t0, t0, t1
+        lw      t2, 0x0000(t0)
+        sll     t1, a0, 0x0004
+        li      t0, dynamic_css.heap_slot_0
+        addu    t0, t0, t1
+        lw      t3, 0x0004(t0)
+        beq     t2, t3, _reset
+        nop
+        lbu     t3, 0x0008(t0)
+        beq     t2, t3, _reset
+        nop
+        lbu     t3, 0x0009(t0)
+        beq     t2, t3, _reset
+        nop
+        lbu     t3, 0x000A(t0)
+        beq     t2, t3, _reset
+        nop
+        lbu     t3, 0x000B(t0)
+        beq     t2, t3, _reset
+        nop
+        _abandon:
+        lw      t0, 0x0018(sp)
+        sw      r0, 0x0000(t0)
+        lli     v0, 0x0001
+        b       _return
+        nop
+        _reset:
+        lw      t0, 0x0018(sp)
+        sw      r0, 0x0000(t0)             // nested reset cannot duplicate or erase newer data
+        lw      a0, 0x001C(sp)
+        jal     reset_heap_slot_
+        nop
+        lli     v0, 0x0001
+        b       _return
+        nop
+        _normal:
+        or      v0, r0, r0
+        _return:
+        lw      t1, 0x0020(sp)
+        lw      t0, 0x0024(sp)
+        lw      a0, 0x0028(sp)
+        lw      ra, 0x002C(sp)
+        jr      ra
+        addiu   sp, sp, 0x0030
     }}
 """
 
