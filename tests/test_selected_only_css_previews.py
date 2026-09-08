@@ -640,6 +640,182 @@ def test_global_record_schedules_p3_after_selected_p1_p2_for_exact_18_frame_life
     assert h.global_record() == (2, 0x31, 2, 0, 3)
 
 
+def test_p4_gate_is_denied_until_fixed_prefix_selects_then_admits_policy_owner_three():
+    h = PreviewAsm(transformed())
+    h.set_panel(0x3A, 5, player=3, selected=0)
+    assert not h.call_gate(player=3)
+    assert h.global_record() == (0xFFFFFFFF, 0xFF, 0, 0, 0)
+
+    for player in range(3):
+        h.set_panel(0x20 + player, player, player=player, selected=1)
+    assert h.call_ordered_owner() == 3
+    assert not h.call_gate(player=3)
+    assert h.global_record() == (3, 0x3A, 5, 18, 1)
+
+
+def test_p4_debounce_keeps_identical_request_and_restarts_character_or_variant():
+    h = PreviewAsm(transformed())
+    for player in range(3):
+        h.set_panel(0x20 + player, player, player=player, selected=1)
+    h.set_panel(0x3A, 5, player=3, selected=0)
+    h.call_gate(player=3)
+    assert h.global_record() == (3, 0x3A, 5, 18, 1)
+    h.frame()
+    assert h.global_record() == (3, 0x3A, 5, 17, 1)
+    h.call_gate(player=3)
+    assert h.global_record() == (3, 0x3A, 5, 17, 1)
+    h.set_panel(0x3B, 5, player=3, selected=0)
+    h.call_gate(player=3)
+    assert h.global_record() == (3, 0x3B, 5, 18, 1)
+    h.frame()
+    h.set_panel(0x3B, 6, player=3, selected=0)
+    h.call_gate(player=3)
+    assert h.global_record() == (3, 0x3B, 6, 18, 1)
+
+
+def test_p4_expiry_uses_native_loader_once_with_owner_and_revalidation():
+    h = PreviewAsm(transformed())
+    for player in range(3):
+        h.set_panel(0x20 + player, player, player=player, selected=1)
+    h.set_panel(0x3A, 5, player=3, selected=0)
+    h.call_gate(player=3)
+    for _ in range(18):
+        h.frame()
+    assert h.loads == 1 and h.load_ports == [3]
+    assert h.global_record() == (3, 0x3A, 5, 0, 3)
+    assert h.mem[h.symbols["CSS_PLAYER_STRUCT"] + 3 * 0xBC + 8] == 0xA0000000
+
+    stale = PreviewAsm(transformed(), post_gate_mismatch=lambda x: x.mem.__setitem__(
+        x.symbols["css_preview_policy_generation"], 99
+    ))
+    for player in range(3):
+        stale.set_panel(0x20 + player, player, player=player, selected=1)
+    stale.set_panel(0x3A, 5, player=3, selected=0)
+    stale.call_gate(player=3)
+    for _ in range(18):
+        stale.frame()
+    assert stale.loads == 1 and stale.load_ports == [3]
+    assert_scheduler_metadata_cleared(stale)
+
+
+def test_selecting_visible_p4_preserves_fighter_and_advances_policy_inactive():
+    h = PreviewAsm(transformed())
+    panel = seed_visible_preview(h, owner=3, character=0x3A, slot=2, epoch=0x44)
+    result = h.call_select(3, held=3, selected=1)
+    assert (result["v0"], result["v1"]) == h.native_selection_returns
+    assert h.policy()[0] == 0xFFFFFFFF
+    assert h.destroy_calls == []
+    assert h.mem[panel + 8] == 0xA0000000
+    h.frame()
+    assert h.global_record()[0] == 3
+    assert h.destroy_calls == [] and h.mem[panel + 8] == 0xA0000000
+
+
+def test_stationary_unselected_p4_revokes_through_destroy_before_clear_on_prerequisite_loss():
+    h = PreviewAsm(transformed())
+    panel = seed_visible_preview(h, owner=3, character=0x3A, slot=2, epoch=0x44)
+    p2 = h.symbols["CSS_PLAYER_STRUCT"] + 0xBC
+    h.mem[p2 + 0x58] = h.mem[p2 + 0x88] = 0
+    h.frame()
+    assert len(h.destroy_calls) == 1
+    call = h.destroy_calls[0]
+    assert call["panel"] == panel and call["a0"] == 0xA0B0C0D0
+    assert h.events.index(("destroy", call)) < h.events.index(("sw", panel + 8, 0))
+    assert h.mem[panel + 8] == 0 and retirement(h, 2)[:2] == (0x3A, 0x44)
+    assert_scheduler_metadata_cleared(h)
+
+
+def test_p4_dynamic_retirement_publishes_valid_last_and_reclaims_with_existing_checks():
+    h = PreviewAsm(transformed())
+    seed_visible_preview(h, owner=3, character=0x3A, slot=2, epoch=0x44)
+    h.seed_heap_slot(2, 0x3A)
+    p2 = h.symbols["CSS_PLAYER_STRUCT"] + 0xBC
+    h.mem[p2 + 0x58] = h.mem[p2 + 0x88] = 0
+    h.frame()
+    assert retirement(h, 2)[3] == 1
+    assert h.reset_calls == []
+    h.seed_protections()
+    h.frame(); h.frame()
+    assert [call["a0"] for call in h.reset_calls] == [2]
+    assert retirement(h, 2)[3] == 0
+
+
+@pytest.mark.parametrize("variant", (0, 6), ids=("a", "c"))
+def test_forced_p4_selection_without_hover_records_shared_dynamic_binding_epoch(variant):
+    h = PreviewAsm(transformed())
+    for player in range(3):
+        h.set_panel(0x20 + player, player, player=player, selected=1)
+    h.set_panel(0x3A, variant, player=3, selected=0)
+    h.mem.write_byte(h.symbols["dynamic_css.curr_slot_used_by_port"] + 3, 1)
+    assert h.mem[h.symbols["CSS_PLAYER_STRUCT"] + 3 * 0xBC + 8] == 0
+    h.call_select(3, held=3, selected=1)
+    assert h.mem[h.symbols["css_preview_slot_epochs"] + 4] == 1
+
+
+def test_p4_nested_loader_destructor_and_reset_callbacks_cannot_gain_lifecycle_authority():
+    loader = PreviewAsm(transformed(), mismatch=lambda x: x.frame())
+    for player in range(3):
+        loader.set_panel(0x20 + player, player, player=player, selected=1)
+    loader.set_panel(0x3A, 5, player=3, selected=0)
+    loader.call_gate(player=3)
+    for _ in range(18): loader.frame()
+    assert loader.loads == 1 and loader.events.count("nested_frame") == 1
+
+    destroy = PreviewAsm(transformed(), destroy_mutation=lambda x: x.frame())
+    seed_visible_preview(destroy, owner=3, character=0x3A, slot=2, epoch=0x44)
+    p2 = destroy.symbols["CSS_PLAYER_STRUCT"] + 0xBC
+    destroy.mem[p2 + 0x58] = destroy.mem[p2 + 0x88] = 0
+    destroy.frame()
+    assert len(destroy.destroy_calls) == 1 and destroy.events.count("nested_frame") == 1
+
+    reset = PreviewAsm(transformed(), reset_mutation=lambda x: x.frame())
+    reset.seed_heap_slot(2, 0x3A); reset.seed_protections(); seed_retirement(reset, 2, 0x3A, epoch=0x44)
+    reset.mem[reset.symbols["css_preview_reclaim_cursor"]] = 2
+    reset.frame()
+    assert [call["a0"] for call in reset.reset_calls] == [2]
+    assert reset.events.count("nested_frame") == 1
+
+
+def test_each_widened_owner_bound_mutation_breaks_its_p4_path_but_not_p1_p3_controls():
+    source = transformed()
+    targets = {
+        "gate": "        sltiu   t5, v1, 0x0004           // P1/P2/P3/P4 can own the one global record.\n",
+        "visible": "        _visible:\n        li      t4, css_preview_owner\n        lw      t5, 0x0000(t4)\n        sltiu   t6, t5, 0x0004\n",
+        "waiting": "        _waiting:\n        li      t4, css_preview_owner\n        lw      t5, 0x0000(t4)\n        sltiu   t6, t5, 0x0004\n",
+        "constructing": "        lli     t4, CSS_PREVIEW_CONSTRUCTING\n        bne     t3, t4, _return          // nested mismatch preserved newest request\n        nop\n        li      t4, css_preview_owner\n        lw      t5, 0x0000(t4)\n        sltiu   t6, t5, 0x0004\n",
+    }
+
+    def p4(asm, phase):
+        h = PreviewAsm(asm)
+        for player in range(3):
+            h.set_panel(0x20 + player, player, player=player, selected=1)
+        h.set_panel(0x3A, 5, player=3, selected=0)
+        if phase == "visible":
+            seed_visible_preview(h, owner=3, character=0x3A, slot=2, epoch=0x44)
+            h.frame()
+            return h.global_record()[0] == 3
+        h.call_gate(player=3)
+        if phase == "gate":
+            return h.global_record()[0] == 3
+        h.frame()
+        if phase == "waiting":
+            return h.global_record()[-2:] == (17, 1)
+        for _ in range(17): h.frame()
+        return h.global_record() == (3, 0x3A, 5, 0, 3)
+
+    for phase, target in targets.items():
+        assert source.count(target) == 1, phase
+        mutated = source.replace(target, target.replace("0x0004", "0x0003"), 1)
+        with pytest.raises(AssertionError):
+            assert p4(mutated, phase)
+        control = PreviewAsm(mutated)
+        control.set_panel(0x20, 0, player=0, selected=1)
+        control.set_panel(0x21, 1, player=1, selected=1)
+        control.set_panel(0x31, 2, player=2, selected=0)
+        control.call_gate(player=2)
+        assert control.global_record()[0] == 2
+
+
 def test_p1_then_p2_selection_handoffs_preserve_selected_objects_and_advance_policy_generation():
     h = PreviewAsm(transformed())
     h.call_gate()
@@ -998,7 +1174,13 @@ def test_o32_callee_home_spills_do_not_corrupt_saved_state_or_return_links():
     assert h.home_spills >= 4
 
 
-@pytest.mark.parametrize("states", [(p1, p2, p3) for p1 in (0, 1) for p2 in (0, 1) for p3 in (0, 1)])
+@pytest.mark.parametrize("states", [
+    (p1, p2, p3, p4)
+    for p1 in (0, 1)
+    for p2 in (0, 1)
+    for p3 in (0, 1)
+    for p4 in (0, 1)
+])
 def test_ordered_preview_owner_executes_all_selection_combinations_for_open_prefix(states):
     h = PreviewAsm(transformed())
     for player, state in enumerate(states):
@@ -1006,50 +1188,58 @@ def test_ordered_preview_owner_executes_all_selection_combinations_for_open_pref
     for flags in range(16):
         selected = tuple((flags >> player) & 1 for player in range(4))
         for player, value in enumerate(selected):
-            h.set_panel(0x20 + player, 0, player=player, selected=value, state=(states + (0,))[player])
-        expected = next((player for player in range(3) if not selected[player]), 0xFFFFFFFF)
+            h.set_panel(0x20 + player, 0, player=player, selected=value, state=states[player])
+        expected = next((player for player in range(4) if not selected[player]), 0xFFFFFFFF)
         assert h.call_ordered_owner() == expected
 
 
 def test_ordered_preview_owner_closed_prefix_is_never_skipped():
     cases = (
-        ((0, 0, 0), (2, 0, 0)),
-        ((1, 0, 0), (0, 2, 0)),
-        ((1, 1, 0), (1, 0, 2)),
+        ((0, 0, 0, 0), (2, 0, 0, 0)),
+        ((1, 0, 0, 0), (0, 2, 0, 0)),
+        ((1, 1, 0, 0), (0, 0, 2, 0)),
     )
     for selected, states in cases:
         h = PreviewAsm(transformed())
-        for player in range(3):
+        for player in range(4):
             h.set_panel(0x20 + player, 0, player=player, selected=selected[player], state=states[player])
         assert h.call_ordered_owner() == 0xFFFFFFFF
 
 
 @pytest.mark.parametrize("p4_selected", (0, 1))
-@pytest.mark.parametrize("p4_state", (0, 1, 2), ids=("man", "cpu", "closed"))
-def test_ordered_preview_owner_is_inactive_regardless_of_p4_state_or_selection(p4_selected, p4_state):
+def test_ordered_preview_owner_is_inactive_when_p4_is_closed(p4_selected):
     h = PreviewAsm(transformed())
+    for player in range(3):
+        h.set_panel(0x20 + player, 0, player=player, selected=1, state=0)
+    h.set_panel(0x23, 0, player=3, selected=p4_selected, state=2)
+    assert h.call_ordered_owner() == 0xFFFFFFFF
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "p4_selected", "p4_state", "expected"),
+    (
+        ("lw      t1, 0x02B8(t0)", "li      t1, 0", 0, 2, 0xFFFFFFFF),
+        ("lw      t1, 0x028C(t0)", "li      t1, 0", 1, 0, 0xFFFFFFFF),
+        ("li      v1, 3", "li      v1, 2", 0, 0, 3),
+    ),
+)
+def test_ordered_preview_owner_p4_reads_and_owner_are_mutation_resistant(
+    old, new, p4_selected, p4_state, expected
+):
+    asm = transformed()
+    assert asm.count(old) == 1
+    h = PreviewAsm(asm.replace(old, new, 1))
     for player in range(3):
         h.set_panel(0x20 + player, 0, player=player, selected=1, state=0)
     h.set_panel(0x23, 0, player=3, selected=p4_selected, state=p4_state)
-    assert h.call_ordered_owner() == 0xFFFFFFFF
+    assert h.call_ordered_owner() != expected
 
 
-def test_ordered_preview_owner_does_not_load_p4_selected_or_state():
-    h = PreviewAsm(transformed())
-    for player in range(3):
-        h.set_panel(0x20 + player, 0, player=player, selected=1, state=0)
-    h.set_panel(0x23, 0, player=3, selected=0, state=0)
-    p4_base = h.symbols["CSS_PLAYER_STRUCT"] + 3 * 0xBC
-    del h.mem[p4_base + 0x58]
-    del h.mem[p4_base + 0x84]
-    assert h.call_ordered_owner() == 0xFFFFFFFF
-
-
-def test_ordered_preview_owner_is_read_only_and_has_no_p4_offsets():
+def test_ordered_preview_owner_is_read_only_call_free_and_has_p4_offsets():
     scope = PreviewAsm(transformed())._scope("ordered_preview_owner_")
     assert not re.search(r"^\s*s[wb]\s", scope, re.MULTILINE)
     assert "jal" not in scope
-    assert "0x028C" not in scope and "0x02B8" not in scope
+    assert "0x028C" in scope and "0x02B8" in scope
 
 
 def test_structural_abi_delay_slot_idempotence_and_indicator_guard_remain():

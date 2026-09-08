@@ -92,7 +92,7 @@ _BLOCK = f"""
     constant CSS_PREVIEW_OWNER_INACTIVE(0xFFFFFFFF)
     forced_selected_preview_owner:
     dw FORCE_SELECTED_PREVIEW_OWNER_INACTIVE
-    // One serialized preview record, shared by P1/P2/P3 while the fixed prefix is open.
+    // One serialized preview record, shared by P1/P2/P3/P4 while the fixed prefix is open.
     css_preview_owner:; dw CSS_PREVIEW_OWNER_INACTIVE
     css_preview_policy_owner:; dw CSS_PREVIEW_OWNER_INACTIVE
     css_preview_policy_generation:; dw 0
@@ -127,7 +127,7 @@ _BLOCK = f"""
     sw      v1, 0x0018(sp)              // original delay slot
     OS.patch_end()
 
-    // Pure fixed-prefix eligibility: P1..P3 must stay open in order.
+    // Pure fixed-prefix eligibility: P1..P4 must stay open in order.
     scope ordered_preview_owner_: {{
         li      t0, CSS_PLAYER_STRUCT
 
@@ -155,6 +155,14 @@ _BLOCK = f"""
         beqz    t1, _owner_p3
         nop
 
+        lw      t1, 0x02B8(t0)          // P4 MAN/CPU state (three strides)
+        sltiu   t2, t1, 0x0002
+        beqz    t2, _inactive
+        nop
+        lw      t1, 0x028C(t0)          // P4 selected
+        beqz    t1, _owner_p4
+        nop
+
         _inactive:
         li      v1, CSS_PREVIEW_OWNER_INACTIVE
         jr      ra
@@ -169,6 +177,10 @@ _BLOCK = f"""
         nop
         _owner_p3:
         li      v1, 2
+        jr      ra
+        nop
+        _owner_p4:
+        li      v1, 3
         jr      ra
         nop
     }}
@@ -275,7 +287,7 @@ _BLOCK = f"""
         nop
         sw      v0, 0x0020(sp)           // preserve native selection results across optional cleanup
         sw      v1, 0x001C(sp)
-        jal     refresh_preview_policy_   // selection can advance P1->P2 or P2->P3
+        jal     refresh_preview_policy_   // selection can advance P1->P2, P2->P3, or P3->P4
         nop
 
         lw      t0, 0x0028(sp)          // held player index
@@ -363,7 +375,7 @@ _BLOCK = f"""
         lw      t3, 0x0000(t3)
         beq     a1, t3, _allow           // forced stock selection may bypass this gate
         nop
-        sltiu   t5, v1, 0x0003           // P1/P2/P3 can own the one global record.
+        sltiu   t5, v1, 0x0004           // P1/P2/P3/P4 can own the one global record.
         beqz    t5, _hide_p1_hover
         nop
         bne     a1, v1, _hide_p1_hover
@@ -506,7 +518,7 @@ _BLOCK = f"""
         nop
     }}
 
-    // Render callback: frame clock for stationary P1 hover debounce.
+    // Render callback: frame clock for stationary P1/P2/P3/P4 hover debounce.
     scope css_preview_frame_: {{
         // o32 outgoing argument home area: sp+0x00..0x0C is callee-owned.
         addiu   sp, sp, -0x0080
@@ -549,7 +561,7 @@ _BLOCK = f"""
         _visible:
         li      t4, css_preview_owner
         lw      t5, 0x0000(t4)
-        sltiu   t6, t5, 0x0003
+        sltiu   t6, t5, 0x0004
         beqz    t6, _clear
         nop
         li      t6, css_preview_policy_owner
@@ -635,7 +647,7 @@ _BLOCK = f"""
         _waiting:
         li      t4, css_preview_owner
         lw      t5, 0x0000(t4)
-        sltiu   t6, t5, 0x0003
+        sltiu   t6, t5, 0x0004
         beqz    t6, _clear
         nop
         li      t6, css_preview_policy_owner
@@ -689,7 +701,7 @@ _BLOCK = f"""
         nop
         li      t4, css_preview_owner
         lw      t5, 0x0000(t4)
-        sltiu   t6, t5, 0x0003
+        sltiu   t6, t5, 0x0004
         beqz    t6, _clear
         nop
         li      t6, css_preview_policy_owner
