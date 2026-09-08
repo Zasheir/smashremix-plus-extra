@@ -1,1 +1,1 @@
-+STABLE (0.6.6)
++DEBUGGED (0.6.6)
