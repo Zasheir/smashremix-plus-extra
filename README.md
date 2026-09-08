@@ -1,11 +1,13 @@
 <p align="center">
- <img width="320" alt="Smash Remix +EXTRA" src=".github/sr-extra.png">
+ <img width="320" alt="Smash Remix +EXTRA Summercart Edition" src=".github/sr-extra.png">
 </p>
 
-# Extra content build system
-- **NOTE: This is not an official update to "Smash Remix" This is only a tool to add fan content to the game. The patches we provide are a community effort of new content all in one patch.**  
-- If you would like to download our newest patch, please go here: [Latest Release](https://github.com/joaorb64/smashremix-plus-extra/releases)
-  - After you have downloaded our patch, you can use [this patcher](https://kotcrab.github.io/xdelta-wasm/) to create the rom. 
+# Summercart Edition
+- **NOTE: This is not an official update to the "Smash Remix" or "Smash Remix +EXTRA" projects. This fork is a workaround for Summercart support.**  
+- To allow the game to work on Summercarts without crahsing, **delayed character previews** on hover are only supported for **one player at a time**.
+- Empty character previews are a side effect of Summercart memory management from `selected_preview_gate.py`.
+- If you would like to download the official Smash Remix +EXTRA build, please go here instead: [Latest Release](https://github.com/joaorb64/smashremix-plus-extra/releases)
+  - After you have downloaded the patch, you can use [this patcher](https://kotcrab.github.io/xdelta-wasm/) to create the rom. 
 
 # How To Play
 - If you are on MOBILE, you need an emulator that will properly run ROMs over 64MB.  
@@ -44,23 +46,21 @@ The build consists of two parts:
 
 ## FAQ
 - **"Where do I download this MOD?"**  
-Head over to the 'Releases' section and download the latest version.  
+Follow the **Setting Up Your Own Build** instructions above. If you would like to download the official Smash Remix +EXTRA build, please go here instead: [Latest Release](https://github.com/joaorb64/smashremix-plus-extra/releases). 
 - **"Is this a new Smash Remix update?"**  
-This mod is NOT an official Smash Remix update, it builds off Remix, and adds cool stuff from the community!  
+This is not an official update to the "Smash Remix" or "Smash Remix +EXTRA" projects. This fork is a workaround for Summercart support.  
 - **"What is the purpose of Smash Remix +EXTRA?"**  
-We wanted to design a project that will allow users to add their own custom content on top of Smash Remix. We added content across the community into +EXTRA as an example, and even added new additions. Smash Remix +EXTRA is packaged with tools to assist and ease that process of importing your own work into the game.  
+The "Smash Remix +EXTRA" team wanted to design a project that will allow users to add their own custom content on top of Smash Remix. They added content across the community into +EXTRA as an example, and even added new additions. Smash Remix +EXTRA is packaged with tools to assist and ease that process of importing your own work into the game.  
 - **"Will this work on the original N64?"**  
-Because the filesize is over 64MB, most flash carts will not run it. As long as your flashcart is compatible with larger rom sizes, it can work, but no guarantee.  
+This build is compatible with flashcarts with support for 78MB roms or higher (such as the Summercart or Everdrive Pro).  
 - **"I found a crash?"**  
-Please create an issue on GitHub and we will try to fix it!  
+Please create an issue on GitHub and I will try to fix it!  
 - **"Can you add >Insert Character Here<"**  
-No, but now YOU can! This mod is designed to help anybody bring in whatever character, stage, song & additional content they want into the game. We even have 3D Game & Watch!  
+No, but now YOU can! This mod is designed to help anybody bring in whatever character, stage, song & additional content they want into the game.  
 - **"How do I add something to this mod?"**  
 You can download the source code of this mod and use the additional characters and stages as references!  
 - **"Will there be future updates?"**  
-We will focus on some bug fixes, polish, and pesky crashes, but the project is designed to encourage people to add their own content within the game.  
-- **"Where can I go to ask more questions / for extra help?"**  
-You can head over to the [Smash Remix Discord Server](https://discord.gg/ChpN332), we can help there.  
+I will merge in upstream updates as I have availability. You can also merge them into this fork to create your own update.  
 
 ## Third-Party Content and Attribution
 
@@ -88,7 +88,7 @@ The `custom/debugged-summercart` build line includes stage and music content fro
 
 The source package was integrated into Smash Remix +EXTRA's build structure. Project-specific configuration, ordering, and compatibility changes are recorded in this repository's Git history. Credit does not imply endorsement by the original creator.
 
-The licensed material may be shared only for noncommercial purposes and subject to the license's NoDerivatives restriction. This notice does not grant permission beyond the linked license terms; obtain separate permission from the creator before distributing adapted versions.
+The licensed material may be shared only for noncommercial purposes and subject to the license's NoDerivatives restriction. This notice does not grant permission beyond the linked license terms.
 
 ### Project Galleon Character Select Screen
 

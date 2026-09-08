@@ -545,9 +545,26 @@ class CharacterProcessor:
         select_pose = config.get("definitions", {}).get("select_pose", 1)
         select_pose_string = f"0x0001000{select_pose}"
 
+        # Compile any sounds/<name>.wav -> <name>.aifc first. Target rate from
+        # sounds_special[<id>].sample_rate when that id maps to the file name
+        # (config['sounds']: id -> name), else 16000 like add_sound's default.
+        from smashremix_extra.audio import vadpcm
+        _snd_map = config.get("sounds", {}) or {}
+        _snd_special = config.get("sounds_special", {}) or {}
+        _name_rate = {
+            nm: (_snd_special.get(sid) or {}).get("sample_rate", 16000)
+            for sid, nm in _snd_map.items()
+        }
+        vadpcm.convert_dir(
+            f"./{output_path}/sounds",
+            rate_for=lambda n: _name_rate.get(n, 16000))
+
         # Get sounds to add
         if os.path.exists(f"./{output_path}/sounds"):
             for s in os.listdir(f"./{output_path}/sounds"):
+                # .wav sources were compiled to .aifc above; skip the originals.
+                if not s.lower().endswith(".aifc"):
+                    continue
                 sample_rate = 16000
                 type = "VOICE"
                 reverb = 0
@@ -1042,15 +1059,18 @@ class CharacterProcessor:
 
         # Check for Data screen textures (bio, name, works, specials)
         if os.path.exists(f"{output_path}/datascreen/bio.png"):
+            # Bios are stored as three stacked I4 strips (51 + 51 + 13 rows);
+            # the biography table pointer + 0x30 must land past exactly three
+            # segment nodes, so the source image must be 160x115.
             pixels, w, h = get_image_data(
-                f"{output_path}/datascreen/bio.png"
+                f"{output_path}/datascreen/bio.png", 160, 115
             )
             bio_texture = append_image(
                 "scripts/10F5.bin",
                 "scripts/10F5.bin",
                 pixels,
                 w, h,
-                ImageMode.I8
+                ImageMode.I4,
             )
             bio_texture += 0x80000000
             bio_texture = f"0x{bio_texture:08X}"
@@ -1064,7 +1084,7 @@ class CharacterProcessor:
                 "scripts/10F6.bin",
                 pixels,
                 w, h,
-                ImageMode.I8
+                ImageMode.I4,
             )
             name_texture += 0x80000000
             name_texture = f"0x{name_texture:08X}"
@@ -1078,7 +1098,7 @@ class CharacterProcessor:
                 "scripts/10F6.bin",
                 pixels,
                 w, h,
-                ImageMode.I8
+                ImageMode.I4,
             )
             works_texture += 0x80000000
             works_texture = f"0x{works_texture:08X}"
@@ -1092,7 +1112,7 @@ class CharacterProcessor:
                 "scripts/10F6.bin",
                 pixels,
                 w, h,
-                ImageMode.I8
+                ImageMode.I4,
             )
             usp_texture += 0x80000000
             usp_texture = f"0x{usp_texture:08X}"
@@ -1106,7 +1126,7 @@ class CharacterProcessor:
                 "scripts/10F6.bin",
                 pixels,
                 w, h,
-                ImageMode.I8
+                ImageMode.I4,
             )
             nsp_texture += 0x80000000
             nsp_texture = f"0x{nsp_texture:08X}"
@@ -1120,7 +1140,7 @@ class CharacterProcessor:
                 "scripts/10F6.bin",
                 pixels,
                 w, h,
-                ImageMode.I8
+                ImageMode.I4,
             )
             dsp_texture += 0x80000000
             dsp_texture = f"0x{dsp_texture:08X}"
