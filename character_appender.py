@@ -19,6 +19,7 @@ from smashremix_extra.stage.processor import StageProcessor
 from smashremix_extra.audio.processor import AudioProcessor
 from smashremix_extra.galleon_css import port_galleon_css_source
 from smashremix_extra.injector import ROMInjector, MODIFIED_FILES
+from smashremix_extra.selected_preview_gate import transform_character_select
 
 
 def build_stage_menu_pages(stage_folders, stages_per_page):
@@ -43,6 +44,8 @@ def build_stage_menu_pages(stage_folders, stages_per_page):
 
 
 class CharacterAppender:
+    selected_preview_transform = staticmethod(transform_character_select)
+
     def __init__(self, args):
         if not os.path.exists(os.path.join(smashremix_path, "src/File.asm")):
             print("\n"
@@ -289,6 +292,17 @@ class CharacterAppender:
         self._patch_galleon_css()
         self._patch_stage_asm()
         self._patch_toggle_asm()
+        self._patch_selected_preview_gate()
+
+    def _patch_selected_preview_gate(self):
+        """Apply the fail-closed selected-only preview transform once."""
+        path = "src/CharacterSelect.asm"
+        with open(path, "r", encoding="utf-8") as source_file:
+            source = source_file.read()
+        transformed = self.selected_preview_transform(source)
+        if transformed != source:
+            with open(path, "w", encoding="utf-8") as source_file:
+                source_file.write(transformed)
 
     def _patch_galleon_css(self):
         character_select_path = Path("src/CharacterSelect.asm")
