@@ -1294,7 +1294,14 @@ def test_edit_src_files_transforms_character_select_once(tmp_path, monkeypatch):
     target.write_text(PRISTINE_SOURCE, encoding="utf-8")
     monkeypatch.setattr(character_appender, "smashremix_path", str(rom_root))
     appender = object.__new__(CharacterAppender)
-    for method in ("_patch_src_paths", "_patch_audio_asm", "_patch_character_asm", "_patch_stage_asm", "_patch_toggle_asm"):
+    for method in (
+        "_patch_src_paths",
+        "_patch_audio_asm",
+        "_patch_character_asm",
+        "_patch_galleon_css",
+        "_patch_stage_asm",
+        "_patch_toggle_asm",
+    ):
         setattr(appender, method, lambda *_: None)
     appender.selected_preview_transform = transform_character_select
     appender.edit_src_files()
