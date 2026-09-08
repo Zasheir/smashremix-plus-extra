@@ -292,7 +292,7 @@ class CharacterAppender:
         self._patch_galleon_css()
         self._patch_stage_asm()
         self._patch_toggle_asm()
-        # self._patch_selected_preview_gate() # Only needed for Summercart builds
+        self._patch_selected_preview_gate()
 
     def _patch_selected_preview_gate(self):
         """Apply the fail-closed selected-only preview transform once."""
