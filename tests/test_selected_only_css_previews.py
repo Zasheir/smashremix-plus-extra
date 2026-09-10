@@ -1601,7 +1601,7 @@ def test_transform_and_selection_wrapper_fail_closed_on_known_corruption():
             transform_character_select(source)
 
 
-def test_edit_src_files_transforms_character_select_once_and_leaves_boot_clean(tmp_path, monkeypatch):
+def test_edit_src_files_leaves_summercart_preview_transform_disabled(tmp_path, monkeypatch):
     import character_appender
     from character_appender import CharacterAppender
 
@@ -1618,7 +1618,7 @@ def test_edit_src_files_transforms_character_select_once_and_leaves_boot_clean(t
         setattr(appender, method, lambda *_: None)
     appender.selected_preview_transform = transform_character_select
     appender.edit_src_files()
-    assert target.read_text(encoding="utf-8").count(MARKER) == 1
+    assert target.read_text(encoding="utf-8") == PRISTINE_SOURCE
     assert boot_target.read_text(encoding="utf-8") == PRISTINE_BOOT
 
 
