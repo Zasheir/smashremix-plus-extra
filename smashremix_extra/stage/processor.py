@@ -58,9 +58,9 @@ class StageProcessor:
                 header_path=f"{output_path}/header.bin",
                 groupdata_off=int(config['offsets']['header'][1], 16),
                 label=stage_folder)
-            logger.info("%s: rewrote collision - %d groups, %d lines, %d vertices "
-                        "(+%d B in stage.bin)", stage_folder, info['groups'],
-                        info['lines'], info['vertices'], info['bytes_added'])
+            logger.info(f"{stage_folder}: rewrote collision - {info['groups']} "
+                        f"groups, {info['lines']} lines, {info['vertices']} "
+                        f"vertices (+{info['bytes_added']} B in stage.bin)")
 
         # config['rebirth']: [x, y] of the rebirth (revival) platform - the
         # kind-0x20 map object in stage.bin. In-place; header.bin untouched.
@@ -70,8 +70,7 @@ class StageProcessor:
             _collision.set_rebirth(
                 f"{output_path}/stage.bin",
                 int(config['offsets']['stage'][0], 16), rx, ry, label=stage_folder)
-            logger.info("%s: moved rebirth platform to (%s, %s)",
-                        stage_folder, rx, ry)
+            logger.info(f"{stage_folder}: moved rebirth platform to ({rx}, {ry})")
 
         # blast_zones / camera_bounds / light_angle / magnifying_glass_color ->
         # MPGroundData in header.bin (in-place scalar writes; see ground.py).
@@ -80,8 +79,8 @@ class StageProcessor:
             f"{output_path}/header.bin",
             int(config['offsets']['header'][1], 16), config, label=stage_folder)
         if _gd_changed:
-            logger.info("%s: patched MPGroundData - %s",
-                        stage_folder, ", ".join(_gd_changed))
+            logger.info(f"{stage_folder}: patched MPGroundData - "
+                        f"{', '.join(_gd_changed)}")
 
         # Top-down layout render (collision groups + blast zone + camera bounds
         # + map objects) of the final stage.bin/header.bin, dropped next to them
@@ -93,11 +92,11 @@ class StageProcessor:
                 f"{output_path}/collision_layout.png",
                 chain_head=int(config['offsets']['stage'][0], 16),
                 groupdata_off=int(config['offsets']['header'][1], 16))
-            logger.info("%s: wrote %d collision renders (%s + per-group)",
-                        stage_folder, len(_pngs), "collision_layout.png")
+            logger.info(f"{stage_folder}: wrote {len(_pngs)} collision renders "
+                        f"(collision_layout.png + per-group)")
         except Exception as _e:                       # never fail a build over a preview
-            logger.warning("%s: collision_layout.png render skipped (%s)",
-                           stage_folder, _e)
+            logger.warning(f"{stage_folder}: collision_layout.png render "
+                           f"skipped ({_e})")
 
         # Full attribute dump (collision + map objects + every MPGroundData
         # field) as YAML next to the built files, for debugging / diffing.
@@ -108,10 +107,9 @@ class StageProcessor:
                 f"{output_path}/stage.bin", f"{output_path}/header.bin",
                 int(config['offsets']['stage'][0], 16),
                 int(config['offsets']['header'][1], 16))
-            logger.info("%s: wrote stage_attributes.yaml", stage_folder)
+            logger.info(f"{stage_folder}: wrote stage_attributes.yaml")
         except Exception as _e:                        # never fail a build over a dump
-            logger.warning("%s: stage_attributes.yaml skipped (%s)",
-                           stage_folder, _e)
+            logger.warning(f"{stage_folder}: stage_attributes.yaml skipped ({_e})")
 
         # header_reqlist.txt may reference imported files via ${NAME} tokens that
         # have no matching node in header.bin's resource linked list yet; count
@@ -330,6 +328,60 @@ class StageProcessor:
         return data
 
     @staticmethod
+    def _trim_ge_model(output_path, name, tbl_off, trim, footer_name):
+        """Mark-and-sweep <output_path>/<name>.bin (a GoldEditor self-relocating
+        model) down to the regions reachable from its roots, in place.
+
+        `trim` forms: see ge_bin.resolve_trim_roots().
+
+        Also repoints the <name>_hitbox.bin footer's chain nodes into the new
+        file.  Returns the recompacted chain head as a hex string, for the
+        caller to pass as internal_file_table_offset.
+        """
+        from smashremix_extra import ge_bin
+
+        model_path = f"{output_path}/{name}.bin"
+        head = tbl_off if isinstance(tbl_off, int) else int(tbl_off, 16)
+        footer_path = (f"{output_path}/{footer_name}.bin"
+                       if footer_name else None)
+
+        d0 = open(model_path, "rb").read()
+        footer_bytes = (open(footer_path, "rb").read()
+                        if footer_path and os.path.exists(footer_path) else None)
+        try:
+            roots = ge_bin.resolve_trim_roots(d0, trim, footer_bytes)
+        except ValueError as e:
+            raise ValueError(f"{name}: {e}") from e
+
+        res = ge_bin.gc(d0, roots, head=head)
+        open(model_path, "wb").write(res.data)
+
+        if footer_path and os.path.exists(footer_path):
+            fb = bytearray(open(footer_path, "rb").read())
+            fr = ge_bin.footer_roots(bytes(fb))
+            for node, old in ((fr.dd_node, fr.dobjdesc),
+                              (fr.pm_node, fr.pmobjsubs)):
+                if node is None:
+                    continue
+                new = res.remap.get(old)
+                if new is None:
+                    raise ValueError(
+                        f"{name}: {footer_name} points at 0x{old:X}, which the "
+                        f"trim dropped - add it as an explicit trim root")
+                ge_bin.w16(fb, node + 2, new // 4)
+            open(footer_path, "wb").write(fb)
+
+        saved = res.old_len - res.new_len
+        pct = 100 * saved / res.old_len if res.old_len else 0.0
+        logger.info(f"{name}: trimmed {res.old_len} -> {res.new_len} B "
+                    f"(-{saved} B, -{pct:.1f}%), chain head 0x{head:X} -> "
+                    f"0x{res.new_head:X}")
+        for line in res.report:
+            if line.startswith("WARNING"):
+                logger.warning(f"{name}: {line}")
+        return f"{res.new_head:X}"
+
+    @staticmethod
     def _model_offsets(output_path, name, footer_name):
         """{const_name: offset} of interesting spots inside a GE model .bin
         (empty for non-GE files). `footer_name` = the _hitbox.bin whose footer
@@ -344,13 +396,13 @@ class StageProcessor:
             try:
                 footer = open(f"{output_path}/{footer_name}.bin", "rb").read()
             except OSError:
-                logger.warning("%s: footer %s.bin not found for FILES.%s offsets",
-                               name, footer_name, name.upper())
+                logger.warning(f"{name}: footer {footer_name}.bin not found "
+                               f"for FILES.{name.upper()} offsets")
         try:
             from smashremix_extra import ge_bin
             raw = ge_bin.describe_offsets(data, footer)
         except Exception as e:                      # noqa: BLE001
-            logger.warning("%s: could not describe offsets (%s)", name, e)
+            logger.warning(f"{name}: could not describe offsets ({e})")
             return {}
         # dedupe by offset, keep the first (most specific) name
         seen, out = set(), {}
@@ -397,13 +449,25 @@ class StageProcessor:
                 continue
             # [name, tableOffset, resourceOffset, {opts}]; resourceOffset
             # defaults to "3FFFC" (empty resource list) for self-contained model
-            # bins. opts: {footer: <name>} names the <name>_hitbox.bin whose
-            # ITAttributes footer targets this model (so the MObjSub / sprite
-            # offsets can be resolved for the FILES.<NAME>.* constants).
+            # bins. opts:
+            #   footer: <name>   the <name>_hitbox.bin whose ITAttributes footer
+            #                    targets this model (lets the MObjSub / sprite
+            #                    offsets resolve for the FILES.<NAME>.* constants)
+            #   trim: true|[roots]  mark-and-sweep the GE model down to what the
+            #                    footer's DObjDesc (trim: true) or the given root
+            #                    offset(s) reach, dropping leftover GoldEditor
+            #                    objects/textures.  Runs on the build copy before
+            #                    the file is registered; repoints the footer and
+            #                    uses the recompacted chain head as tableOffset,
+            #                    so the config keeps the ORIGINAL (pre-trim) one.
             name = entry[0]
             tbl_off = entry[1] if len(entry) > 1 else "3FFFC"
             res_off = entry[2] if len(entry) > 2 else "3FFFC"
             opts = entry[3] if len(entry) > 3 and isinstance(entry[3], dict) else {}
+
+            if opts.get("trim"):
+                tbl_off = self._trim_ge_model(
+                    output_path, name, tbl_off, opts["trim"], opts.get("footer"))
 
             reqlist_path = f"{original_path}/{name}_reqlist.txt"
             has_reqlist = os.path.exists(reqlist_path)

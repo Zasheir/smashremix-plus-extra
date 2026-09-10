@@ -252,6 +252,30 @@ def footer_roots(footer_bytes):
     return Footer(dd, pm, dd_node, pm_node, ch)
 
 
+def resolve_trim_roots(d, trim, footer_bytes=None):
+    """gc() roots from a trim: value. True -> footer DObjDesc (+ p_mobjsubs);
+    {objects: [n]} -> find_objects() indices; [off, ...] -> raw offsets."""
+    if trim is True:
+        if footer_bytes is None:
+            raise ValueError("trim: true needs a footer: to root from")
+        fr = footer_roots(footer_bytes)
+        roots = [fr.dobjdesc]
+        if fr.pmobjsubs is not None:
+            roots.append(fr.pmobjsubs)
+        return roots
+    if isinstance(trim, dict) and "objects" in trim:
+        objs = find_objects(d)
+        idxs = trim["objects"]
+        idxs = idxs if isinstance(idxs, list) else [idxs]
+        try:
+            return [objs[i].start + 0x10 for i in idxs]
+        except IndexError:
+            raise ValueError(
+                f"trim: objects: index out of range - file has {len(objs)} "
+                f"object(s) (indices 0..{len(objs) - 1}, or negative)")
+    return [x if isinstance(x, int) else int(x, 16) for x in trim]
+
+
 # ------------------------------------------------------------- garbage collector
 GcResult = namedtuple(
     "GcResult",

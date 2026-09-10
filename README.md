@@ -4,8 +4,9 @@
 
 # Summercart Edition
 - **NOTE: This is not an official update to the "Smash Remix" or "Smash Remix +EXTRA" projects. This fork is a workaround for Summercart support.**  
-- To allow the game to work on Summercarts without crahsing, **delayed character previews** on hover are only supported for **one player at a time**.
-- Empty character previews are a side effect of Summercart memory management from `selected_preview_gate.py`.
+- To allow the game to work on SummerCart64 without crashing, **delayed character previews** on hover are supported for **one player at a time** when the cart is detected.
+  - Delayed previews are only enabled on Summercarts; emulators retain regular character preview behavior.
+  - Summercart detection for delayed previews can be disabled within `selected_preview_gate.py` by switching `PREVIEW_POLICY` from `PREVIEW_POLICY_AUTO` to `PREVIEW_POLICY_FORCE_ON` or `PREVIEW_POLICY_FORCE_OFF`.
 - If you would like to download the official Smash Remix +EXTRA build, please go here instead: [Latest Release](https://github.com/joaorb64/smashremix-plus-extra/releases)
   - After you have downloaded the patch, you can use [this patcher](https://kotcrab.github.io/xdelta-wasm/) to create the rom. 
 

@@ -110,6 +110,52 @@ class CharacterProcessor:
             return default
         return stage_id
 
+    @staticmethod
+    def _trim_ge_model(output_path, name, tbl_off, trim, footer_name):
+        """See StageProcessor._trim_ge_model."""
+        from smashremix_extra import ge_bin
+
+        model_path = f"{output_path}/{name}.bin"
+        head = tbl_off if isinstance(tbl_off, int) else int(tbl_off, 16)
+        footer_path = (f"{output_path}/{footer_name}.bin"
+                       if footer_name else None)
+
+        d0 = open(model_path, "rb").read()
+        footer_bytes = (open(footer_path, "rb").read()
+                        if footer_path and os.path.exists(footer_path) else None)
+        try:
+            roots = ge_bin.resolve_trim_roots(d0, trim, footer_bytes)
+        except ValueError as e:
+            raise ValueError(f"{name}: {e}") from e
+
+        res = ge_bin.gc(d0, roots, head=head)
+        open(model_path, "wb").write(res.data)
+
+        if footer_path and os.path.exists(footer_path):
+            fb = bytearray(open(footer_path, "rb").read())
+            fr = ge_bin.footer_roots(bytes(fb))
+            for node, old in ((fr.dd_node, fr.dobjdesc),
+                              (fr.pm_node, fr.pmobjsubs)):
+                if node is None:
+                    continue
+                new = res.remap.get(old)
+                if new is None:
+                    raise ValueError(
+                        f"{name}: {footer_name} points at 0x{old:X}, which "
+                        f"the trim dropped - add it as an explicit trim root")
+                ge_bin.w16(fb, node + 2, new // 4)
+            open(footer_path, "wb").write(fb)
+
+        saved = res.old_len - res.new_len
+        pct = 100 * saved / res.old_len if res.old_len else 0.0
+        logger.info(f"{name}: trimmed {res.old_len} -> {res.new_len} B "
+                    f"(-{saved} B, -{pct:.1f}%), chain head 0x{head:X} -> "
+                    f"0x{res.new_head:X}")
+        for line in res.report:
+            if line.startswith("WARNING"):
+                logger.warning(f"{name}: {line}")
+        return f"{res.new_head:X}"
+
     def process(self, character_folder: str) -> None:
         """Process one character folder and accumulate patch data into self."""
         print(f"== {character_folder} ==")
@@ -147,6 +193,18 @@ class CharacterProcessor:
         )
 
         filename_to_id = {}
+
+        # trim before the merge below reads the _hitbox footers it repoints
+        trimmed_heads = {}
+        for _entry in (config.get("files", []) or []) + \
+                (config.get("append_files", []) or []):
+            if not (isinstance(_entry, list) and len(_entry) > 3
+                    and isinstance(_entry[3], dict) and _entry[3].get("trim")):
+                continue
+            _opts = _entry[3]
+            trimmed_heads[_entry[0]] = self._trim_ge_model(
+                output_path, _entry[0], _entry[1], _opts["trim"],
+                _opts.get("footer"))
 
         main_file = FileManager.add_file(
             path=f"{output_path}/main.bin",
@@ -189,7 +247,8 @@ class CharacterProcessor:
                 reqlist_exists = False
 
                 for file_data in file:
-                    file_path = f"./{original_path}/{file_data[0]}.bin"
+                    # build copy - may be trimmed/repointed by the pre-pass
+                    file_path = f"{output_path}/{file_data[0]}.bin"
 
                     with open(file_path, 'rb') as _f:
                         data = bytearray(_f.read())
@@ -297,12 +356,13 @@ class CharacterProcessor:
                     ExtraFile(merged_filename, index, file[0][1], file[0][2], file_id))
                 filename_to_id[merged_filename] = file_id
             else:
+                tbl_off = trimmed_heads.get(file[0], file[1])
                 file_id = character_file.id + \
                     1 + len(extra_files_to_add)
                 extra_files_str.append(
                     hex(file_id))
                 extra_files_to_add.append(
-                    ExtraFile(file[0], index, file[1], file[2], file_id))
+                    ExtraFile(file[0], index, tbl_off, file[2], file_id))
                 filename_to_id[file[0]] = file_id
 
         append_files_str = []
@@ -312,12 +372,13 @@ class CharacterProcessor:
             if isinstance(file, str):
                 append_files_str.append(file)
             else:
+                tbl_off = trimmed_heads.get(file[0], file[1])
                 file_id = character_file.id + 1 + \
                     len(extra_files_to_add)+len(append_files)
                 append_files_str.append(
                     hex(file_id))
                 append_files.append(
-                    ExtraFile(file[0], index, file[1], file[2], file_id))
+                    ExtraFile(file[0], index, tbl_off, file[2], file_id))
                 filename_to_id[file[0]] = file_id
 
         shield_pose_int_id = None
@@ -1538,6 +1599,7 @@ class CharacterProcessor:
                 data[attr_offset+sound_pos:attr_offset +
                      sound_pos+2] = bytes.fromhex(sfx)
 
+        # f32 fields
         attr_values = {
             "size_multi": 0x0,
             "walk_1_cycle": 0x04,
@@ -1563,7 +1625,6 @@ class CharacterProcessor:
             "gravity": 0x58,
             "max_fall_speed": 0x5C,
             "fast_fall_speed": 0x60,
-            "num_jumps": 0x64,
             "weight": 0x68,
             "jab_combo_frames": 0x6C,
             "dash_run_frames": 0x70,
@@ -1584,6 +1645,9 @@ class CharacterProcessor:
             "ledge_grab_y": 0xB0
         }
 
+        # s32 fields
+        attr_ints = {"num_jumps": 0x64}
+
         for attr_name, attr_pos in attr_values.items():
             if attr_name in config.get("attributes", {}):
                 print(attr_name, config.get("attributes").get(
@@ -1591,6 +1655,11 @@ class CharacterProcessor:
                 # Replace value in final data
                 data[attr_offset+attr_pos:attr_offset +
                      attr_pos+4] = bytes.fromhex(hex_util.float_to_ieee754_hex(config.get("attributes").get(attr_name)))
+
+        for attr_name, attr_pos in attr_ints.items():
+            if attr_name in config.get("attributes", {}):
+                struct.pack_into(">i", data, attr_offset + attr_pos,
+                                 int(config["attributes"][attr_name]))
 
         if config.get("attributes", {}).get("hurtboxes"):
             hurtboxes = config.get("attributes").get("hurtboxes")
@@ -1767,6 +1836,16 @@ class CharacterProcessor:
 
         with open(f"{output_path}/main.bin", 'wb') as binary_file:
             binary_file.write(data)
+
+        # Debug dump of the patched attributes
+        try:
+            from smashremix_extra.character import attributes as _char_attrs
+            _char_attrs.dump_to(f"{output_path}/character_attributes.yaml",
+                                data, attr_offset, attr_values, attr_ints,
+                                attr_sounds)
+        except Exception as _e:
+            logger.warning(
+                f"{character_folder}: character_attributes.yaml skipped ({_e})")
 
         # Check for sword trail definitions
         character_sword_trail_add_list = {}

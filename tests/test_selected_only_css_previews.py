@@ -3,6 +3,7 @@ import re
 import pytest
 
 
+import smashremix_extra.selected_preview_gate as preview_gate
 from smashremix_extra.selected_preview_gate import MARKER, transform_character_select
 
 
@@ -29,8 +30,307 @@ scope CharacterSelect {
 """
 
 
+PRISTINE_BOOT = """    // @ Description
+    // Draws the version on the title screen
+    scope draw_version_on_title_screen_: {
+        addiu   sp, sp,-0x0030              // allocate stack space
+        sw      ra, 0x0004(sp)              // save registers
+
+        Render.load_font()
+        Render.draw_string(1, 3, string_version, Render.NOOP, 0x43200000, 0x435A0000, 0x888800FF, 0x3F700000, Render.alignment.CENTER)
+
+        lw      ra, 0x0004(sp)              // restore registers
+        addiu   sp, sp, 0x0030              // deallocate stack space
+
+        jr      ra
+        nop
+    }
+
+    string_version:; String.insert("Smash Remix v2.0.1 +SUMMERCART (0.6.6)")
+"""
+
+
 def transformed():
     return transform_character_select(PRISTINE_SOURCE)
+
+
+def execute_emitted_probe_formatter(transformed_boot, identifier):
+    """Execute the emitted formatter loop with MIPS branch-delay semantics."""
+    block = transformed_boot.split("        _format_probe_identifier:\n", 1)[1]
+    block = block.split("        Render.draw_string", 1)[0]
+    instructions = []
+    labels = {"_format_probe_identifier": 0}
+    for raw in block.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.endswith(":"):
+            labels[line[:-1]] = len(instructions)
+            continue
+        op, operands = line.split(None, 1) if " " in line else (line, "")
+        instructions.append((op, [item.strip() for item in operands.split(",") if item]))
+
+    registers = {"t0": identifier, "t1": 0, "t2": 8}
+    output = bytearray(8)
+
+    def value(operand):
+        return registers[operand] if operand in registers else int(operand, 0)
+
+    def execute_non_branch(instruction):
+        op, args = instruction
+        if op == "nop":
+            return
+        if op == "srl":
+            registers[args[0]] = value(args[1]) >> int(args[2], 0)
+        elif op == "sltiu":
+            registers[args[0]] = int(value(args[1]) < int(args[2], 0))
+        elif op == "addiu":
+            registers[args[0]] = (value(args[1]) + int(args[2], 0)) & 0xFFFFFFFF
+        elif op == "sb":
+            output[registers[args[1].split("(", 1)[1][:-1]]] = value(args[0]) & 0xFF
+        elif op == "sll":
+            registers[args[0]] = (value(args[1]) << int(args[2], 0)) & 0xFFFFFFFF
+        else:
+            raise AssertionError(f"unsupported formatter op {op}")
+
+    pc = 0
+    while pc < len(instructions):
+        op, args = instructions[pc]
+        if op in {"bnez", "beqz"}:
+            condition = value(args[0]) != 0
+            if op == "beqz":
+                condition = not condition
+            execute_non_branch(instructions[pc + 1])
+            pc = labels[args[1]] if condition else pc + 2
+        else:
+            execute_non_branch(instructions[pc])
+            pc += 1
+    return output.decode("ascii")
+
+
+def test_title_version_displays_centered_raw_summercart_identifier():
+    transformed_boot = preview_gate.transform_boot_title_diagnostic(PRISTINE_BOOT)
+
+    assert transformed_boot.count(preview_gate.TITLE_DIAGNOSTIC_MARKER) == 1
+    assert "jal     CharacterSelect.resolve_preview_workaround_" in transformed_boot
+    assert "String.insert(\"Smash Remix v2.0.1 +SUMMERCART (0.6.6)\")" in transformed_boot
+    assert "String.insert(\"[ID:00000000]\")" in transformed_boot
+    assert "li      t0, CharacterSelect.css_preview_probe_identifier" in transformed_boot
+    assert "li      t1, string_probe_identifier + 4" in transformed_boot
+    assert "srl     t3, t0, 0x001C" in transformed_boot
+    assert "sll     t0, t0, 0x0004" in transformed_boot
+    assert "Render.draw_string(1, 3, string_probe_identifier" in transformed_boot
+
+
+@pytest.mark.parametrize(
+    ("identifier", "expected"),
+    [
+        (0x00000000, "00000000"),
+        (0x53437632, "53437632"),
+        (0xABCDEF01, "ABCDEF01"),
+        (0xFFFFFFFF, "FFFFFFFF"),
+    ],
+)
+def test_title_probe_formatter_executes_all_hexadecimal_classes(identifier, expected):
+    transformed_boot = preview_gate.transform_boot_title_diagnostic(PRISTINE_BOOT)
+    assert execute_emitted_probe_formatter(transformed_boot, identifier) == expected
+
+
+def test_title_probe_formatter_test_is_mutation_sensitive():
+    transformed_boot = preview_gate.transform_boot_title_diagnostic(PRISTINE_BOOT)
+    mutated = transformed_boot.replace(
+        "bnez    t4, _store_probe_digit",
+        "beqz    t4, _store_probe_digit",
+        1,
+    )
+    assert execute_emitted_probe_formatter(mutated, 0xABCDEF01) != "ABCDEF01"
+
+
+def test_title_diagnostic_is_idempotent_and_rejects_marker_only_corruption():
+    transformed_boot = preview_gate.transform_boot_title_diagnostic(PRISTINE_BOOT)
+    assert preview_gate.transform_boot_title_diagnostic(transformed_boot) == transformed_boot
+
+    corrupted = transformed_boot.replace(
+        "srl     t3, t0, 0x001C",
+        "srl     t3, t0, 0x0018",
+        1,
+    )
+    with pytest.raises(ValueError, match="not canonical"):
+        preview_gate.transform_boot_title_diagnostic(corrupted)
+
+
+def test_preview_policy_defaults_to_auto_and_emits_three_modes():
+    assert preview_gate.PREVIEW_POLICY_AUTO == 0
+    assert preview_gate.PREVIEW_POLICY_FORCE_ON == 1
+    assert preview_gate.PREVIEW_POLICY_FORCE_OFF == 2
+    assert preview_gate.PREVIEW_POLICY == preview_gate.PREVIEW_POLICY_AUTO
+    assert preview_gate.PREVIEW_PROBE_WAIT_EACH_IO is True
+
+    asm = transformed()
+    assert "constant CSS_PREVIEW_POLICY_AUTO(0)" in asm
+    assert "constant CSS_PREVIEW_POLICY_FORCE_ON(1)" in asm
+    assert "constant CSS_PREVIEW_POLICY_FORCE_OFF(2)" in asm
+    assert f"constant CSS_PREVIEW_POLICY({preview_gate.PREVIEW_POLICY_AUTO})" in asm
+
+
+def test_summercart_auto_probe_is_cached_and_uses_documented_identifier_protocol():
+    asm = transformed()
+    resolver = PreviewAsm(asm)._scope("resolve_preview_workaround_")
+    assert "css_preview_workaround_enabled" in resolver
+    assert "li      t1, CSS_PREVIEW_WORKAROUND_UNKNOWN" in resolver
+    assert "lli     t1, CSS_PREVIEW_WORKAROUND_UNKNOWN" not in resolver
+    assert "lui     t1, 0xBFFF" in resolver
+    assert resolver.count("sw      ") >= 4
+    assert sum(
+        "sw      " in line and "0x0010(t1)" in line for line in resolver.splitlines()
+    ) == 3
+    assert "0x5F55" in resolver and "0x4E4C" in resolver
+    assert "0x4F43" in resolver and "0x4B5F" in resolver
+    assert "lw      t2, 0x000C(t1)" in resolver
+    assert "css_preview_probe_identifier" in resolver
+    assert resolver.index("lw      t2, 0x000C(t1)") < resolver.index("sw      t2, 0x0000(t3)")
+    assert "0x5343" in resolver and "0x7632" in resolver
+
+
+def test_summercart_probe_can_emit_wait_before_every_register_access(monkeypatch):
+    monkeypatch.setattr(preview_gate, "PREVIEW_PROBE_WAIT_EACH_IO", True)
+    resolver = PreviewAsm(transform_character_select(PRISTINE_SOURCE))._scope(
+        "resolve_preview_workaround_"
+    )
+
+    assert "constant CSS_PREVIEW_WAIT_EACH_IO(1)" in transform_character_select(PRISTINE_SOURCE)
+    assert "_wait_for_pi_unlock_1:" in resolver
+    assert "_wait_for_pi_unlock_2:" in resolver
+    assert "_wait_for_pi_identifier:" in resolver
+
+    initial_wait = resolver.index("_wait_for_pi:")
+    reset_write = resolver.index("sw      r0, 0x0010(t1)")
+    unlock_1_wait = resolver.index("_wait_for_pi_unlock_1:")
+    unlock_1_write = resolver.index("sw      t2, 0x0010(t1)", reset_write)
+    unlock_2_wait = resolver.index("_wait_for_pi_unlock_2:")
+    unlock_2_write = resolver.index("sw      t2, 0x0010(t1)", unlock_1_write + 1)
+    identifier_wait = resolver.index("_wait_for_pi_identifier:")
+    identifier_read = resolver.index("lw      t2, 0x000C(t1)")
+    assert (
+        initial_wait
+        < reset_write
+        < unlock_1_wait
+        < unlock_1_write
+        < unlock_2_wait
+        < unlock_2_write
+        < identifier_wait
+        < identifier_read
+    )
+    for label, next_operation in (
+        ("_wait_for_pi_unlock_1", unlock_1_write),
+        ("_wait_for_pi_unlock_2", unlock_2_write),
+        ("_wait_for_pi_identifier", identifier_read),
+    ):
+        wait_loop = resolver[resolver.index(f"{label}:"):next_operation]
+        assert "lw      t2, 0x0010(t1)" in wait_loop
+        assert "andi    t2, t2, 0x0003" in wait_loop
+        assert f"bnez    t2, {label}" in wait_loop
+
+
+def test_summercart_auto_probe_waits_for_pi_dma_and_io_idle():
+    resolver = PreviewAsm(transformed())._scope("resolve_preview_workaround_")
+    assert "lui     t1, 0xA460" in resolver
+    assert "lw      t2, 0x0010(t1)" in resolver
+    assert "andi    t2, t2, 0x0003" in resolver
+    assert "bnez    t2, _wait_for_pi" in resolver
+
+
+def test_auto_policy_enables_exact_summercart_and_caches_without_reprobing():
+    h = PreviewAsm(transformed(), policy=preview_gate.PREVIEW_POLICY_AUTO)
+    assert h.call_resolver() == 1
+    assert h.mem[h.symbols["css_preview_probe_identifier"]] == 0x53437632
+    key_writes = [event for event in h.events if event[0] == "sw" and event[1] == 0xBFFF0010]
+    assert [event[2] for event in key_writes] == [0, 0x5F554E4C, 0x4F434B5F]
+
+    h.mem[0xBFFF000C] = 0x000C000C
+    assert h.call_resolver() == 1
+    assert [event for event in h.events if event[0] == "sw" and event[1] == 0xBFFF0010] == key_writes
+
+
+def test_auto_policy_disables_open_bus_and_force_modes_never_probe_cart():
+    auto = PreviewAsm(
+        transformed(), policy=preview_gate.PREVIEW_POLICY_AUTO, cart_identifier=0x000C000C
+    )
+    assert auto.call_resolver() == 0
+
+    for policy, expected in (
+        (preview_gate.PREVIEW_POLICY_FORCE_ON, 1),
+        (preview_gate.PREVIEW_POLICY_FORCE_OFF, 0),
+    ):
+        h = PreviewAsm(transformed(), policy=policy, cart_identifier=0x53437632)
+        assert h.call_resolver() == expected
+        assert not [event for event in h.events if event[0] == "sw" and event[1] == 0xBFFF0010]
+
+
+def test_disabled_policy_restores_stock_gate_selection_sync_and_indicator_paths():
+    h = PreviewAsm(
+        transformed(), policy=preview_gate.PREVIEW_POLICY_AUTO, cart_identifier=0x000C000C
+    )
+    assert h.call_gate()
+    assert h.record() == (0xFF, 0, 0, 0)
+
+    panel = h.symbols["CSS_PLAYER_STRUCT"]
+    h.mem[panel + 8] = 0xA0000000
+    result = h.call_select(0, held=0, selected=1)
+    assert (result["v0"], result["v1"]) == h.native_selection_returns
+    assert h.loads == 0 and h.mem[panel + 8] == 0xA0000000
+
+    slots = h.symbols["dynamic_css.slot_used_by_port"]
+    h.mem[slots + 4] = 0x44332211
+    h.frame()
+    assert h.mem[slots] == 0x44332211
+    assert h.mem[h.symbols["css_preview_frame_serial"]] == 0
+
+    indicator = transformed()[transformed().index("        _draw_indicator:"):]
+    indicator = indicator[:indicator.index("        addiu   sp, sp,-0x0020")]
+    assert "jal     resolve_preview_workaround_" in indicator
+    assert "beqz    v0, _draw_stock_indicator" in indicator
+
+
+def test_disabled_stock_bypasses_are_mutation_resistant():
+    source = transformed()
+
+    gate_scope = PreviewAsm(source)._scope("selected_preview_make_gate_")
+    gate_branch = "        beqz    t5, _allow\n"
+    assert gate_scope.count(gate_branch) == 1
+    mutated_gate = source.replace(
+        gate_scope, gate_scope.replace(gate_branch, "        bnez    t5, _allow\n", 1), 1
+    )
+    with pytest.raises(AssertionError):
+        assert PreviewAsm(mutated_gate, cart_identifier=0x000C000C).call_gate()
+
+    select_scope = PreviewAsm(source)._scope("selected_preview_on_select_")
+    select_branch = "        beqz    t3, _stock_select\n"
+    assert select_scope.count(select_branch) == 1
+    mutated_select = source.replace(
+        select_scope, select_scope.replace(select_branch, "        bnez    t3, _stock_select\n", 1), 1
+    )
+    selected = PreviewAsm(mutated_select, cart_identifier=0x000C000C)
+    selected.call_select(0, held=0, selected=1)
+    with pytest.raises(AssertionError):
+        assert selected.loads == 0
+
+    sync_scope = PreviewAsm(source)._scope("sync_slot_used_by_port")
+    sync_branch = "        beqz    v0, _stock_sync\n"
+    assert sync_scope.count(sync_branch) == 1
+    mutated_sync = source.replace(
+        sync_scope, sync_scope.replace(sync_branch, "        bnez    v0, _stock_sync\n", 1), 1
+    )
+    synced = PreviewAsm(mutated_sync, cart_identifier=0x000C000C)
+    synced.frame()
+    with pytest.raises(AssertionError):
+        assert synced.mem[synced.symbols["css_preview_frame_serial"]] == 0
+
+
+def test_invalid_internal_preview_policy_is_rejected(monkeypatch):
+    monkeypatch.setattr(preview_gate, "PREVIEW_POLICY", 99)
+    with pytest.raises(ValueError, match="invalid CSS preview policy: 99"):
+        transform_character_select(PRISTINE_SOURCE)
 
 
 def test_reclaimer_uses_character_select_scoped_reset_symbol():
@@ -113,7 +413,8 @@ class PreviewAsm:
 
     def __init__(self, asm, mismatch=None, post_gate_mismatch=None, *, spill_caller_home=False,
                  destroy_mutation=None, destroy_clobber_callers=False,
-                 reset_mutation=None, reset_slot_effect=None, reset_clobber_callers=False):
+                 reset_mutation=None, reset_slot_effect=None, reset_clobber_callers=False,
+                 policy=0, cart_identifier=0x53437632):
         self.asm = asm
         self.mismatch = mismatch
         self.post_gate_mismatch = post_gate_mismatch
@@ -181,6 +482,15 @@ class PreviewAsm:
             "CSS_PREVIEW_ACTION_NONE": 0,
             "CSS_PREVIEW_ACTION_REVOKE": 1,
             "CSS_PREVIEW_OWNER_INACTIVE": 0xFFFFFFFF,
+            "CSS_PREVIEW_POLICY_AUTO": 0,
+            "CSS_PREVIEW_POLICY_FORCE_ON": 1,
+            "CSS_PREVIEW_POLICY_FORCE_OFF": 2,
+            "CSS_PREVIEW_POLICY": policy,
+            "CSS_PREVIEW_WORKAROUND_UNKNOWN": 0xFFFFFFFF,
+            "CSS_PREVIEW_WORKAROUND_DISABLED": 0,
+            "CSS_PREVIEW_WORKAROUND_ENABLED": 1,
+            "css_preview_workaround_enabled": 0x810000E0,
+            "css_preview_probe_identifier": 0x810000E4,
         }
         for slot in range(self.symbols["ACTIVE_HEAP_COUNT"]):
             self.symbols[f"dynamic_css.heap_slot_{slot}"] = 0x81000100 + slot * 0x10
@@ -188,7 +498,11 @@ class PreviewAsm:
                      ("sync_slot_used_by_port", "selected_preview_on_select_",
                       "selected_preview_make_gate_", "css_preview_frame_",
                       "ordered_preview_owner_", "refresh_preview_policy_", "record_dynamic_slot_binding_",
-                      "reclaim_retired_slot_")}
+                      "reclaim_retired_slot_", "resolve_preview_workaround_")}
+        self.mem[self.symbols["css_preview_workaround_enabled"]] = 0xFFFFFFFF
+        self.mem[self.symbols["css_preview_probe_identifier"]] = 0xFFFFFFFF
+        self.mem[0xA4600010] = 0
+        self.mem[0xBFFF000C] = cart_identifier
         self.mem[self.symbols["forced_selected_preview_owner"]] = 0xFFFFFFFF
         self.mem[self.symbols["css_preview_owner"]] = 0xFFFFFFFF
         self.mem[self.symbols["css_preview_policy_owner"]] = 0xFFFFFFFF
@@ -341,6 +655,9 @@ class PreviewAsm:
                                                           "a1": player,
                                                           "v0": self.mem[base + 0x4C] if variant is None else variant,
                                                           "sp": 0x90010000, "ra": 0})
+
+    def call_resolver(self):
+        return self.run("resolve_preview_workaround_", {"sp": 0x90010000, "ra": 0})["v0"]
 
     def call_ordered_owner(self):
         return self.run("ordered_preview_owner_", {"ra": 0})["v1"]
@@ -546,7 +863,8 @@ class PreviewAsm:
             value = self.val(a[0], regs)
             self.mem.write_byte(address, value)
             self.events.append(("sb", address, value & 0xFF))
-        elif op == "or": regs[a[0]] = self.val(a[1], regs) | self.val(a[2], regs)
+        elif op in {"or", "ori"}: regs[a[0]] = self.val(a[1], regs) | self.val(a[2], regs)
+        elif op == "andi": regs[a[0]] = self.val(a[1], regs) & self.val(a[2], regs)
         elif op == "addu": regs[a[0]] = (self.val(a[1], regs) + self.val(a[2], regs)) & 0xFFFFFFFF
         elif op == "subu": regs[a[0]] = (self.val(a[1], regs) - self.val(a[2], regs)) & 0xFFFFFFFF
         elif op == "addiu": regs[a[0]] = (self.val(a[1], regs) + int(a[2], 0)) & 0xFFFFFFFF
@@ -1283,7 +1601,7 @@ def test_transform_and_selection_wrapper_fail_closed_on_known_corruption():
             transform_character_select(source)
 
 
-def test_edit_src_files_transforms_character_select_once(tmp_path, monkeypatch):
+def test_edit_src_files_transforms_character_select_once_and_leaves_boot_clean(tmp_path, monkeypatch):
     import character_appender
     from character_appender import CharacterAppender
 
@@ -1291,7 +1609,9 @@ def test_edit_src_files_transforms_character_select_once(tmp_path, monkeypatch):
     rom_root = tmp_path / "smashremix"; (rom_root / "roms").mkdir(parents=True)
     (rom_root / "roms" / "original_extra.z64").write_bytes(b"rom")
     (tmp_path / "src").mkdir(); target = tmp_path / "src" / "CharacterSelect.asm"
+    boot_target = tmp_path / "src" / "Boot.asm"
     target.write_text(PRISTINE_SOURCE, encoding="utf-8")
+    boot_target.write_text(PRISTINE_BOOT, encoding="utf-8")
     monkeypatch.setattr(character_appender, "smashremix_path", str(rom_root))
     appender = object.__new__(CharacterAppender)
     for method in (
@@ -1306,6 +1626,7 @@ def test_edit_src_files_transforms_character_select_once(tmp_path, monkeypatch):
     appender.selected_preview_transform = transform_character_select
     appender.edit_src_files()
     assert target.read_text(encoding="utf-8").count(MARKER) == 1
+    assert boot_target.read_text(encoding="utf-8") == PRISTINE_BOOT
 
 
 def test_harness_big_endian_byte_ops_cohere_with_word_memory_and_sign_extend():

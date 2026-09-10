@@ -295,7 +295,7 @@ class CharacterAppender:
         self._patch_selected_preview_gate()
 
     def _patch_selected_preview_gate(self):
-        """Apply the fail-closed selected-only preview transform once."""
+        """Apply the SummerCart-aware preview gate."""
         path = "src/CharacterSelect.asm"
         with open(path, "r", encoding="utf-8") as source_file:
             source = source_file.read()
