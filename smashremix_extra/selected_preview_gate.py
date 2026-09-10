@@ -2,7 +2,57 @@
 
 import re
 
-MARKER = "// +EXTRA selected-only VS CSS previews v2"
+PREVIEW_POLICY_AUTO = 0
+PREVIEW_POLICY_FORCE_ON = 1
+PREVIEW_POLICY_FORCE_OFF = 2
+PREVIEW_POLICY = PREVIEW_POLICY_AUTO
+PREVIEW_PROBE_WAIT_EACH_IO = True
+
+MARKER = "// +EXTRA selected-only VS CSS previews v3"
+TITLE_DIAGNOSTIC_MARKER = "// +EXTRA SummerCart raw identifier diagnostic v2"
+_WAIT_EACH_IO_TOKEN = "__PREVIEW_PROBE_WAIT_EACH_IO__"
+_WAIT_UNLOCK_1_TOKEN = "__PREVIEW_PROBE_WAIT_UNLOCK_1__"
+_WAIT_UNLOCK_2_TOKEN = "__PREVIEW_PROBE_WAIT_UNLOCK_2__"
+_WAIT_IDENTIFIER_TOKEN = "__PREVIEW_PROBE_WAIT_IDENTIFIER__"
+
+_BOOT_VERSION_DRAW = "        Render.draw_string(1, 3, string_version, Render.NOOP, 0x43200000, 0x435A0000, 0x888800FF, 0x3F700000, Render.alignment.CENTER)"
+_BOOT_VERSION_PATTERN = re.compile(
+    r'^(?P<indent>\s*)string_version:; String\.insert\("(?P<version>[^"\r\n]*)"\)\s*$',
+    re.MULTILINE,
+)
+_BOOT_DIAGNOSTIC_DRAW = f"""        {TITLE_DIAGNOSTIC_MARKER}
+        jal     CharacterSelect.resolve_preview_workaround_
+        nop
+        li      t0, CharacterSelect.css_preview_probe_identifier
+        lw      t0, 0x0000(t0)
+        li      t1, string_probe_identifier + 4
+        lli     t2, 0x0008
+        _format_probe_identifier:
+        srl     t3, t0, 0x001C
+        sltiu   t4, t3, 0x000A
+        bnez    t4, _store_probe_digit
+        addiu   t5, t3, 0x0030
+        addiu   t5, t3, 0x0037
+        _store_probe_digit:
+        sb      t5, 0x0000(t1)
+        sll     t0, t0, 0x0004
+        addiu   t1, t1, 0x0001
+        addiu   t2, t2, -0x0001
+        bnez    t2, _format_probe_identifier
+        nop
+{_BOOT_VERSION_DRAW}
+        Render.draw_string(1, 3, string_probe_identifier, Render.NOOP, 0x43200000, 0x43660000, 0x888800FF, 0x3F700000, Render.alignment.CENTER)"""
+_BOOT_PROBE_STRING = 'string_probe_identifier:; String.insert("[ID:00000000]")'
+
+
+def _pi_wait_block(label: str) -> str:
+    return f"""        lui     t1, 0xA460
+        {label}:
+        lw      t2, 0x0010(t1)
+        andi    t2, t2, 0x0003
+        bnez    t2, {label}
+        nop
+"""
 
 _SYNC_PRISTINE = """    scope sync_slot_used_by_port: {
         li      t0, dynamic_css.slot_used_by_port
@@ -17,6 +67,11 @@ _SYNC_CANONICAL = """    scope sync_slot_used_by_port: {
         sw      ra, 0x002C(sp)
         sw      t2, 0x0028(sp)
         sw      t3, 0x0024(sp)
+        sw      v0, 0x0020(sp)
+        jal     resolve_preview_workaround_
+        nop
+        beqz    v0, _stock_sync
+        nop
         li      t2, css_preview_dispatch_state
         lw      t3, 0x0000(t2)
         bnez    t3, _nested_return        // nested dispatch has no clock or lifecycle authority
@@ -34,7 +89,14 @@ _SYNC_CANONICAL = """    scope sync_slot_used_by_port: {
         nop
         li      t2, css_preview_dispatch_state
         sw      r0, 0x0000(t2)
+        b       _nested_return
+        nop
+        _stock_sync:
+        li      t0, dynamic_css.slot_used_by_port
+        lw      t1, 0x0004(t0)              // curr_slot_used_by_port
+        sw      t1, 0x0000(t0)              // preserve stock slot synchronization
         _nested_return:
+        lw      v0, 0x0020(sp)
         lw      t3, 0x0024(sp)
         lw      t2, 0x0028(sp)
         lw      ra, 0x002C(sp)
@@ -70,15 +132,28 @@ _STOCK_INDICATOR_CANONICAL = """        _draw_indicator:
         li      t1, Character.id.NONE
         beq     t1, s3, _next               // skip drawing if no character displayed
         nop
+        jal     resolve_preview_workaround_
+        nop
+        beqz    v0, _draw_stock_indicator   // disabled policy retains stock hover indicators
+        nop
         lw      t1, 0x0088(s2)              // t1 = character selected state
         beqz    t1, _next                    // selected-only previews have no hover fighter object
         nop
+        _draw_stock_indicator:
         addiu   sp, sp,-0x0020              // allocate stack space
 """
 
 _BLOCK = f"""
 
     {MARKER}
+    constant CSS_PREVIEW_POLICY_AUTO({PREVIEW_POLICY_AUTO})
+    constant CSS_PREVIEW_POLICY_FORCE_ON({PREVIEW_POLICY_FORCE_ON})
+    constant CSS_PREVIEW_POLICY_FORCE_OFF({PREVIEW_POLICY_FORCE_OFF})
+    constant CSS_PREVIEW_POLICY({PREVIEW_POLICY})
+    constant CSS_PREVIEW_WAIT_EACH_IO({_WAIT_EACH_IO_TOKEN})
+    constant CSS_PREVIEW_WORKAROUND_UNKNOWN(0xFFFFFFFF)
+    constant CSS_PREVIEW_WORKAROUND_DISABLED(0)
+    constant CSS_PREVIEW_WORKAROUND_ENABLED(1)
     constant CSS_PREVIEW_DEBOUNCE_FRAMES(18)
     constant CSS_PREVIEW_SUPPRESSED(0)
     constant CSS_PREVIEW_WAITING(1)
@@ -90,6 +165,10 @@ _BLOCK = f"""
     constant CSS_PREVIEW_ACTION_REVOKE(1)
     constant FORCE_SELECTED_PREVIEW_OWNER_INACTIVE(0xFFFFFFFF)
     constant CSS_PREVIEW_OWNER_INACTIVE(0xFFFFFFFF)
+    css_preview_workaround_enabled:
+    dw CSS_PREVIEW_WORKAROUND_UNKNOWN
+    css_preview_probe_identifier:
+    dw CSS_PREVIEW_WORKAROUND_UNKNOWN
     forced_selected_preview_owner:
     dw FORCE_SELECTED_PREVIEW_OWNER_INACTIVE
     // One serialized preview record, shared by P1/P2/P3/P4 while the fixed prefix is open.
@@ -126,6 +205,66 @@ _BLOCK = f"""
     jal     selected_preview_on_select_
     sw      v1, 0x0018(sp)              // original delay slot
     OS.patch_end()
+
+    // Resolve once. AUTO enables only for the documented SummerCart64 "SCv2" identifier.
+    scope resolve_preview_workaround_: {{
+        li      t0, css_preview_workaround_enabled
+        lw      v0, 0x0000(t0)
+        li      t1, CSS_PREVIEW_WORKAROUND_UNKNOWN
+        bne     v0, t1, _return
+        nop
+
+        lli     t1, CSS_PREVIEW_POLICY_FORCE_ON
+        lli     t2, CSS_PREVIEW_POLICY
+        beq     t2, t1, _enable
+        nop
+        lli     t1, CSS_PREVIEW_POLICY_FORCE_OFF
+        beq     t2, t1, _disable
+        nop
+
+        // Match libcart's direct-I/O safety rule before touching cartridge registers.
+        lui     t1, 0xA460
+        _wait_for_pi:
+        lw      t2, 0x0010(t1)
+        andi    t2, t2, 0x0003           // PI_STATUS_DMA_BUSY | PI_STATUS_IO_BUSY
+        bnez    t2, _wait_for_pi
+        nop
+
+        // SC64 registers are locked after cold boot/NMI. KEY always accepts this sequence.
+        lui     t1, 0xBFFF
+        sw      r0, 0x0010(t1)
+{_WAIT_UNLOCK_1_TOKEN}
+        lui     t1, 0xBFFF
+        lui     t2, 0x5F55
+        ori     t2, t2, 0x4E4C
+        sw      t2, 0x0010(t1)
+{_WAIT_UNLOCK_2_TOKEN}
+        lui     t1, 0xBFFF
+        lui     t2, 0x4F43
+        ori     t2, t2, 0x4B5F
+        sw      t2, 0x0010(t1)
+{_WAIT_IDENTIFIER_TOKEN}
+        lui     t1, 0xBFFF
+        lw      t2, 0x000C(t1)
+        li      t3, css_preview_probe_identifier
+        sw      t2, 0x0000(t3)
+        lui     t3, 0x5343
+        ori     t3, t3, 0x7632
+        beq     t2, t3, _enable
+        nop
+
+        _disable:
+        lli     v0, CSS_PREVIEW_WORKAROUND_DISABLED
+        b       _cache
+        nop
+        _enable:
+        lli     v0, CSS_PREVIEW_WORKAROUND_ENABLED
+        _cache:
+        sw      v0, 0x0000(t0)
+        _return:
+        jr      ra
+        nop
+    }}
 
     // Pure fixed-prefix eligibility: P1..P4 must stay open in order.
     scope ordered_preview_owner_: {{
@@ -224,6 +363,25 @@ _BLOCK = f"""
     }}
 
     scope selected_preview_on_select_: {{
+        // Preserve the patched call's inputs while resolving the runtime policy.
+        addiu   sp, sp, -0x0030
+        sw      ra, 0x002C(sp)
+        sw      a0, 0x0028(sp)
+        sw      a1, 0x0024(sp)
+        sw      a2, 0x0020(sp)
+        sw      a3, 0x001C(sp)
+        jal     resolve_preview_workaround_
+        nop
+        or      t3, v0, r0
+        lw      a3, 0x001C(sp)
+        lw      a2, 0x0020(sp)
+        lw      a1, 0x0024(sp)
+        lw      a0, 0x0028(sp)
+        lw      ra, 0x002C(sp)
+        addiu   sp, sp, 0x0030
+        beqz    t3, _stock_select
+        nop
+
         sltiu   t3, a0, 0x0004           // stock puck/player index is unsigned 0..3
         bnez    t3, _valid_puck
         nop
@@ -336,9 +494,30 @@ _BLOCK = f"""
         sw      v1, 0x001C(sp)
         b       _return
         nop
+
+        _stock_select:
+        j       0x80131C74                // disabled policy retains stock selection behavior
+        nop
     }}
 
     scope selected_preview_make_gate_: {{
+        // Preserve the native construction hook inputs while resolving the runtime policy.
+        addiu   sp, sp, -0x0020
+        sw      ra, 0x001C(sp)
+        sw      a0, 0x0018(sp)
+        sw      a1, 0x0014(sp)
+        sw      v0, 0x0010(sp)
+        jal     resolve_preview_workaround_
+        nop
+        or      t5, v0, r0
+        lw      v0, 0x0010(sp)
+        lw      a1, 0x0014(sp)
+        lw      a0, 0x0018(sp)
+        lw      ra, 0x001C(sp)
+        addiu   sp, sp, 0x0020
+        beqz    t5, _allow
+        nop
+
         sltiu   t5, a1, 0x0004           // native player index is unsigned 0..3
         beqz    t5, _return
         nop
@@ -939,6 +1118,13 @@ _BLOCK = f"""
 
 def transform_character_select(source: str) -> str:
     """Insert the gate only into the exact pristine CSS transform region."""
+    if PREVIEW_POLICY not in {
+        PREVIEW_POLICY_AUTO,
+        PREVIEW_POLICY_FORCE_ON,
+        PREVIEW_POLICY_FORCE_OFF,
+    }:
+        raise ValueError(f"invalid CSS preview policy: {PREVIEW_POLICY}")
+
     if _LEGACY_MARKER.search(source):
         raise ValueError("legacy CSS preview marker present")
 
@@ -958,7 +1144,20 @@ def transform_character_select(source: str) -> str:
     end = source.index(_TRAINING_ANCHOR, start) + len(_TRAINING_ANCHOR)
     region = source[start:end]
     pristine_region = _ANCHOR + _TRAINING_ANCHOR
-    canonical_region = _ANCHOR + _BLOCK + _TRAINING_ANCHOR
+    block = _BLOCK.replace(
+        _WAIT_EACH_IO_TOKEN,
+        str(int(PREVIEW_PROBE_WAIT_EACH_IO)),
+    )
+    for token, label in (
+        (_WAIT_UNLOCK_1_TOKEN, "_wait_for_pi_unlock_1"),
+        (_WAIT_UNLOCK_2_TOKEN, "_wait_for_pi_unlock_2"),
+        (_WAIT_IDENTIFIER_TOKEN, "_wait_for_pi_identifier"),
+    ):
+        block = block.replace(
+            token,
+            _pi_wait_block(label) if PREVIEW_PROBE_WAIT_EACH_IO else "",
+        )
+    canonical_region = _ANCHOR + block + _TRAINING_ANCHOR
     if region == canonical_region:
         transformed = source
     elif region == pristine_region:
@@ -992,3 +1191,36 @@ def transform_character_select(source: str) -> str:
         "expected exactly one pristine or canonical stock-indicator hover guard, found "
         f"{pristine_stock_count} and {canonical_stock_count}"
     )
+
+
+def transform_boot_title_diagnostic(source: str) -> str:
+    """Draw the cached SC64 probe identifier as centered title telemetry."""
+    marker_count = source.count(TITLE_DIAGNOSTIC_MARKER)
+    if marker_count == 1:
+        version_matches = list(_BOOT_VERSION_PATTERN.finditer(source))
+        if (
+            len(version_matches) == 1
+            and source.count(_BOOT_DIAGNOSTIC_DRAW) == 1
+            and source.count(_BOOT_PROBE_STRING) == 1
+        ):
+            return source
+        raise ValueError("SummerCart title diagnostic is not canonical")
+    if marker_count:
+        raise ValueError("duplicate SummerCart title diagnostic marker")
+
+    draw_count = source.count(_BOOT_VERSION_DRAW)
+    version_matches = list(_BOOT_VERSION_PATTERN.finditer(source))
+    if draw_count != 1 or len(version_matches) != 1:
+        raise ValueError(
+            "expected exactly one pristine title version draw and string, found "
+            f"{draw_count} and {len(version_matches)}"
+        )
+
+    transformed = source.replace(_BOOT_VERSION_DRAW, _BOOT_DIAGNOSTIC_DRAW, 1)
+
+    version_match = _BOOT_VERSION_PATTERN.search(transformed)
+    if version_match is None:
+        raise ValueError("title version string disappeared during diagnostic transform")
+    indent = version_match.group("indent")
+    probe_string = f"{indent}{_BOOT_PROBE_STRING}"
+    return transformed[:version_match.end()] + "\n" + probe_string + transformed[version_match.end():]
